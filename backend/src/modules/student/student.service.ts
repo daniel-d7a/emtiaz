@@ -27,9 +27,6 @@ const norm = (s: string) => s.trim().toLowerCase();
 
 @Injectable()
 export class StudentService {
-  static genJoinCode() {
-    return `OM${Math.floor(100000 + Math.random() * 900000)}`;
-  }
 
   private async assertEnrolled(studentId: string, groupId: string) {
     const rows = await db

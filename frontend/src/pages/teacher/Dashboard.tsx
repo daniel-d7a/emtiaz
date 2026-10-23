@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, ListTree, FileUp } from 'lucide-react';
+import { Eye, EyeOff, FileUp, ListTree, Plus, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
@@ -12,6 +12,7 @@ type Course = {
   description: string | null;
   courseType: 'ACADEMIC' | 'GENERAL';
   semester: string | null;
+  isPublished: boolean;
   groups: Array<{ id: string; name: string; joinCode: string }>;
 };
 
@@ -107,6 +108,16 @@ export default function TeacherDashboard() {
               </div>
               <h3 className="text-lg font-bold">{c.title}</h3>
               <div className="mt-3 flex flex-col gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <AddGroup courseId={c.id} />
+                  <button
+                    onClick={() => api(`/api/teacher/courses/${c.id}`, { method: 'PATCH', body: { isPublished: !c.isPublished } }).then(() => qc.invalidateQueries({ queryKey: ['teacher-courses'] }))}
+                    className="flex items-center gap-2 text-ink-soft hover:text-primary"
+                  >
+                    {c.isPublished ? <Eye size={16} /> : <EyeOff size={16} />}
+                    {c.isPublished ? t('active') : t('suspended')}
+                  </button>
+                </div>
                 <Link to={`/teacher/courses/${c.id}/curriculum`} className="flex items-center gap-2 font-semibold text-primary">
                   <ListTree size={16} /> {t('curriculum')}
                 </Link>
@@ -128,5 +139,44 @@ export default function TeacherDashboard() {
         </div>
       )}
     </Page>
+  );
+}
+
+function AddGroup({ courseId }: { courseId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [name, setName] = useState('');
+  const [open, setOpen] = useState(false);
+  const add = useMutation({
+    mutationFn: () => api(`/api/teacher/courses/${courseId}/groups`, { body: { name } }),
+    onSuccess: () => {
+      setName('');
+      setOpen(false);
+      return qc.invalidateQueries({ queryKey: ['teacher-courses'] });
+    },
+  });
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="flex items-center gap-2 font-semibold text-primary">
+        <Plus size={16} /> {t('newGroup')}
+      </button>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2">
+      <input
+        className="w-36 rounded-lg border border-line px-2 py-1 text-sm"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder={t('newGroup')}
+        autoFocus
+        onKeyDown={(e) => e.key === 'Enter' && add.mutate()}
+      />
+      <button onClick={() => add.mutate()} disabled={!name.trim()} className="font-semibold text-primary">
+        {t('add')}
+      </button>
+      {add.error && <ErrorBox error={add.error} />}
+    </span>
   );
 }

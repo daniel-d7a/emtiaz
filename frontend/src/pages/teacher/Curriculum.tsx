@@ -25,6 +25,14 @@ type Curriculum = Array<{
   }>;
 }>;
 
+function swap<T>(arr: T[], i: number, dir: -1 | 1): T[] {
+  const j = i + dir;
+  if (j < 0 || j >= arr.length) return arr;
+  const next = [...arr];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
+
 export default function TeacherCurriculum() {
   const { courseId = '' } = useParams();
   const { t } = useLang();
@@ -49,7 +57,21 @@ export default function TeacherCurriculum() {
     <Page title={t('curriculum')}>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <div className="flex flex-col gap-6">
-          {data?.map((mod) => <ModuleCard key={mod.id} mod={mod} courseId={courseId} focusLessonId={location.state?.lessonId} />)}
+          {data?.map((mod, mi) => (
+            <ModuleCard
+              key={mod.id}
+              mod={mod}
+              courseId={courseId}
+              focusLessonId={location.state?.lessonId}
+              canUp={mi > 0}
+              canDown={mi < data.length - 1}
+              onMoveModule={(dir) =>
+                api(`/api/teacher/courses/${courseId}/modules/reorder`, {
+                  body: { moduleIds: swap(data.map((m) => m.id), mi, dir) },
+                }).then(() => qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] }))
+              }
+            />
+          ))}
 
           <Card>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -68,7 +90,14 @@ export default function TeacherCurriculum() {
   );
 }
 
-function ModuleCard({ mod, courseId, focusLessonId }: { mod: Curriculum[0]; courseId: string; focusLessonId?: string }) {
+function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule }: {
+  mod: Curriculum[0];
+  courseId: string;
+  focusLessonId?: string;
+  canUp: boolean;
+  canDown: boolean;
+  onMoveModule?: (dir: -1 | 1) => void;
+}) {
   const { t } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
@@ -87,18 +116,38 @@ function ModuleCard({ mod, courseId, focusLessonId }: { mod: Curriculum[0]; cour
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <button className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
-          <ChevronDown className={`transition ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
-          {mod.title}
-        </button>
+        <div className="flex grow items-center gap-2">
+          {(canUp || canDown) && (
+            <span className="flex flex-col gap-0">
+              <button disabled={!canUp} onClick={() => onMoveModule?.(-1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▲</button>
+              <button disabled={!canDown} onClick={() => onMoveModule?.(1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▼</button>
+            </span>
+          )}
+          <button className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
+            <ChevronDown className={`transition ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
+            {mod.title}
+          </button>
+        </div>
         <button onClick={() => delModule.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={16} />
         </button>
       </div>
       {open && (
         <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
-          {mod.lessons.map((l) => (
-            <LessonEditor key={l.id} lesson={l} courseId={courseId} autoFocus={l.id === focusLessonId} />
+          {mod.lessons.map((l, li) => (
+            <LessonEditor
+              key={l.id}
+              lesson={l}
+              courseId={courseId}
+              autoFocus={l.id === focusLessonId}
+              canUp={li > 0}
+              canDown={li < mod.lessons.length - 1}
+              onMove={(dir) =>
+                api(`/api/teacher/modules/${mod.id}/lessons/reorder`, {
+                  body: { lessonIds: swap(mod.lessons.map((x) => x.id), li, dir) },
+                }).then(invalidate)
+              }
+            />
           ))}
           <div className="flex gap-2">
             <Input value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder={t('newLesson')} label={t('newLesson')} />
@@ -113,7 +162,14 @@ function ModuleCard({ mod, courseId, focusLessonId }: { mod: Curriculum[0]; cour
   );
 }
 
-function LessonEditor({ lesson, courseId, autoFocus }: { lesson: Curriculum[0]['lessons'][0]; courseId: string; autoFocus?: boolean }) {
+function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
+  lesson: Curriculum[0]['lessons'][0];
+  courseId: string;
+  autoFocus?: boolean;
+  canUp: boolean;
+  canDown: boolean;
+  onMove: (dir: -1 | 1) => void;
+}) {
   const { t } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(!!autoFocus);
@@ -133,7 +189,15 @@ function LessonEditor({ lesson, courseId, autoFocus }: { lesson: Curriculum[0]['
   return (
     <div className="rounded-xl border border-line bg-background/60 p-3">
       <div className="flex items-center justify-between gap-2">
-        <button className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
+        <div className="flex grow items-center gap-1">
+          {(canUp || canDown) && (
+            <span className="flex flex-col gap-0">
+              <button disabled={!canUp} onClick={() => onMove(-1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▲</button>
+              <button disabled={!canDown} onClick={() => onMove(1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▼</button>
+            </span>
+          )}
+          <button className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
+        </div>
         <button onClick={() => del.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={14} />
         </button>
