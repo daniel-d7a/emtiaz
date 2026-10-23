@@ -50,10 +50,11 @@ export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; 
           <Text style={s.h1}>{result.score} / {result.maxScore}</Text>
           {result.result.map((r: any, i: number) => (
             <Card key={r.questionId}>
-              <Text style={{ fontWeight: '700' }}>{r.correct ? '✓ أوابك' : '✗ خطأ'} — سؤال {i + 1}</Text>
+              <Text style={{ fontWeight: '700' }}>{r.correct ? '✓ صحيح' : '✗ خطأ'} — سؤال {i + 1}</Text>
               <Text style={{ color: c.inkSoft }}>الجواب الصحيح: {r.expected}{r.explanation ? ` — ${r.explanation}` : ''}</Text>
             </Card>
           ))}
+          <Btn label="إعادة المحاولة" variant="ghost" onPress={() => { setResult(null); setAnswers({}); setError(null); }} />
         </>
       ) : (
         <>
