@@ -62,6 +62,27 @@ describe('Phase 2: auth & onboarding', () => {
     expect(res.body.user.role).toBe('STUDENT');
   });
 
+  it('PATCH /api/me updates teacher name and phone, empty phone clears it', async () => {
+    const s = request.agent(server);
+    await s.post('/api/auth/sign-in/email').send({ email: 'salim@teacher.om', password: 'Passw0rd!123' });
+    const res = await s
+      .patch('/api/me')
+      .send({ name: 'Salim B', phoneNumber: '+96891119999', specialization: 'Physics' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ name: 'Salim B', phoneNumber: '+96891119999', specialization: 'Physics' });
+    const res2 = await s.patch('/api/me').send({ phoneNumber: '' });
+    expect(res2.status).toBe(200);
+    expect(res2.body.phoneNumber).toBeNull();
+    const res3 = await s.patch('/api/me').send({});
+    expect(res3.status).toBe(200);
+    expect(res3.body.name).toBe('Salim B'); // no-op still returns profile
+  });
+
+  it('blocks /api/me for anonymous users', async () => {
+    const res = await request(server).patch('/api/me').send({ name: 'X' });
+    expect(res.status).toBe(403);
+  });
+
   it('signs in via better-auth and cookie reaches guarded endpoints', async () => {
     const s = request.agent(server);
     const login = await s
