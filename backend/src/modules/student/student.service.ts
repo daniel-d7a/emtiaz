@@ -7,6 +7,7 @@ import {
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { db } from '../../db';
 import {
+  categories,
   courses,
   groupLessonAccess,
   groupStudents,
@@ -48,12 +49,13 @@ export class StudentService {
       .select({
         group: groups,
         course: courses,
-        teacher: { name: users.name, specialization: users.specialization },
+        teacher: { name: users.name, subject: categories.name },
       })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
       .innerJoin(courses, eq(groups.courseId, courses.id))
       .innerJoin(users, eq(courses.teacherId, users.id))
+      .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
       .where(eq(groupStudents.studentId, studentId));
 
     if (!enrolled.length) return [];

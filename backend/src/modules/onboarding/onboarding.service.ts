@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { and, asc, eq, ilike } from 'drizzle-orm';
 import { db } from '../../db';
-import { courses, groupStudents, groups, users } from '../../db/schema';
+import { categories, courses, groupStudents, groups, users } from '../../db/schema';
 import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -58,14 +58,34 @@ export class OnboardingService {
     );
   }
 
+  /** Free-text subject from signup/profile forms normalizes into the shared taxonomy (case-insensitive ensure). */
+  async ensureCategory(name?: string) {
+    const trimmed = name?.trim();
+    if (!trimmed) throw new BadRequestException('subject is required');
+    const [existing] = await db
+      .select()
+      .from(categories)
+      .where(ilike(categories.name, trimmed))
+      .limit(1);
+    if (existing) return existing;
+    const [created] = await db.insert(categories).values({ name: trimmed }).returning();
+    return created;
+  }
+
+  listCategories() {
+    return db.select().from(categories).orderBy(asc(categories.name));
+  }
+
   async updateMe(
     userId: string,
-    dto: Partial<{ name: string; phoneNumber: string; specialization: string }>,
+    dto: Partial<{ name: string; phoneNumber: string; subject: string }>,
   ) {
     const allowed: Partial<typeof schema.users.$inferInsert> = {};
     if (dto.name !== undefined && dto.name.trim()) allowed.name = dto.name.trim();
     if (dto.phoneNumber !== undefined) allowed.phoneNumber = dto.phoneNumber.trim() || null;
-    if (dto.specialization !== undefined) allowed.specialization = dto.specialization.trim() || null;
+    if (dto.subject !== undefined) {
+      allowed.subjectCategoryId = (await this.ensureCategory(dto.subject)).id;
+    }
     if (!Object.keys(allowed).length) {
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       if (!user) throw new NotFoundException('User not found');

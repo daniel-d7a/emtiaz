@@ -24,7 +24,10 @@ export class AdminController {
 
   @Get('api/admin/teachers')
   @Roles('ADMIN')
-  teachers(@Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string }) {
+  teachers(
+    @Query()
+    q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; subjectId?: string },
+  ) {
     return this.admin.listTeachers(q);
   }
 

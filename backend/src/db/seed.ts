@@ -19,7 +19,7 @@ import { eq } from 'drizzle-orm';
 
 const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? 'demo-password';
 
-async function signUp(name: string, email: string, password: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT', extra: { phoneNumber?: string; specialization?: string; gradeId?: string } = {}) {
+async function signUp(name: string, email: string, password: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT', extra: { phoneNumber?: string; gradeId?: string } = {}) {
   try {
     const { response, error } = (await auth.api.signUpEmail({
       body: { name, email, password, role, ...extra },
@@ -47,6 +47,12 @@ async function signUp(name: string, email: string, password: string, role: 'ADMI
     }
     return existingUser.id;
   }
+}
+
+async function getOrCreateCategory(name: string) {
+  const [existing] = await db.select().from(categories).where(eq(categories.name, name));
+  if (existing) return existing;
+  return (await db.insert(categories).values({ name }).returning())[0];
 }
 
 const joinCode = () => `OM${Math.floor(100000 + Math.random() * 900000)}`;
@@ -132,12 +138,12 @@ async function seedDemo() {
   // always ensure the demo users exist (same email: reused if demo password works, else wiped + recreated)
   const teacher1 = await signUp('Salim Al Balushi', 'salim@teacher.om', DEMO_PASSWORD, 'TEACHER', {
     phoneNumber: '+96894000001',
-    specialization: 'Sciences',
   });
+  await db.update(users).set({ subjectCategoryId: (await getOrCreateCategory('Sciences')).id }).where(eq(users.id, teacher1));
   const teacher2 = await signUp('Fatma Al Hinai', 'fatma@teacher.om', DEMO_PASSWORD, 'TEACHER', {
     phoneNumber: '+96894000002',
-    specialization: 'Languages',
   });
+  await db.update(users).set({ subjectCategoryId: (await getOrCreateCategory('Languages')).id }).where(eq(users.id, teacher2));
   const studentIds: string[] = [];
   for (let i = 1; i <= 6; i++) {
     studentIds.push(await signUp(`Student ${i}`, `student${i}@demo.om`, DEMO_PASSWORD, 'STUDENT', { phoneNumber: `+96894100006${i}` }));

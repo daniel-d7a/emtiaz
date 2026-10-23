@@ -27,9 +27,10 @@ export class OnboardingController {
       email: string;
       password: string;
       phoneNumber?: string;
-      specialization?: string;
+      subject: string;
     },
   ) {
+    const subjectCategoryId = (await this.onboarding.ensureCategory(dto.subject)).id;
     const data = await auth.api.signUpEmail({
       body: {
         name: dto.name,
@@ -37,7 +38,7 @@ export class OnboardingController {
         password: dto.password,
         role: 'TEACHER',
         phoneNumber: dto.phoneNumber,
-        specialization: dto.specialization,
+        subjectCategoryId,
       },
       returnHeaders: true,
     });
@@ -77,9 +78,16 @@ export class OnboardingController {
   @Roles('TEACHER', 'STUDENT', 'ADMIN')
   me(
     @Req() req: Request,
-    @Body() dto: { name?: string; phoneNumber?: string; specialization?: string },
+    @Body() dto: { name?: string; phoneNumber?: string; subject?: string },
   ) {
     return this.onboarding.updateMe(req.user!.id, dto);
+  }
+
+  /** Public subject list for signup dropdowns & grouping filters. */
+  @Public()
+  @Get('api/categories')
+  listCategories() {
+    return this.onboarding.listCategories();
   }
 
   @Public()

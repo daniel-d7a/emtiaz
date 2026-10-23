@@ -54,10 +54,15 @@ export class AdminService {
     };
   }
 
-  async listTeachers(filters: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string }) {
+  async listTeachers(filters: {
+    status?: 'ACTIVE' | 'SUSPENDED';
+    search?: string;
+    subjectId?: string;
+  }) {
     const conditions = [eq(users.role, 'TEACHER')];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
+    if (filters.subjectId) conditions.push(eq(users.subjectCategoryId, filters.subjectId));
     if (filters.search) {
       conditions.push(
         or(
@@ -68,8 +73,19 @@ export class AdminService {
       );
     }
     return db
-      .select()
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        subjectCategoryId: users.subjectCategoryId,
+        subject: { id: categories.id, name: categories.name },
+      })
       .from(users)
+      .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
       .where(and(...conditions))
       .orderBy(asc(users.name));
   }

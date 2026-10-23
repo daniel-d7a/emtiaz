@@ -43,10 +43,20 @@ describe('Phase 2: auth & onboarding', () => {
         email: 'salim@teacher.om',
         password: 'Passw0rd!123',
         phoneNumber: '+96891110001',
-        specialization: 'Math',
+        subject: 'Math',
       });
     expect(res.status).toBe(201);
     expect(res.body.user.role).toBe('TEACHER');
+    const { rows } = await pool.query(
+      "SELECT u.subject_category_id, c.name FROM \"user\" u JOIN categories c ON c.id=u.subject_category_id WHERE u.email='salim@teacher.om'",
+    );
+    expect(rows[0]).toMatchObject({ name: 'Math', subject_category_id: expect.any(String) });
+  });
+  it('teacher signup without a subject is rejected (400)', async () => {
+    const res = await request(server)
+      .post('/api/onboarding/teacher')
+      .send({ name: 'No Subject', email: 'nosubject@teacher.om', password: 'Passw0rd!123' });
+    expect(res.status).toBe(400);
   });
 
   it('registers a student via onboarding with default role STUDENT', async () => {
@@ -67,9 +77,10 @@ describe('Phase 2: auth & onboarding', () => {
     await s.post('/api/auth/sign-in/email').send({ email: 'salim@teacher.om', password: 'Passw0rd!123' });
     const res = await s
       .patch('/api/me')
-      .send({ name: 'Salim B', phoneNumber: '+96891119999', specialization: 'Physics' });
+      .send({ name: 'Salim B', phoneNumber: '+96891119999', subject: 'Physics' });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ name: 'Salim B', phoneNumber: '+96891119999', specialization: 'Physics' });
+    expect(res.body).toMatchObject({ name: 'Salim B', phoneNumber: '+96891119999' });
+    expect(res.body.subjectCategoryId).toBeDefined(); // subject normalized to the taxonomy FK
     const res2 = await s.patch('/api/me').send({ phoneNumber: '' });
     expect(res2.status).toBe(200);
     expect(res2.body.phoneNumber).toBeNull();

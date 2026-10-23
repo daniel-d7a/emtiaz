@@ -10,6 +10,7 @@ export const TEACHER = {
   password: 'Passw0rd!123',
   name: 'Salim',
   phoneNumber: '+96890000001',
+  subject: 'Sciences',
 };
 export const STUDENT1 = {
   email: 's1@student.om',

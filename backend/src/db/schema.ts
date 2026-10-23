@@ -57,7 +57,8 @@ export const users = pgTable('user', {
   image: text('image'),
   role: roleEnum('role').notNull().default('STUDENT'),
   isActive: boolean('is_active').notNull().default(true),
-  specialization: text('specialization'), // Optional for Teachers
+  specialization: text('specialization'), // legacy freetext; superseded by subjectCategoryId FK for teachers
+  subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),
   gradeId: uuid('grade_id').references(() => grades.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
