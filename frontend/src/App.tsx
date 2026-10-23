@@ -12,6 +12,7 @@ import TeacherDashboard from './pages/teacher/Dashboard';
 import TeacherCurriculum from './pages/teacher/Curriculum';
 import TeacherGroup from './pages/teacher/Group';
 import AdminDashboard from './pages/admin/Dashboard';
+import Profile from './pages/Profile';
 import { Loading } from './components/ui';
 
 export function useSession() {
@@ -67,6 +68,11 @@ function TopBar() {
             <LogOut size={16} /> {t('logout')}
           </button>
         )}
+        {data?.user && data.user.role !== 'ADMIN' && (
+          <Link to="/profile" className="rounded-lg px-2 py-2 font-semibold hover:bg-line/60" title={t('name')}>
+            {data.user.name.split(' ')[0]}
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -104,6 +110,7 @@ export default function App() {
         />
         <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
         <Route path="/admin/*" element={<RequireRole role="ADMIN"><AdminDashboard /></RequireRole>} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

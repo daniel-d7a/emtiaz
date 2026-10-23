@@ -62,6 +62,13 @@ export function PacingTab({ groupId }: { groupId: string }) {
   if (error) return <ErrorBox error={error} />;
   if (!data) return null;
 
+  const flipAll = (unlock: boolean) =>
+    Promise.all(
+      data.lessons
+        .filter((l) => l.unlocked !== unlock)
+        .map((l) => api(`/api/teacher/groups/${groupId}/lessons/${l.id}/access`, { body: { isUnlocked: unlock } })),
+    ).then(invalidate);
+
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between text-sm">
@@ -74,6 +81,10 @@ export function PacingTab({ groupId }: { groupId: string }) {
             onClick={() => navigator.clipboard.writeText(`https://emtiaz.om/join?code=${data.group.joinCode}`).catch(() => {})}
           />
         </span>
+      </div>
+      <div className="mb-2 flex gap-2">
+        <button onClick={() => flipAll(true)} className="rounded-lg bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark">{t('releaseAll')}</button>
+        <button onClick={() => flipAll(false)} className="rounded-lg border border-line px-3 py-1 text-xs font-bold text-ink-soft">{t('lockAll')}</button>
       </div>
       <ul className="flex flex-col divide-y divide-line">
         {data.lessons.map((l) => (

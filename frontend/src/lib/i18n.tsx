@@ -65,6 +65,8 @@ const dict = {
   released: { ar: 'إجراء يدوي', en: 'Manual override' },
   unlocked: { ar: 'مفتوح', en: 'Unlocked' },
   copyWhatsapp: { ar: 'نسخ لواتساب', en: 'Copy for WhatsApp' },
+  releaseAll: { ar: 'فتح الكل', en: 'Unlock all' },
+  lockAll: { ar: 'قفل الكل', en: 'Lock all' },
   addToGradebook: { ar: 'عمود درجات', en: 'Add grade column' },
   addGradeColumn: { ar: 'عمود درجات', en: 'Add grade column' },
   addStudents: { ar: 'إضافة طلاب', en: 'Add students' },

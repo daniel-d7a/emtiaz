@@ -13,6 +13,6 @@ Wave 2 — admin coverage:
 - [x] w2.3 Pacing: unlock-all shortcut per module (loops over lessons)
 
 Wave 3 — polish:
-- [ ] w3.1 Teacher profile edit (name/phone)
+- [x] w3.1 Teacher profile edit (PATCH /api/me + /profile page)
 - [ ] w3.2 Quiz retry policy surfaced (attempts limit if added to schema)
-- [ ] w3.3 Seed admin user for first-run (email admin@emtiaz.om)
+- [x] w3.3 Seed admin user for first-run (email admin@emtiaz.om)

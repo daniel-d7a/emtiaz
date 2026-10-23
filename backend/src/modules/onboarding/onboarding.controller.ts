@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { auth } from '../../auth/auth';
 import { Public } from '../../auth/auth.guard';
+import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
 
 const syntheticPhoneEmail = (phone: string) =>
@@ -70,6 +71,15 @@ export class OnboardingController {
       returnHeaders: true,
     });
     return { user: data.response.user, status: 'ok' };
+  }
+
+  @Patch('api/me')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  me(
+    @Req() req: Request,
+    @Body() dto: { name?: string; phoneNumber?: string; specialization?: string },
+  ) {
+    return this.onboarding.updateMe(req.user!.id, dto);
   }
 
   @Public()
