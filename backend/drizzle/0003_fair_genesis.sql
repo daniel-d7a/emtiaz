@@ -1,0 +1,2 @@
+ALTER TABLE "quiz_attempts" ADD CONSTRAINT "attempt_score_sane_chk" CHECK ("quiz_attempts"."score" >= 0 AND "quiz_attempts"."max_score" >= 1 AND "quiz_attempts"."score" <= "quiz_attempts"."max_score");--> statement-breakpoint
+ALTER TABLE "quiz_questions" ADD CONSTRAINT "quiz_points_positive_chk" CHECK ("quiz_questions"."points" > 0);

@@ -1,4 +1,5 @@
 import {
+  check,
   pgTable,
   uuid,
   text,
@@ -9,6 +10,7 @@ import {
   uniqueIndex,
   jsonb,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ==========================================
 // 1. ENUMS
@@ -243,7 +245,12 @@ export const quizQuestions = pgTable('quiz_questions', {
   explanation: text('explanation'),
   points: integer('points').notNull().default(1),
   displayOrder: integer('display_order').notNull().default(0),
-});
+}, (table) => ({
+  quizPointsPositive: check(
+    'quiz_points_positive_chk',
+    sql`${table.points} > 0`,
+  ),
+}));
 
 export const quizAttempts = pgTable('quiz_attempts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -260,7 +267,12 @@ export const quizAttempts = pgTable('quiz_attempts', {
   maxScore: integer('max_score').notNull(),
   answersJson: jsonb('answers_json').notNull(), // Stores student responses
   submittedAt: timestamp('submitted_at').notNull().defaultNow(),
-});
+}, (table) => ({
+  attemptScoreSane: check(
+    'attempt_score_sane_chk',
+    sql`${table.score} >= 0 AND ${table.maxScore} >= 1 AND ${table.score} <= ${table.maxScore}`,
+  ),
+}));
 
 export const lessonCompletions = pgTable(
   'lesson_completions',

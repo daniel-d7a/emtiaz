@@ -7,6 +7,7 @@ const TEST_DB = process.env.TEST_DATABASE_URL;
 
 async function migrate() {
   const pool = new Pool({ connectionString: TEST_DB });
+  await pool.query(`DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;`);
   const dir = join(__dirname, '..', '..', 'drizzle');
   const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
   await pool.query(`CREATE SCHEMA IF NOT EXISTS drizzle`);
@@ -100,5 +101,38 @@ describe('Phase 1: database schema', () => {
     await pool.query(`DELETE FROM courses WHERE title='C1'`);
     const { rows } = await pool.query(`SELECT COUNT(*)::int AS c FROM groups WHERE join_code='OM0001'`);
     expect(rows[0].c).toBe(0);
+  });
+
+  it('rejects bad quiz points and impossible attempt scores (CHECK constraints)', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email) VALUES ('uq','Q','q@t.om')`);
+    const course = (
+      await pool.query(`INSERT INTO courses (title, teacher_id) VALUES ('CQ','uq') RETURNING id`)
+    ).rows[0].id;
+    const mod = (
+      await pool.query(`INSERT INTO modules (course_id, title) VALUES ('${course}','MQ') RETURNING id`)
+    ).rows[0].id;
+    const les = (
+      await pool.query(`INSERT INTO lessons (module_id, title) VALUES ('${mod}','LQ') RETURNING id`)
+    ).rows[0].id;
+    const quiz = (
+      await pool.query(`INSERT INTO quizzes (lesson_id, title) VALUES ('${les}','Q Quiz') RETURNING id`)
+    ).rows[0].id;
+    await expect(
+      pool.query(
+        `INSERT INTO quiz_questions (quiz_id, prompt, correct_answer, points) VALUES ('${quiz}','P','x', 0)`,
+      ),
+    ).rejects.toThrow(/quiz_points_positive_chk/);
+
+    const grp = (
+      await pool.query(`INSERT INTO groups (course_id, name, join_code) VALUES ('${course}','GQ','OM000Q') RETURNING id`)
+    ).rows[0].id;
+    const studentId = (await pool.query(`SELECT id FROM "user" WHERE email='s@t.om'`)).rows[0]?.id;
+    void studentId;
+    await expect(
+      pool.query(
+        `INSERT INTO quiz_attempts (quiz_id, student_id, group_id, score, max_score, answers_json)
+         VALUES ('${quiz}','uq','${grp}', 10, 5, '[]'::jsonb)`,
+      ),
+    ).rejects.toThrow(/attempt_score_sane_chk/);
   });
 });
