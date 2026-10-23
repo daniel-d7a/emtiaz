@@ -36,7 +36,6 @@ export default function JoinPage() {
   useEffect(() => {
     if (isLoading || joined || error) return;
     if (data?.user?.role === 'STUDENT') void joinAndGo();
-    eslintCompat();
   }, [data, isLoading, joined, error, joinCode]);
 
   const quickRegister = async () => {
@@ -82,6 +81,3 @@ export default function JoinPage() {
     </div>
   );
 }
-
-/** no-op */
-function eslintCompat() {}

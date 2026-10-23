@@ -67,6 +67,7 @@ const dict = {
   copyWhatsapp: { ar: 'نسخ لواتساب', en: 'Copy for WhatsApp' },
   releaseAll: { ar: 'فتح الكل', en: 'Unlock all' },
   lockAll: { ar: 'قفل الكل', en: 'Lock all' },
+  moveTo: { ar: 'نقل إلى…', en: 'Move to…' },
   addToGradebook: { ar: 'عمود درجات', en: 'Add grade column' },
   addGradeColumn: { ar: 'عمود درجات', en: 'Add grade column' },
   addStudents: { ar: 'إضافة طلاب', en: 'Add students' },

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Lock, Plus, Trash2, Unlock } from 'lucide-react';
+import { Copy, Lock, MessageCircle, Plus, Trash2, Unlock } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
@@ -208,7 +208,12 @@ export function RosterTab({ groupId }: { groupId: string }) {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['roster', groupId],
-    queryFn: () => api<Roster>(`/api/teacher/groups/${groupId}/roster`),
+    queryFn: () => api<Roster & { group: Roster['group'] & { courseId: string } }>(`/api/teacher/groups/${groupId}/roster`),
+  });
+  const { data: allCourses } = useQuery({
+    queryKey: ['teacher-courses'],
+    queryFn: () => api<Array<{ id: string; groups: Array<{ id: string; name: string }> }>>('/api/teacher/courses'),
+    enabled: true,
   });
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['roster', groupId] });
   const [bulk, setBulk] = useState('');
@@ -234,12 +239,26 @@ export function RosterTab({ groupId }: { groupId: string }) {
       invalidate();
     },
   });
+  const remove = useMutation({
+    mutationFn: (studentId: string) => api(`/api/teacher/groups/${groupId}/students/${studentId}`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  });
+  const move = useMutation({
+    mutationFn: ({ studentId, toGroupId }: { studentId: string; toGroupId: string }) =>
+      api(`/api/teacher/groups/${groupId}/students/${studentId}/move`, { body: { toGroupId } }),
+    onSuccess: invalidate,
+  });
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} />;
   if (!data) return null;
 
-  const link = `https://api.whatsapp.com/send?text=${data.group.joinCode}`;
+  const siblingGroups = (allCourses ?? [])
+    .find((c) => c.id === data.group.courseId)
+    ?.groups?.filter((g) => g.id !== groupId) ?? [];
+  const inviteUrl = `https://wa.me/?text=${encodeURIComponent(
+    'Join my class on Emtiaz! Code: ' + data.group.joinCode + ' → ' + window.location.origin + '/join/' + data.group.joinCode,
+  )}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -248,8 +267,10 @@ export function RosterTab({ groupId }: { groupId: string }) {
           <h3 className="font-bold">{data.group.name}</h3>
           <div className="flex items-center gap-2 text-sm">
             <span dir="ltr" className="rounded bg-background px-2 py-1 font-bold">{data.group.joinCode}</span>
-            <Copy size={14} className="cursor-pointer" onClick={() => navigator.clipboard.writeText(data.group.joinCode).catch(() => {})} />
-<span dir="ltr" className="font-bold">{t('oneStepJoin')}</span>
+            <Copy size={14} className="cursor-pointer" onClick={() => navigator.clipboard.writeText(window.location.origin + '/join/' + data.group.joinCode).catch(() => {})} />
+            <a href={inviteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-semibold text-primary" onClick={(e) => e.stopPropagation()}>
+              <MessageCircle size={14} /> WhatsApp
+            </a>
           </div>
         </div>
         <p className="mt-2 text-sm text-ink-soft">{t('oneStepJoin')}</p>
@@ -262,11 +283,28 @@ export function RosterTab({ groupId }: { groupId: string }) {
                 {s.name}
                 {s.phoneNumber && <span dir="ltr" className="ms-2 text-sm text-ink-soft">{s.phoneNumber}</span>}
               </span>
+              <span className="flex items-center gap-2 text-xs">
+                {siblingGroups.length > 0 && (
+                  <select
+                    className="rounded border border-line px-2 py-1 text-xs"
+                    defaultValue=""
+                    onChange={(e) => e.target.value && move.mutate({ studentId: s.studentId, toGroupId: e.target.value })}
+                  >
+                    <option value="">{t('moveTo')}</option>
+                    {siblingGroups.map((g) => (
+                      <option key={g.id} value={g.id}>→ {g.name}</option>
+                    ))}
+                  </select>
+                )}
+                <button onClick={() => remove.mutate(s.studentId)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+                  <Trash2 size={14} />
+                </button>
+              </span>
             </li>
           ))}
           {data.students.length === 0 && <li className="py-2 text-ink-soft">—</li>}
         </ul>
-        {doBulk.error && <ErrorBox error={doBulk.error} />}
+        {(doBulk.error || remove.error || move.error) && <ErrorBox error={doBulk.error ?? remove.error ?? move.error} />}
       </Card>
       <Card>
         <Input

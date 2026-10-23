@@ -112,33 +112,13 @@ export default function AdminDashboard() {
       {tab === 'taxonomy' && <Taxonomy kind="grades" />}
 
       {tab === 'students' && (
-        <Card>
-          <div className="mb-3 flex gap-2">
-            <Input label={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} />
-          </div>
-          {students.isLoading ? <Loading /> : students.error ? <ErrorBox error={students.error} /> : (
-            <ul className="flex flex-col divide-y divide-line">
-              {students.data?.map((u) => (
-                <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <div>
-                    <p className="font-semibold">{u.name}</p>
-                    <p className="text-sm text-ink-soft" dir="ltr">{u.phoneNumber ?? u.email}</p>
-                    <p className="text-xs text-ink-soft">
-                      {u.enrollments.map((e) => e.courseTitle).join(' · ') || '—'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                  >
-                    {u.isActive ? t('activate') : t('suspend')}
-                  </button>
-                </li>
-              ))}
-              {students.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
-            </ul>
-          )}
-        </Card>
+        <StudentsTab
+          students={students}
+          invalidate={invalidateAll}
+          setStatus={setStatus}
+          search={search}
+          setSearch={setSearch}
+        />
       )}
 
       {tab === 'courses' && (
@@ -215,6 +195,76 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
         ))}
         {list.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
       </ul>
+    </Card>
+  );
+}
+
+type StudentQuery = ReturnType<typeof useQuery<StudentRow[], Error>>;
+
+function StudentsTab({
+  students,
+  invalidate,
+  setStatus,
+  search,
+  setSearch,
+}: {
+  students: StudentQuery;
+  invalidate: () => void;
+  setStatus: { mutate: (v: { id: string; isActive: boolean }) => void; error: unknown };
+  search: string;
+  setSearch: (v: string) => void;
+}) {
+  const { t } = useLang();
+  const groups = useQuery({
+    queryKey: ['admin-groups'],
+    queryFn: () => api<Array<{ id: string; name: string }>>('/api/admin/groups'),
+  });
+  const enroll = useMutation({
+    mutationFn: ({ studentId, groupId }: { studentId: string; groupId: string }) =>
+      api(`/api/admin/students/${studentId}/enroll`, { body: { groupId } }),
+    onSuccess: invalidate,
+  });
+
+  return (
+    <Card>
+      <div className="mb-3">
+        <Input label={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} />
+      </div>
+      {students.isLoading ? <Loading /> : students.error ? <ErrorBox error={students.error} /> : (
+        <ul className="flex flex-col divide-y divide-line">
+          {students.data?.map((u) => (
+            <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <div>
+                <p className="font-semibold">{u.name}</p>
+                <p className="text-sm text-ink-soft" dir="ltr">{u.phoneNumber ?? u.email}</p>
+                <p className="text-xs text-ink-soft">
+                  {u.enrollments.map((e) => e.courseTitle).join(' · ') || '—'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="rounded border border-line px-2 py-1 text-xs"
+                  defaultValue=""
+                  onChange={(e) => e.target.value && enroll.mutate({ studentId: u.id, groupId: e.target.value })}
+                >
+                  <option value="">{t('moveTo')}</option>
+                  {groups.data?.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
+                  className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                >
+                  {u.isActive ? t('activate') : t('suspend')}
+                </button>
+              </div>
+            </li>
+          ))}
+          {students.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
+        </ul>
+      )}
+      {((enroll.error ?? setStatus.error) as Error | null) && <ErrorBox error={enroll.error ?? setStatus.error} />}
     </Card>
   );
 }

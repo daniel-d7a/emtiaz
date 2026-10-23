@@ -14,5 +14,5 @@ Wave 2 — admin coverage:
 
 Wave 3 — polish:
 - [x] w3.1 Teacher profile edit (PATCH /api/me + /profile page)
-- [ ] w3.2 Quiz retry policy surfaced (attempts limit if added to schema)
+- [ ] w3.2 Quiz retry policy surfaced (needs schema column — deferred: speculative until someone asks)
 - [x] w3.3 Seed admin user for first-run (email admin@emtiaz.om)
