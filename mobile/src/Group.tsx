@@ -8,11 +8,11 @@ type Curriculum = {
   course: { title: string };
   modules: Array<{
     title: string;
-    lessons: Array<{ id: string; title: string; unlocked: boolean; completed: boolean }>;
+    lessons: Array<{ id: string; title: string; unlocked: boolean; completed: boolean; hasQuiz: boolean }>;
   }>;
 };
 
-export default function Group({ groupId, onBack }: { groupId: string; onBack: () => void }) {
+export default function Group({ groupId, onBack, onOpenQuiz }: { groupId: string; onBack: () => void; onOpenQuiz: (lessonId: string) => void }) {
   const [data, setData] = useState<Curriculum | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -37,15 +37,18 @@ export default function Group({ groupId, onBack }: { groupId: string; onBack: ()
                   {l.title} {l.completed ? '✓' : ''}
                 </Text>
                 {l.unlocked ? (
-                  <Btn
-                    label={l.completed ? 'أُتم ✓' : 'إتمام'}
-                    variant={l.completed ? 'ghost' : 'primary'}
-                    onPress={() =>
-                      l.completed
-                        ? undefined
-                        : api(`/api/student/lessons/${l.id}/complete`, { method: 'POST', body: {} }).then(load)
-                    }
-                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {l.hasQuiz && <Btn label="اختبار" variant="ghost" onPress={() => onOpenQuiz(l.id)} />}
+                    <Btn
+                      label={l.completed ? 'أُتم ✓' : 'إتمام'}
+                      variant={l.completed ? 'ghost' : 'primary'}
+                      onPress={() =>
+                        l.completed
+                          ? undefined
+                          : api(`/api/student/lessons/${l.id}/complete`, { method: 'POST', body: {} }).then(load)
+                      }
+                    />
+                  </View>
                 ) : (
                   <Text style={s.badge}>🔒 مقفل</Text>
                 )}

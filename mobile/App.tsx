@@ -4,12 +4,14 @@ import { authApi } from './src/api';
 import Courses from './src/Courses';
 import Group from './src/Group';
 import Login from './src/Login';
+import Quiz from './src/Quiz';
 import { Loading, s } from './src/ui';
 
 export default function App() {
   const [session, setSession] = useState<any | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [openQuiz, setOpenQuiz] = useState<{ lessonId: string; groupId: string } | null>(null);
 
   useEffect(() => {
     authApi.session().then((s) => {
@@ -28,5 +30,12 @@ export default function App() {
       </View>
     );
   }
-  return openGroup ? <Group groupId={openGroup} onBack={() => setOpenGroup(null)} /> : <Courses onOpen={setOpenGroup} />;
+  if (openQuiz) {
+    return <Quiz lessonId={openQuiz.lessonId} groupId={openQuiz.groupId} onBack={(needRefresh) => { setOpenQuiz(null); if (needRefresh) setOpenGroup(openGroup); }} />;
+  }
+  return openGroup ? (
+    <Group groupId={openGroup} onBack={() => setOpenGroup(null)} onOpenQuiz={(lessonId) => setOpenQuiz({ lessonId, groupId: openGroup })} />
+  ) : (
+    <Courses onOpen={setOpenGroup} />
+  );
 }
