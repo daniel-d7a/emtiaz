@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { courses, groupStudents, groups, users } from '../../db/schema';
 import * as schema from '../../db/schema';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`.slice(0, 6);
@@ -11,6 +12,8 @@ export { genJoinCode };
 
 @Injectable()
 export class OnboardingService {
+  constructor(private readonly notifications: NotificationsService) {}
+
   /** Adds the given student to a group identified by its join code. */
   async joinByCode(studentId: string, joinCode: string) {
     const group = await db
@@ -37,12 +40,22 @@ export class OnboardingService {
       await db
         .insert(groupStudents)
         .values({ groupId: groupRow.id, studentId });
+      await this.notifyEnrolled(studentId, groupRow);
     }
 
     const course = (
       await db.select().from(courses).where(eq(courses.id, groupRow.courseId))
     )[0];
     return { group: groupRow, course };
+  }
+
+  /** One welcome note per new enrollment; failure never blocks the join. */
+  private async notifyEnrolled(studentId: string, groupRow: typeof groups.$inferSelect) {
+    const [student] = await db.select().from(users).where(eq(users.id, studentId));
+    await this.notifications.sendWhatsApp(
+      student?.phoneNumber ?? '',
+      `تم تسجيلك في «${groupRow.name}» بنجاح 🎉`,
+    );
   }
 
   async updateMe(

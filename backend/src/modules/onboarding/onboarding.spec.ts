@@ -120,6 +120,35 @@ describe('Phase 2: auth & onboarding', () => {
     expect(rows[0].c).toBe(1);
   });
 
+  it('mock-whatsapp messages are logged for new enrollments only', async () => {
+    const { rows: courseRows } = await pool.query(
+      `INSERT INTO courses (title, teacher_id) SELECT 'Chem', id FROM "user" WHERE email='salim@teacher.om' RETURNING id`,
+    );
+    await pool.query(
+      `INSERT INTO groups (course_id, name, join_code) VALUES ('${courseRows[0].id}', 'Batch B', 'OM777777')`,
+    );
+    const s = request.agent(server);
+    await s
+      .post('/api/auth/sign-in/email')
+      .send({ email: 'aisha@student.om', password: 'Passw0rd!123' });
+
+    await s.post('/api/onboarding/join/OM777777');
+    await s.post('/api/onboarding/join/OM777777'); // re-join: no second message
+    const { rows } = await pool.query(
+      `SELECT recipient, message FROM notifications
+       WHERE message LIKE '%Batch B%'`,
+    );
+    expect(rows.length).toBe(1);
+    expect(rows[0].message).toContain('Batch B');
+    expect(rows[0].recipient).toBe(
+      (
+        await pool.query(
+          `SELECT phone_number FROM "user" WHERE email='aisha@student.om'`,
+        )
+      ).rows[0].phone_number,
+    );
+  });
+
   it('suspended users are rejected by the guard', async () => {
     await pool.query(
       `UPDATE "user" SET is_active=false WHERE email='aisha@student.om'`,

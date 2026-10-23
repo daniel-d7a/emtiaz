@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   categories,
   courses,
@@ -15,6 +16,10 @@ import {
 
 @Injectable()
 export class AdminService {
+  constructor(
+    private readonly notifications: NotificationsService,
+  ) {}
+
   async overview() {
     const [teachers] = await db
       .select({ c: count() })
@@ -209,10 +214,17 @@ export class AdminService {
     if (!group) throw new NotFoundException('Group not found');
     const [user] = await db.select().from(users).where(eq(users.id, studentId));
     if (!user) throw new NotFoundException('Student not found');
-    await db
+    const added = await db
       .insert(groupStudents)
       .values({ groupId, studentId })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ id: groupStudents.id });
+    if (added.length) {
+      await this.notifications.sendWhatsApp(
+        user.phoneNumber ?? '',
+        `تم تسجيلك في «${group.name}» بنجاح 🎉`,
+      );
+    }
     return { ok: true };
   }
 

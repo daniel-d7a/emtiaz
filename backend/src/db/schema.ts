@@ -316,3 +316,12 @@ export const manualGradeValues = pgTable(
     ),
   }),
 );
+
+export const notifications = pgTable('notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  channel: text('channel').notNull().default('whatsapp'), // single channel today; future: email, sms
+  recipient: text('recipient').notNull(), // phone number or email
+  message: text('message').notNull(),
+  status: text('status').notNull().default('SENT_MOCK'), // SENT_MOCK → SENT once a real provider is wired
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
