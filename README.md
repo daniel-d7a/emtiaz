@@ -21,6 +21,12 @@ docker run -d --name emtiaz-pg -e POSTGRES_PASSWORD=password \
 # 2. backend (reads backend/.env)
 cd backend && npm install && npm run db:migrate && npm run db:seed && npm run start:dev
 # → http://localhost:3000 (admin: admin@emtiaz.om / admin-password-123)
+#
+# db:seed also creates a DEMO world (override password with SEED_DEMO_PASSWORD, or skip entirely with SEED_DEMO=0):
+#   teachers: salim@teacher.om, fatma@teacher.om   — students: student1@demo.om … student6@demo.om
+#   password for all demo users: demo-password
+#   courses: Physics — Grade 10 (ACADEMIC, 2 groups), English Speaking (GENERAL), Math — Grade 7 (ACADEMIC), IELTS Crash Prep (GENERAL)
+#   with groups, lessons, scaffolded progress, and a quiz on the first physics lesson
 
 # 3. frontend (proxies /api → localhost:3000)
 cd frontend && npm install && npm run dev
