@@ -25,7 +25,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: string;
-  specialization?: string | null;
+  subjectCategoryId?: string | null;
   phoneNumber?: string | null;
   gradeId?: string | null;
 };
@@ -39,8 +39,9 @@ export const authApi = {
 };
 
 export const onboardingApi = {
+  listCategories: () => api('/api/categories'),
   registerTeacher: (dto: {
-    name: string; email: string; password: string; phoneNumber?: string; specialization?: string;
+    name: string; email: string; password: string; phoneNumber?: string; subject: string;
   }) => api('/api/onboarding/teacher', { body: dto }),
   registerStudent: (dto: {
     name: string; password: string; phoneNumber: string; email?: string; gradeId?: string;

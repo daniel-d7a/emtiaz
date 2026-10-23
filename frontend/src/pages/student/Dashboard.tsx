@@ -9,7 +9,7 @@ import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../co
 type Enrolled = {
   group: { id: string; name: string; joinCode: string };
   course: { id: string; title: string; description: string | null };
-  teacher: { name: string; specialization: string | null };
+  teacher: { name: string; subject: string | null };
   progress: number;
 };
 
@@ -64,7 +64,7 @@ export default function StudentDashboard() {
                 </div>
                 <h3 className="text-lg font-bold">{e.course.title}</h3>
                 <p className="mb-3 text-sm text-ink-soft">
-                  {e.teacher.name}{e.teacher.specialization ? ` · ${e.teacher.specialization}` : ''}
+                  {e.teacher.name}{e.teacher.subject ? ` · ${e.teacher.subject}` : ''}
                 </p>
                 <Progress value={e.progress} />
                 <p className="mt-1 text-xs text-ink-soft">
