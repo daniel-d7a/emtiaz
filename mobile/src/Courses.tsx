@@ -1,0 +1,50 @@
+import { useEffect, useState } from 'react';
+import { ScrollView, Text, TextInput, View } from 'react-native';
+import { api } from './api';
+import { Btn, Card, Empty, ErrorBox, Loading, s } from './ui';
+
+type Group = {
+  group: { id: string; name: string; joinCode: string };
+  course: { title: string };
+  progressPercent: number;
+};
+
+export default function Courses({ onOpen }: { onOpen: (groupId: string) => void }) {
+  const [groups, setGroups] = useState<Group[] | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [joinCode, setJoin] = useState('');
+
+  useEffect(() => {
+    api('/api/student/groups').then(setGroups).catch(setError);
+  }, []);
+
+  if (error) return <View style={s.page}><ErrorBox error={error} /></View>;
+  if (!groups) return <Loading />;
+
+  return (
+    <ScrollView style={s.page}>
+      <Text style={s.h1}>مقرراتي</Text>
+      <Card>
+        <View style={s.row}>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={s.h2}>رمز مجموعة</Text>
+            <Text style={{ color: '#78716C' }}>مثال OM123456</Text>
+          </View>
+          <Btn label="انضم" onPress={() => joinCode && api('/api/student/groups/join', { body: { joinCode } }).then(() => api('/api/student/groups').then(setGroups))} />
+        </View>
+        <TextInput style={s.input} value={joinCode} onChangeText={setJoin} placeholder="OM… " autoCapitalize="characters" />
+      </Card>
+      {groups.length === 0 && <Empty text="لا توجد مجموعات بعد" />}
+      {groups.map((g) => (
+        <Card key={g.group.id}>
+          <Text style={s.h2}>{g.course.title}</Text>
+          <Text style={{ color: '#78716C' }}>{g.group.name}</Text>
+          <View style={s.progress}>
+            <View style={[s.progressFill, { width: `${Math.round(g.progressPercent)}%` as any }]} />
+          </View>
+          <Btn label="افتح" onPress={() => onOpen(g.group.id)} />
+        </Card>
+      ))}
+    </ScrollView>
+  );
+}
