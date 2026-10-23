@@ -109,7 +109,7 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {tab === 'taxonomy' && <Taxonomy kind="grades" />}
+      {tab === 'taxonomy' && <TaxonomyTabs />}
 
       {tab === 'students' && (
         <StudentsTab
@@ -152,6 +152,23 @@ export default function AdminDashboard() {
         </Card>
       )}
     </Page>
+  );
+}
+
+function TaxonomyTabs() {
+  const { t } = useLang();
+  const [kind, setKind] = useState<'grades' | 'categories'>('grades');
+  return (
+    <div>
+      <div className="mb-4 flex gap-2">
+        {(['grades', 'categories'] as const).map((k) => (
+          <button key={k} onClick={() => setKind(k)} className={`rounded-lg px-3 py-2 text-sm ${kind === k ? 'bg-primary text-white' : 'border border-line'}`}>
+            {k}
+          </button>
+        ))}
+      </div>
+      <Taxonomy key={kind} kind={kind} />
+    </div>
   );
 }
 
