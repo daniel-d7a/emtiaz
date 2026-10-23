@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
 import { StudentService } from './student.service';
@@ -44,6 +44,16 @@ export class StudentController {
   @Roles('STUDENT')
   quizByLesson(@Req() req: Request, @Param('lessonId') lessonId: string) {
     return this.students.getQuizByLesson(req.user!.id, lessonId);
+  }
+
+  @Get('api/student/lessons/:lessonId/view')
+  @Roles('STUDENT')
+  lessonView(
+    @Req() req: Request,
+    @Param('lessonId') lessonId: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.students.getLesson(req.user!.id, lessonId, groupId);
   }
 
   @Get('api/student/quizzes/:quizId')

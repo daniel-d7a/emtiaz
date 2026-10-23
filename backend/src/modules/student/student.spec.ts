@@ -72,6 +72,16 @@ describe('Phase 3: student endpoints', () => {
     expect(lessons.find((l: any) => l.id === world.lesson1).unlocked).toBe(true);
   });
 
+  it('views lesson detail with hasQuiz, and rejects locked lessons', async () => {
+    const res = await s1.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ title: expect.any(String), hasQuiz: true, completed: false });
+    const res2 = await s1.get(`/api/student/lessons/${world.lesson2}/view?groupId=${world.group1}`);
+    expect(res2.status).toBe(403); // locked via group_lesson_access set in previous test
+    const res3 = await s1.get(`/api/student/lessons/${world.lesson1}/view`);
+    expect(res3.status).toBe(200); // no group given: any open enrollment grants access
+  });
+
   it('marks a lesson complete and shows progress', async () => {
     const res = await s1.post(`/api/student/lessons/${world.lesson1}/complete`);
     expect(res.status).toBe(201);

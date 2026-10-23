@@ -12,7 +12,12 @@ type Curriculum = {
   }>;
 };
 
-export default function Group({ groupId, onBack, onOpenQuiz }: { groupId: string; onBack: () => void; onOpenQuiz: (lessonId: string) => void }) {
+export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
+  groupId: string;
+  onBack: () => void;
+  onOpenLesson: (lessonId: string) => void;
+  onOpenQuiz: (lessonId: string) => void;
+}) {
   const [data, setData] = useState<Curriculum | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -33,7 +38,7 @@ export default function Group({ groupId, onBack, onOpenQuiz }: { groupId: string
           {mod.lessons.map((l) => (
             <Card key={l.id}>
               <View style={s.row}>
-                <Text style={{ fontWeight: '700', flex: 1 }}>
+                <Text style={{ fontWeight: '700', flex: 1, textAlign: 'right' }} onPress={() => onOpenLesson(l.id)}>
                   {l.title} {l.completed ? '✓' : ''}
                 </Text>
                 {l.unlocked ? (

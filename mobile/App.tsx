@@ -3,15 +3,21 @@ import { Text, View } from 'react-native';
 import { authApi } from './src/api';
 import Courses from './src/Courses';
 import Group from './src/Group';
+import LessonView from './src/Lesson';
 import Login from './src/Login';
 import Quiz from './src/Quiz';
 import { Loading, s } from './src/ui';
 
+type Screen =
+  | { name: 'courses' }
+  | { name: 'group'; groupId: string }
+  | { name: 'lesson'; lessonId: string; groupId: string }
+  | { name: 'quiz'; lessonId: string; groupId: string };
+
 export default function App() {
   const [session, setSession] = useState<any | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const [openQuiz, setOpenQuiz] = useState<{ lessonId: string; groupId: string } | null>(null);
+  const [screen, setScreen] = useState<Screen>({ name: 'courses' });
 
   useEffect(() => {
     authApi.session().then((s) => {
@@ -26,16 +32,32 @@ export default function App() {
     return (
       <View style={s.page}>
         <Text style={s.h1}>{session.user.name}</Text>
-        <Text style={{ color: '#78716C' }}>تسجيل الدخول إلى لوحة المعلم/الإدارة عبر الموقع.</Text>
+        <Text style={{ color: '#78716C' }}>للمعلم/الإدارة استخدم الموقع.</Text>
       </View>
     );
   }
-  if (openQuiz) {
-    return <Quiz lessonId={openQuiz.lessonId} groupId={openQuiz.groupId} onBack={(needRefresh) => { setOpenQuiz(null); if (needRefresh) setOpenGroup(openGroup); }} />;
+
+  switch (screen.name) {
+    case 'quiz':
+      return <Quiz lessonId={screen.lessonId} groupId={screen.groupId} onBack={(refresh) => setScreen({ name: 'lesson', lessonId: screen.lessonId, groupId: screen.groupId })} />;
+    case 'lesson':
+      return (
+        <LessonView
+          lessonId={screen.lessonId}
+          onBack={() => setScreen({ name: 'group', groupId: screen.groupId })}
+          onOpenQuiz={() => setScreen({ name: 'quiz', lessonId: screen.lessonId, groupId: screen.groupId })}
+        />
+      );
+    case 'group':
+      return (
+        <Group
+          groupId={screen.groupId}
+          onBack={() => setScreen({ name: 'courses' })}
+          onOpenLesson={(lessonId) => setScreen({ name: 'lesson', lessonId, groupId: screen.groupId })}
+          onOpenQuiz={(lessonId) => setScreen({ name: 'quiz', lessonId, groupId: screen.groupId })}
+        />
+      );
+    default:
+      return <Courses onOpen={(groupId) => setScreen({ name: 'group', groupId })} />;
   }
-  return openGroup ? (
-    <Group groupId={openGroup} onBack={() => setOpenGroup(null)} onOpenQuiz={(lessonId) => setOpenQuiz({ lessonId, groupId: openGroup })} />
-  ) : (
-    <Courses onOpen={setOpenGroup} />
-  );
 }

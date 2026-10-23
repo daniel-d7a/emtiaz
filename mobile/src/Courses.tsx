@@ -13,7 +13,19 @@ export default function Courses({ onOpen }: { onOpen: (groupId: string) => void 
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [joinCode, setJoin] = useState('');
+  const [joinBusy, setJoinBusy] = useState(false);
+  const [joinError, setJoinError] = useState<Error | null>(null);
 
+  const join = () => {
+    if (!joinCode.trim()) return;
+    setJoinBusy(true);
+    setJoinError(null);
+    api('/api/student/groups/join', { body: { joinCode } })
+      .then(() => api(`${''}/api/student/groups`))
+      .then((g) => { setGroups(g as Group[]); setJoin(''); })
+      .catch((e) => setJoinError(e as Error))
+      .finally(() => setJoinBusy(false));
+  };
   useEffect(() => {
     api('/api/student/groups').then(setGroups).catch(setError);
   }, []);
@@ -30,9 +42,10 @@ export default function Courses({ onOpen }: { onOpen: (groupId: string) => void 
             <Text style={s.h2}>رمز مجموعة</Text>
             <Text style={{ color: '#78716C' }}>مثال OM123456</Text>
           </View>
-          <Btn label="انضم" onPress={() => joinCode && api('/api/student/groups/join', { body: { joinCode } }).then(() => api('/api/student/groups').then(setGroups))} />
+          <Btn label={joinBusy ? '…' : 'انضم'} onPress={join} />
         </View>
         <TextInput style={s.input} value={joinCode} onChangeText={setJoin} placeholder="OM… " autoCapitalize="characters" />
+        {joinError && <ErrorBox error={joinError} />}
       </Card>
       {groups.length === 0 && <Empty text="لا توجد مجموعات بعد" />}
       {groups.map((g) => (

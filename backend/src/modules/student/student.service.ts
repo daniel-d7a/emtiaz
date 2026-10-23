@@ -247,6 +247,66 @@ export class StudentService {
     return { ok: true };
   }
 
+  async getLesson(studentId: string, lessonId: string, groupId?: string) {
+    const [lesson] = await db.select().from(lessons).where(eq(lessons.id, lessonId));
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    const [mod] = await db.select().from(modules).where(eq(modules.id, lesson.moduleId));
+    const enrollments = await db
+      .select()
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groups.courseId, mod.courseId),
+        ),
+      );
+    if (!enrollments.length) throw new ForbiddenException('Not enrolled in this course');
+    // groupId present → mirror that group's curriculum exactly; else any open group grants access
+    if (groupId) await this.assertEnrolled(studentId, groupId);
+    const relevant = groupId ? enrollments.filter((e) => e.groups.id === groupId) : enrollments;
+    if (!relevant.length) throw new ForbiddenException('Not enrolled in this group');
+    const overrides = await db
+      .select()
+      .from(groupLessonAccess)
+      .where(
+        and(
+          eq(groupLessonAccess.lessonId, lessonId),
+          inArray(groupLessonAccess.groupId, relevant.map((e) => e.groups.id)),
+        ),
+      );
+    const isUnlocked = relevant.some(
+      (e) =>
+        overrides.find((o) => o.groupId === e.groups.id)?.isUnlocked ??
+        e.groups.unlockAllByDefault,
+    );
+    if (!isUnlocked) throw new ForbiddenException('Lesson is locked for your group');
+    if (!isUnlocked) throw new ForbiddenException('Lesson is locked for your group');
+
+    const attachments = await db
+      .select()
+      .from(lessonAttachments)
+      .where(eq(lessonAttachments.lessonId, lessonId));
+    return {
+      title: lesson.title,
+      content: lesson.content,
+      completed: !!(await db
+        .select()
+        .from(lessonCompletions)
+        .where(
+          and(
+            eq(lessonCompletions.lessonId, lessonId),
+            inArray(lessonCompletions.studentId, [studentId]),
+          ),
+        )
+        .limit(1)).length,
+      attachments: attachments
+        .filter((a) => !a.groupId || enrollments.some((e) => a.groupId === e.groups.id))
+        .map((a) => ({ id: a.id, title: a.title })),
+      hasQuiz: !!(await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId)).limit(1)).length,
+    };
+  }
+
   async getQuizByLesson(studentId: string, lessonId: string) {
     const [lesson] = await db.select().from(lessons).where(eq(lessons.id, lessonId));
     if (!lesson) throw new NotFoundException('Lesson not found');
