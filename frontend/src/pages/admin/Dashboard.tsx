@@ -9,10 +9,20 @@ type Overview = Record<string, number>;
 type TeacherRow = {
   id: string; name: string; email: string; phoneNumber: string | null; isActive: boolean; createdAt: string;
 };
+type StudentRow = {
+  id: string; name: string; email: string; phoneNumber: string | null; gradeId: string | null;
+  isActive: boolean; createdAt: string;
+  enrollments: Array<{ groupName: string; courseTitle: string; courseId: string }>;
+};
+type CourseRow = {
+  id: string; title: string; courseType: 'ACADEMIC' | 'GENERAL'; isPublished: boolean;
+  teacherName: string;
+  groups: Array<{ id: string; name: string; joinCode: string; studentCount: number }>;
+};
 
 export default function AdminDashboard() {
   const { t } = useLang();
-  const [tab, setTab] = useState<'teachers' | 'taxonomy'>('teachers');
+  const [tab, setTab] = useState<'teachers' | 'students' | 'courses' | 'taxonomy'>('teachers');
   const [search, setSearch] = useState('');
 
   const overview = useQuery({ queryKey: ['admin-overview'], queryFn: () => api<Overview>('/api/admin/overview') });
@@ -20,11 +30,26 @@ export default function AdminDashboard() {
     queryKey: ['admin-teachers', search],
     queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?search=${encodeURIComponent(search)}`),
   });
+  const students = useQuery({
+    queryKey: ['admin-students', search],
+    queryFn: () => api<StudentRow[]>(`/api/admin/students?search=${encodeURIComponent(search)}`),
+  });
+  const courses = useQuery({
+    queryKey: ['admin-courses'],
+    queryFn: () =>
+      api<CourseRow[]>('/api/admin/courses'),
+  });
   const qc = useQueryClient();
+  const invalidateAll = () => {
+    void qc.invalidateQueries({ queryKey: ['admin-teachers'] });
+    void qc.invalidateQueries({ queryKey: ['admin-students'] });
+    void qc.invalidateQueries({ queryKey: ['admin-courses'] });
+    return void qc.invalidateQueries({ queryKey: ['admin-overview'] });
+  };
   const setStatus = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api(`/api/admin/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['admin-teachers'] }),
+    onSuccess: invalidateAll,
   });
 
   return (
@@ -49,9 +74,9 @@ export default function AdminDashboard() {
       ) : <Loading />}
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['teachers', 'taxonomy'] as const).map((k) => (
+        {(['teachers', 'students', 'courses', 'taxonomy'] as const).map((k) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
-            {k === 'teachers' ? t('teachers') : t('taxonomy')}
+            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'courses' ? t('courses') : t('taxonomy')}
           </button>
         ))}
       </div>
@@ -85,6 +110,67 @@ export default function AdminDashboard() {
       )}
 
       {tab === 'taxonomy' && <Taxonomy kind="grades" />}
+
+      {tab === 'students' && (
+        <Card>
+          <div className="mb-3 flex gap-2">
+            <Input label={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} />
+          </div>
+          {students.isLoading ? <Loading /> : students.error ? <ErrorBox error={students.error} /> : (
+            <ul className="flex flex-col divide-y divide-line">
+              {students.data?.map((u) => (
+                <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div>
+                    <p className="font-semibold">{u.name}</p>
+                    <p className="text-sm text-ink-soft" dir="ltr">{u.phoneNumber ?? u.email}</p>
+                    <p className="text-xs text-ink-soft">
+                      {u.enrollments.map((e) => e.courseTitle).join(' · ') || '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                  >
+                    {u.isActive ? t('activate') : t('suspend')}
+                  </button>
+                </li>
+              ))}
+              {students.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
+            </ul>
+          )}
+        </Card>
+      )}
+
+      {tab === 'courses' && (
+        <Card>
+          {courses.isLoading ? <Loading /> : courses.error ? <ErrorBox error={courses.error} /> : (
+            <ul className="flex flex-col divide-y divide-line">
+              {courses.data?.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div>
+                    <p className="font-semibold">
+                      {c.title}{' '}
+                      <span className={`ms-1 rounded-full px-2 text-xs ${c.courseType === 'ACADEMIC' ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}>
+                        {c.courseType === 'ACADEMIC' ? t('academic') : t('general')}
+                      </span>
+                    </p>
+                    <p className="text-sm text-ink-soft">{c.teacherName}</p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {c.groups.map((g) => (
+                        <span key={g.id} className="rounded bg-background px-2 py-0.5 text-xs font-semibold">
+                          {g.name} <span dir="ltr" className="font-bold">{g.joinCode}</span> ({g.studentCount})
+                        </span>
+                      ))}
+                      {c.groups.length === 0 && <span className="text-xs text-ink-soft">—</span>}
+                    </div>
+                  </div>
+                </li>
+              ))}
+              {courses.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
+            </ul>
+          )}
+        </Card>
+      )}
     </Page>
   );
 }
