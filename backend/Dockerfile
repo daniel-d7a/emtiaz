@@ -5,6 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
 COPY tsconfig.json ./
 COPY src ./src
+COPY scripts ./scripts
 RUN npx nest build
 
 # ---------- runtime ----------

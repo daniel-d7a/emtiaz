@@ -10,7 +10,9 @@
     "test:e2e": "jest --runInBand",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "storage:check": "tsx scripts/storage-check.ts",
+    "s3:init": "tsx scripts/ensure-bucket.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.716.0",
@@ -41,19 +43,39 @@
     "typescript": "^5.8.0"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts", "mjs", "cjs"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts",
+      "mjs",
+      "cjs"
+    ],
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(ts|js|mjs|cjs|tsx|jsx)$": ["ts-jest", {
-        "isolatedModules": true,
-        "diagnostics": false,
-        "tsconfig": { "allowJs": true, "target": "ES2022", "module": "commonjs", "esModuleInterop": true, "skipLibCheck": true, "experimentalDecorators": true, "emitDecoratorMetadata": true, "strictPropertyInitialization": false }
-      }]
+      "^.+\\.(ts|js|mjs|cjs|tsx|jsx)$": [
+        "ts-jest",
+        {
+          "isolatedModules": true,
+          "diagnostics": false,
+          "tsconfig": {
+            "allowJs": true,
+            "target": "ES2022",
+            "module": "commonjs",
+            "esModuleInterop": true,
+            "skipLibCheck": true,
+            "experimentalDecorators": true,
+            "emitDecoratorMetadata": true,
+            "strictPropertyInitialization": false
+          }
+        }
+      ]
     },
     "transformIgnorePatterns": [],
     "testEnvironment": "node",
     "testTimeout": 60000,
-    "setupFiles": ["<rootDir>/tests/setup.ts"]
+    "setupFiles": [
+      "<rootDir>/tests/setup.ts"
+    ]
   }
 }

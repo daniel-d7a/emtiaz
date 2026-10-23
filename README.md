@@ -5,7 +5,7 @@ freelance skill instructors (GENERAL). Arabic-first (RTL) with an English switch
 
 ## Stack
 
-- **API** `backend/` — NestJS + Drizzle ORM + PostgreSQL + Better Auth (cookie sessions), Cloudflare R2 for files
+- **API** `backend/` — NestJS + Drizzle ORM + PostgreSQL + Better Auth (cookie sessions), S3-compatible object storage (RustFS in dev, Cloudflare R2 in prod)
 - **App** `frontend/` — React 18 + Vite + Tailwind v4 + TanStack Query
 - **Landing** `landing/` — one static bilingual page (no build step)
 - **Mobile** `mobile/` — Expo / React Native (login, my courses, group curriculum)
@@ -67,8 +67,10 @@ gradebook, files) is managed through the app itself; log in as the admin at
 ## Production checklist (when going live)
 
 1. Real [Cloudflare R2](https://r2.cloudflared.com) object storage: set
-   `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
-   in `backend/.env` — see ADR-0002 for how the stub switches to the real thing.
+   `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
+   in `backend/.env` — see ADR-0002. Locally, docker-compose already runs
+   RustFS (S3-compatible) and `docker compose up rustfs-init` creates the
+   bucket; `npm run storage:check` verifies the presign→PUT→GET roundtrip.
 2. Terminate HTTPS at a reverse proxy in front of port 8088, set
    `FRONTEND_URL=https://your-domain`, and put a 32+ char random
    `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL` in the api environment.
