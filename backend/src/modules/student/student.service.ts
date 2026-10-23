@@ -250,6 +250,28 @@ export class StudentService {
     return { ok: true };
   }
 
+  async getQuizByLesson(studentId: string, lessonId: string) {
+    const [lesson] = await db.select().from(lessons).where(eq(lessons.id, lessonId));
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    const [mod] = await db.select().from(modules).where(eq(modules.id, lesson.moduleId));
+    const enrolled = await db
+      .select()
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groups.courseId, mod.courseId),
+        ),
+      )
+      .limit(1);
+    if (!enrolled.length) throw new ForbiddenException('Not enrolled in this course');
+
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId));
+    if (!quiz) return { quiz: null };
+    return this.getQuiz(studentId, quiz.id);
+  }
+
   async getQuiz(studentId: string, quizId: string) {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');

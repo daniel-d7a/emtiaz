@@ -1,0 +1,349 @@
+import { useState } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronDown, FileUp, Plus, Save, Trash2 } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useLang } from '../../lib/i18n';
+import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
+
+type Question = {
+  questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  points: number;
+};
+type Curriculum = Array<{
+  id: string;
+  title: string;
+  lessons: Array<{
+    id: string;
+    title: string;
+    content: string | null;
+    quiz: { id: string; title: string; questions: unknown[] } | null;
+    attachments: Array<{ id: string; title: string }>;
+  }>;
+}>;
+
+export default function TeacherCurriculum() {
+  const { courseId = '' } = useParams();
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const location = useLocation() as { state?: { lessonId?: string } };
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['teacher-curriculum', courseId],
+    queryFn: () => api<Curriculum>(`/api/teacher/courses/${courseId}/curriculum`),
+  });
+
+  const [moduleName, setModuleName] = useState('');
+  const addModule = useMutation({
+    mutationFn: () => api(`/api/teacher/courses/${courseId}/modules`, { body: { title: moduleName } }),
+    onSuccess: () => {
+      setModuleName('');
+      void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+    },
+  });
+
+  return (
+    <Page title={t('curriculum')}>
+      {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
+        <div className="flex flex-col gap-6">
+          {data?.map((mod) => <ModuleCard key={mod.id} mod={mod} courseId={courseId} focusLessonId={location.state?.lessonId} />)}
+
+          <Card>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="grow">
+                <Input label={t('newModule')} value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder={t('modules')} />
+              </div>
+              <Button onClick={() => addModule.mutate()} disabled={!moduleName}>
+                <Plus className="inline" size={18} /> {t('add')}
+              </Button>
+            </div>
+            {addModule.error && <ErrorBox error={addModule.error} />}
+          </Card>
+        </div>
+      )}
+    </Page>
+  );
+}
+
+function ModuleCard({ mod, courseId, focusLessonId }: { mod: Curriculum[0]; courseId: string; focusLessonId?: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(true);
+  const [lessonTitle, setLessonTitle] = useState('');
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+
+  const addLesson = useMutation({
+    mutationFn: () => api(`/api/teacher/modules/${mod.id}/lessons`, { body: { title: lessonTitle } }),
+    onSuccess: () => { setLessonTitle(''); invalidate(); },
+  });
+  const delModule = useMutation({
+    mutationFn: () => api(`/api/teacher/modules/${mod.id}`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  });
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <button className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
+          <ChevronDown className={`transition ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
+          {mod.title}
+        </button>
+        <button onClick={() => delModule.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+      {open && (
+        <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
+          {mod.lessons.map((l) => (
+            <LessonEditor key={l.id} lesson={l} courseId={courseId} autoFocus={l.id === focusLessonId} />
+          ))}
+          <div className="flex gap-2">
+            <Input value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder={t('newLesson')} label={t('newLesson')} />
+            <Button onClick={() => addLesson.mutate()} disabled={!lessonTitle} className="self-end">
+              <Plus className="inline" size={18} /> {t('add')}
+            </Button>
+          </div>
+          {addLesson.error && <ErrorBox error={addLesson.error} />}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function LessonEditor({ lesson, courseId, autoFocus }: { lesson: Curriculum[0]['lessons'][0]; courseId: string; autoFocus?: boolean }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(!!autoFocus);
+  const [title, setTitle] = useState(lesson.title);
+  const [content, setContent] = useState(lesson.content ?? '');
+
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+  const save = useMutation({
+    mutationFn: () => api(`/api/teacher/lessons/${lesson.id}`, { method: 'PATCH', body: { title, content } }),
+    onSuccess: invalidate,
+  });
+  const del = useMutation({
+    mutationFn: () => api(`/api/teacher/lessons/${lesson.id}`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  });
+
+  return (
+    <div className="rounded-xl border border-line bg-background/60 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <button className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
+        <button onClick={() => del.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+          <Trash2 size={14} />
+        </button>
+      </div>
+      {open && (
+        <div className="mt-3 flex flex-col gap-3">
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} label={t('name')} />
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('lessons')} / notes</span>
+            <textarea
+              className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
+              rows={3}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => save.mutate()}>
+              <Save className="inline" size={16} /> {t('save')}
+            </Button>
+          </div>
+          {save.error && <ErrorBox error={save.error} />}
+          <AttachmentUploader lessonId={lesson.id} courseId={courseId} />
+          <QuizBuilder lessonId={lesson.id} existing={lesson.quiz} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId: string }) {
+  const { t } = useLang();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<Error | null>(null);
+  const qc = useQueryClient();
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+
+  const upload = async (file: File) => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/presigned-upload', {
+        body: { courseId, lessonId, fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
+      });
+      if (up.uploadUrl.includes('stub-upload')) {
+        // Dev stub mode (no real R2 configured) — record metadata directly.
+      } else {
+        const resp = await fetch(up.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+      }
+      await api('/api/storage/attachments', {
+        body: { lessonId, title: file.name, objectKey: up.objectKey, mimeType: file.type, fileSizeBytes: file.size },
+      });
+      invalidate();
+    } catch (e) {
+      setErr(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line bg-white px-4 py-3 text-sm font-semibold text-ink-soft hover:border-primary">
+        <FileUp size={16} />
+        {busy ? '…' : t('uploadFile')}
+        <input
+          type="file"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+        />
+      </label>
+      {err && <div className="mt-2"><ErrorBox error={err} /></div>}
+    </div>
+  );
+}
+
+function QuizBuilder({ lessonId, existing }: { lessonId: string; existing: { title: string } | null }) {
+  const { t } = useLang();
+  const [title, setTitle] = useState(existing?.title ?? 'Quiz');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [err, setErr] = useState<Error | null>(null);
+
+  const upsert = useMutation({
+    mutationFn: () =>
+      api(`/api/teacher/lessons/${lessonId}/quiz`, {
+        body: {
+          title,
+          questions: questions.map((q) => ({
+            ...q,
+            options: q.questionType === 'MCQ' ? q.options : undefined,
+          })),
+        },
+      }),
+    onSuccess: () => { setQuestions([]); setErr(null); },
+    onError: (e) => setErr(e),
+  });
+
+  const blank = (): Question => ({ questionType: 'MCQ', prompt: '', options: ['', '', '', ''], correctAnswer: '', points: 1 });
+
+  return (
+    <Card className="border-line bg-white">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-bold">{t('quiz')}</span>
+        <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => setQuestions([...questions, blank()])}>
+          <Plus className="inline" size={14} /> {t('add')}
+        </Button>
+      </div>
+      <div className="mt-2">
+        <Input label={t('quiz')} value={title} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      {questions.map((q, qi) => (
+        <div key={qi} className="mt-4 flex flex-col gap-2 rounded-xl border border-line p-3">
+          <div className="flex gap-2">
+            <select
+              className="rounded-lg border border-line px-2 py-2 text-sm"
+              value={q.questionType}
+              onChange={(e) => {
+                const next = [...questions];
+                next[qi] = { ...q, questionType: e.target.value as Question['questionType'] };
+                setQuestions(next);
+              }}
+            >
+              <option value="MCQ">MCQ</option>
+              <option value="TRUE_FALSE">True/False</option>
+              <option value="SHORT_ANSWER">Short answer</option>
+            </select>
+            <Input
+              value={q.prompt}
+              onChange={(e) => {
+                const next = [...questions];
+                next[qi] = { ...q, prompt: e.target.value };
+                setQuestions(next);
+              }}
+              placeholder="…"
+            />
+            <button
+              className="text-ink-soft hover:text-secondary"
+              onClick={() => setQuestions(questions.filter((_, i) => i !== qi))}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+          {q.questionType === 'MCQ' && (
+            <div className="flex flex-wrap gap-2">
+              {q.options.map((opt, oi) => (
+                <Input
+                  key={oi}
+                  value={opt}
+                  onChange={(e) => {
+                    const next = [...questions];
+                    const options = [...q.options];
+                    options[oi] = e.target.value;
+                    next[qi] = { ...q, options };
+                    setQuestions(next);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          {q.questionType === 'TRUE_FALSE' && (
+            <div className="flex gap-2">
+              {['true', 'false'].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => {
+                    const next = [...questions];
+                    next[qi] = { ...q, correctAnswer: v };
+                    setQuestions(next);
+                  }}
+                  className={`rounded-lg border px-3 py-2 text-sm ${q.correctAnswer === v ? 'border-primary bg-primary-light font-semibold' : 'border-line'}`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          )}
+          {q.questionType === 'SHORT_ANSWER' && (
+            <Input
+              label="correct answer"
+              value={q.correctAnswer}
+              onChange={(e) => {
+                const next = [...questions];
+                next[qi] = { ...q, correctAnswer: e.target.value };
+                setQuestions(next);
+              }}
+            />
+          )}
+          {q.questionType === 'MCQ' && (
+            <Input
+              label="correct answer"
+              value={q.correctAnswer}
+              onChange={(e) => {
+                const next = [...questions];
+                next[qi] = { ...q, correctAnswer: e.target.value };
+                setQuestions(next);
+              }}
+            />
+          )}
+        </div>
+      ))}
+      {err && <ErrorBox error={err} />}
+      <Button onClick={() => upsert.mutate()} disabled={questions.length === 0} className="mt-3">
+        <Save className="inline" size={16} /> {t('save')} {t('quiz')}
+      </Button>
+    </Card>
+  );
+}

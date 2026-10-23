@@ -40,6 +40,12 @@ export class StudentController {
     return this.students.unmarkComplete(req.user!.id, lessonId);
   }
 
+  @Get('api/student/lessons/:lessonId/quiz')
+  @Roles('STUDENT')
+  quizByLesson(@Req() req: Request, @Param('lessonId') lessonId: string) {
+    return this.students.getQuizByLesson(req.user!.id, lessonId);
+  }
+
   @Get('api/student/quizzes/:quizId')
   @Roles('STUDENT')
   quiz(@Req() req: Request, @Param('quizId') quizId: string) {

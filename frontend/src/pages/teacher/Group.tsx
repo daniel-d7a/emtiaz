@@ -1,0 +1,276 @@
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Copy, Lock, Plus, Trash2, Unlock } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useLang } from '../../lib/i18n';
+import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
+
+type Pacing = {
+  group: { id: string; name: string; joinCode: string; unlockAllByDefault: boolean };
+  lessons: Array<{ id: string; title: string; unlocked: boolean; overridden: boolean }>;
+};
+type Gradebook = {
+  group: { id: string; name: string; joinCode: string };
+  students: Array<{ id: string; name: string; phoneNumber: string | null }>;
+  quizColumns: Array<{ quizId: string; lessonTitle: string; maxScore: number }>;
+  quizCells: Record<string, number>;
+  manualColumns: Array<{ id: string; title: string; maxScore: number | null }>;
+  manualCells: Array<{ columnId: string; studentId: string; score: number | null; note: string | null }>;
+};
+type Roster = {
+  group: { id: string; name: string; joinCode: string };
+  students: Array<{ studentId: string; name: string; phoneNumber: string | null; joinedAt: string }>;
+};
+
+export default function TeacherGroup() {
+  const { groupId = '' } = useParams();
+  const { t } = useLang();
+  const [tab, setTab] = useState<'pacing' | 'gradebook' | 'roster'>('pacing');
+
+  return (
+    <Page title={t('pacing')}>
+      <div className="mb-5 flex flex-wrap gap-2">
+        {(['pacing', 'gradebook', 'roster'] as const).map((k) => (
+          <button key={k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
+            {k === 'pacing' ? t('pacing') : k === 'gradebook' ? t('gradebook') : t('roster')}
+          </button>
+        ))}
+      </div>
+      {tab === 'pacing' && <PacingTab groupId={groupId} />}
+      {tab === 'gradebook' && <GradebookTab groupId={groupId} />}
+      {tab === 'roster' && <RosterTab groupId={groupId} />}
+    </Page>
+  );
+}
+
+export function PacingTab({ groupId }: { groupId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['pacing', groupId],
+    queryFn: () => api<Pacing>(`/api/teacher/groups/${groupId}/pacing`),
+  });
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['pacing', groupId] });
+  const setAccess = useMutation({
+    mutationFn: ({ lessonId, isUnlocked }: { lessonId: string; isUnlocked: boolean }) =>
+      api(`/api/teacher/groups/${groupId}/lessons/${lessonId}/access`, { body: { isUnlocked } }),
+    onSuccess: invalidate,
+  });
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return null;
+
+  return (
+    <Card>
+      <div className="mb-3 flex items-center justify-between text-sm">
+        <span className="font-semibold">{t('joinCode')}:</span>
+        <span dir="ltr" className="flex items-center gap-2 rounded bg-background px-2 py-1 font-bold">
+          {data.group.joinCode}
+          <Copy
+            size={14}
+            className="cursor-pointer"
+            onClick={() => navigator.clipboard.writeText(`https://emtiaz.om/join?code=${data.group.joinCode}`).catch(() => {})}
+          />
+        </span>
+      </div>
+      <ul className="flex flex-col divide-y divide-line">
+        {data.lessons.map((l) => (
+          <li key={l.id} className="flex items-center justify-between py-2">
+            <span className="font-semibold">
+              {l.title}
+              {l.overridden && <span className="ms-2 rounded bg-secondary-light px-1.5 text-xs text-secondary">{t('released')}</span>}
+            </span>
+            <button
+              onClick={() => setAccess.mutate({ lessonId: l.id, isUnlocked: !l.unlocked })}
+              className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${l.unlocked ? 'bg-primary-light text-primary-dark' : 'bg-line text-ink-soft'}`}
+            >
+              {l.unlocked ? <Unlock size={12} /> : <Lock size={12} />}
+              {l.unlocked ? t('unlocked') : t('locked')}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+export function GradebookTab({ groupId }: { groupId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['gradebook', groupId],
+    queryFn: () => api<Gradebook>(`/api/teacher/groups/${groupId}/gradebook`),
+  });
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['gradebook', groupId] });
+  const [colTitle, setColTitle] = useState('');
+  const addCol = useMutation({
+    mutationFn: () => api(`/api/teacher/groups/${groupId}/gradebook/columns`, { body: { title: colTitle } }),
+    onSuccess: () => { setColTitle(''); invalidate(); },
+  });
+  const delCol = useMutation({
+    mutationFn: (columnId: string) => api(`/api/teacher/groups/${groupId}/gradebook/columns/${columnId}`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  });
+  const setCell = useMutation({
+    mutationFn: (v: { studentId: string; columnId: string; score: number | null }) =>
+      api(`/api/teacher/groups/${groupId}/gradebook/cell`, { body: v }),
+    onSuccess: invalidate,
+  });
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return null;
+
+  const cellAt = (studentId: string, columnId: string, kind: 'quiz' | 'manual') =>
+    kind === 'quiz'
+      ? data.quizCells[`${studentId}:${columnId}`]
+      : data.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-start">
+              <th className="py-2 pe-4 text-start font-bold">{t('roster')}</th>
+              {data.quizColumns.map((c) => (
+                <th key={c.quizId} className="py-2 pe-4 text-start text-ink-soft">
+                  {c.lessonTitle} <span dir="rtl" className="text-xs">({c.maxScore})</span>
+                </th>
+              ))}
+              {data.manualColumns.map((c) => (
+                <th key={c.id} className="py-2 pe-2 text-start text-ink-soft">
+                  {c.title}
+                  <button onClick={() => delCol.mutate(c.id)} className="ms-1 text-ink-soft hover:text-secondary">
+                    <Trash2 size={12} />
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.students.map((s) => (
+              <tr key={s.id} className="border-b border-line/60">
+                <td className="py-2 pe-4 font-semibold">{s.name}</td>
+                {data.quizColumns.map((c) => (
+                  <td key={c.quizId} className="py-2 pe-4 font-bold text-primary">
+                    {cellAt(s.id, c.quizId, 'quiz') ?? '—'}
+                  </td>
+                ))}
+                {data.manualColumns.map((c) => (
+                  <td key={c.id} className="py-1 pe-2">
+                    <input
+                      className="w-16 rounded border border-line px-2 py-1 text-sm"
+                      defaultValue={cellAt(s.id, c.id, 'manual') ?? ''}
+                      onBlur={(e) => {
+                        const raw = e.target.value.trim();
+                        setCell.mutate({ studentId: s.id, columnId: c.id, score: raw === '' ? null : Number(raw) });
+                      }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {data.students.length === 0 && <tr><td className="py-3 text-ink-soft">—</td></tr>}
+          </tbody>
+        </table>
+      </Card>
+      <Card>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="grow">
+            <Input label={t('addGradeColumn')} value={colTitle} onChange={(e) => setColTitle(e.target.value)} placeholder={t('addGradeColumn')} />
+          </div>
+          <Button onClick={() => addCol.mutate()} disabled={!colTitle}>
+            <Plus className="inline" size={16} /> {t('add')}
+          </Button>
+        </div>
+        {addCol.error && <ErrorBox error={addCol.error} />}
+      </Card>
+    </div>
+  );
+}
+
+export function RosterTab({ groupId }: { groupId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['roster', groupId],
+    queryFn: () => api<Roster>(`/api/teacher/groups/${groupId}/roster`),
+  });
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['roster', groupId] });
+  const [bulk, setBulk] = useState('');
+  const [okMsg, setOkMsg] = useState('');
+  const doBulk = useMutation({
+    mutationFn: () =>
+      api(`/api/teacher/groups/${groupId}/roster/bulk`, {
+        body: {
+          students: bulk
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+              const [name, phone] = line.split(/[,\t]/).map((p) => p.trim());
+              return { name, phoneNumber: phone };
+            })
+            .filter((s) => s.name && s.phoneNumber),
+        },
+      }),
+    onSuccess: (res: Array<{ created: boolean; enrolled: boolean }>) => {
+      setOkMsg(`${res.filter((r) => r.enrolled).length} enrolled / ${res.filter((r) => r.created).length} new`);
+      setBulk('');
+      invalidate();
+    },
+  });
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return null;
+
+  const link = `https://api.whatsapp.com/send?text=${data.group.joinCode}`;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold">{data.group.name}</h3>
+          <div className="flex items-center gap-2 text-sm">
+            <span dir="ltr" className="rounded bg-background px-2 py-1 font-bold">{data.group.joinCode}</span>
+            <Copy size={14} className="cursor-pointer" onClick={() => navigator.clipboard.writeText(data.group.joinCode).catch(() => {})} />
+<span dir="ltr" className="font-bold">{t('oneStepJoin')}</span>
+          </div>
+        </div>
+        <p className="mt-2 text-sm text-ink-soft">{t('oneStepJoin')}</p>
+      </Card>
+      <Card>
+        <ul className="flex flex-col divide-y divide-line">
+          {data.students.map((s) => (
+            <li key={s.studentId} className="flex items-center justify-between py-2">
+              <span className="font-semibold">
+                {s.name}
+                {s.phoneNumber && <span dir="ltr" className="ms-2 text-sm text-ink-soft">{s.phoneNumber}</span>}
+              </span>
+            </li>
+          ))}
+          {data.students.length === 0 && <li className="py-2 text-ink-soft">—</li>}
+        </ul>
+        {doBulk.error && <ErrorBox error={doBulk.error} />}
+      </Card>
+      <Card>
+        <Input
+          label={t('bulkAdd')}
+          value={bulk}
+          onChange={(e) => setBulk(e.target.value)}
+          placeholder={`Ali Salem, 91234567\nFatma Salim, 92345678`}
+        />
+        <div className="mt-3 flex items-center gap-3">
+          <Button onClick={() => doBulk.mutate()} disabled={!bulk.trim()}>
+            <Plus className="inline" size={16} /> {t('save')}
+          </Button>
+          {okMsg && <span className="text-sm font-semibold text-primary">{okMsg}</span>}
+        </div>
+      </Card>
+    </div>
+  );
+}
