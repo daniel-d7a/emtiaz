@@ -6,6 +6,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { StudentModule } from './modules/student/student.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { StorageModule } from './modules/storage/storage.module';
     StudentModule,
     TeacherModule,
     StorageModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

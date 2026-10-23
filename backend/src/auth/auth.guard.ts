@@ -42,8 +42,11 @@ export class AuthGuard implements CanActivate {
     ]);
     const request = context.switchToHttp().getRequest<Request>();
 
+    // cookieCache trusts the signed cookie for up to 5 min even if the
+    // session row is gone or the user was suspended — always verify fresh.
     const session: AuthSession = await auth.api.getSession({
       headers: toWebHeaders(request.headers),
+      query: { disableCookieCache: true },
     });
 
     if (session) {

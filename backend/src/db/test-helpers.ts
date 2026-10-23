@@ -64,8 +64,18 @@ export async function getUserByEmail(email: string) {
 
 /** Creates a teacher, two students (via better-auth), a course with a module,
  *  lessons, an unlocked quiz, two groups, and enrolls both students in group 1. */
+export const ADMIN = {
+  email: 'admin@emtiaz.om',
+  password: 'Passw0rd!123',
+  name: 'Platform Admin',
+  phoneNumber: '+96890000000',
+};
+
 export async function seedWorld() {
   const { server } = await getApp();
+  await request(server)
+    .post('/api/auth/sign-up/email')
+    .send({ ...ADMIN, role: 'ADMIN' });
   await request(server)
     .post('/api/onboarding/teacher')
     .send(TEACHER);
@@ -159,5 +169,6 @@ export async function seedWorld() {
     s2,
     gradeId,
     categoryId,
+    admin: ADMIN,
   };
 }
