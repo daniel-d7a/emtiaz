@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>امتياز — منصة تعلّم بسيطة للمعلمين والطلبة في عُمان</title>
+  <meta name="description" content="امتياز: منصة إدارة تعلّم بسيطة للمجموعات — مدرسة عُمانية ومهارات عامة. صفحة مقرر، دروس مقفلة/مفتوحة، اختبارات قصيرة، وسجل درجات." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #0F766E; --primary-light: #CCFBF1; --primary-dark: #134E4A;
+      --secondary: #EA580C; --secondary-light: #FFEDD5;
+      --background: #FAF8F5; --card: #FFFFFF; --line: #E7E5E4;
+      --ink: #1C1917; --ink-soft: #78716C;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: 'Cairo', 'DM Sans', sans-serif;
+      background: var(--background); color: var(--ink); line-height: 1.6;
+    }
+    html[lang="en"] { direction: ltr; font-family: 'DM Sans', 'Cairo', sans-serif; }
+    a { color: var(--primary); text-decoration: none; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+    .logo { font-weight: 700; font-size: 22px; color: var(--primary-dark); }
+    .logo span { color: var(--secondary); }
+    .langbtn, .btn {
+      font-family: inherit; cursor: pointer; border: 1px solid var(--line);
+      background: var(--card); color: var(--ink); border-radius: 12px; padding: 10px 18px;
+      font-weight: 600; font-size: 15px;
+    }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    .hero { padding: 72px 0 56px; text-align: center; }
+    .hero h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; max-width: 720px; margin: 0 auto 16px; }
+    .hero h1 em { font-style: normal; color: var(--primary); }
+    .hero p { color: var(--ink-soft); font-size: 18px; max-width: 620px; margin: 0 auto 28px; }
+    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; padding: 32px 0 64px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+    .card h3 { font-size: 17px; margin-bottom: 6px; }
+    .card h3 b { color: var(--primary); }
+    .card p { color: var(--ink-soft); font-size: 14.5px; }
+    .join { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 40px 24px; text-align: center; margin-bottom: 72px; }
+    .steps { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+    .step { background: var(--background); border-radius: 12px; padding: 14px 18px; font-size: 15px; font-weight: 600; }
+    .step .n { color: var(--secondary); font-weight: 700; }
+    footer { border-top: 1px solid var(--line); padding: 28px 0 64px; text-align: center; color: var(--ink-soft); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" data-t="logo">امتياز<span>.</span></div>
+      <button class="langbtn" id="lang" onclick="toggleLang()" data-t2="en">English</button>
+    </header>
+
+    <section class="hero">
+      <h1 data-t="h1">
+        منصة تعلّم بسيطة <em>للمعلمين</em> وطلبة عُمان
+      </h1>
+      <p data-t="hero_p">
+        أنشئ مجموعة دراسية، شارك رمزها عبر واتساب، وتحكّم فيما يفتحه طلابك — دروس، ملفات، واختبارات قصيرة تُصحّح آليًا، وسجل درجات جاهز.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" id="cta-login" data-t="cta_login">تسجيل الدخول</a>
+        <a class="btn btn-outline" id="cta-register" data-t="cta_register">إنشاء حساب مجانًا</a>
+      </div>
+    </section>
+
+    <section class="features" id="feat"></section>
+
+    <section class="join">
+      <h2 data-t="join_h">طريقة الدخول بمجموعتك في 3 خطوات</h2>
+      <div class="steps">
+        <div class="step"><span class="n">1 — </span><span data-t="step1">تسجل المعلم ويُنشئ المجموعة</span></div>
+        <div class="step"><span class="n">2 — </span><span data-t="step2">يرسل رمز الدعوة واتساب</span></div>
+        <div class="step"><span class="n">3 — </span><span data-t="step3">الطالب ينضم خطوة واحدة</span></div>
+      </div>
+    </section>
+
+    <footer>
+      <div data-t="footer">امتياز — مبني ببساطة للمعلمين في عُمان.</div>
+    </footer>
+  </div>
+
+  <script>
+    const APP_URL = 'http://localhost:5173'; // change to https://app.emtiaz.om in prod
+
+    document.getElementById('cta-login').href = APP_URL + '/login';
+    document.getElementById('cta-register').href = APP_URL + '/register';
+
+    const dict = {
+      logo: { ar: 'امتياز<span>.</span>', en: 'Emtiaz<span>.</span>' },
+      h1: {
+        ar: 'منصة تعلّم بسيطة <em>للمعلمين</em> وطلبة عُمان',
+        en: 'A simple LMS <em>for teachers</em> and students in Oman',
+      },
+      hero_p: {
+        ar: 'أنشئ مجموعة دراسية، شارك رمزها عبر واتساب، وتحكّم فيما يفتحه طلابك — دروس، ملفات، واختبارات قصيرة تُصحّح آليًا، وسجل درجات جاهز.',
+        en: 'Create a study group, share its code on WhatsApp, and control exactly what your students unlock — lessons, files, auto-graded quizzes, and a ready gradebook.',
+      },
+      cta_login: { ar: 'تسجيل الدخول', en: 'Log in' },
+      cta_register: { ar: 'إنشاء حساب مجانًا', en: 'Create free account' },
+      join_h: { ar: 'طريقة الدخول بمجموعتك في 3 خطوات', en: 'Join your group in 3 steps' },
+      step1: { ar: 'تسجل المعلم ويُنشئ المجموعة', en: 'Teacher signs up and creates a group' },
+      step2: { ar: 'يرسل رمز الدعوة واتساب', en: 'Teacher shares the invite code on WhatsApp' },
+      step3: { ar: 'الطالب ينضم خطوة واحدة', en: 'Student joins in one step' },
+      footer: { ar: 'امتياز — مبني ببساطة للمعلمين في عُمان.', en: 'Emtiaz — built simply for teachers in Oman.' },
+      langbtn: { ar: 'العربية / English', en: 'العربية / English' },
+    };
+
+    const feats = [
+      {
+        h: { ar: 'مقررات مدرسية أو مهارات', en: 'School curriculum or skills' },
+        p: { ar: 'صنّف مقررك: منهج مدرسي للصف أو مهارة عامة — النظام يرتب الدروس والوحدات.', en: 'Tag your course: a school-curriculum grade or a general skill — lessons and modules stay organized.' },
+      },
+      {
+        h: { ar: 'فتح الدروس بضغطة', en: 'Unlock lessons with one tap' },
+        p: { ar: 'افتح درسًا واحدًا أو الكل، لكل مجموعة على حدة — إيقاع يناسبك ويناسبهم.', en: 'Unlock one lesson or all, per group — a pacing rhythm that suits you and them.' },
+      },
+      {
+        h: { ar: 'اختبارات تُصحّح نفسها', en: 'Quizzes that grade themselves' },
+        p: { ar: 'اختبارات اختيار متعدد / صح-خطأ / إجابة قصيرة تُصحّح لحظيًا مع تغذية راجعة.', en: 'MCQ, true/false, and short-answer quizzes graded instantly with feedback.' },
+      },
+      {
+        h: { ar: 'سجل درجات جاهز', en: 'A ready gradebook' },
+        p: { ar: 'أفضل محاولة لكل اختبار تلقائيًا، وأعمدة درجات يدوية كما تحتاج.', en: 'Best attempt per quiz automatically, plus manual grade columns as needed.' },
+      },
+      {
+        h: { ar: 'ملفات ومرفقات', en: 'Files and attachments' },
+        p: { ar: 'ارفع PDF أو صور أو ملفات إلى أي درس — وتنزيل بضغطة للطلاب.', en: 'Upload PDFs, images, or files to any lesson — one-tap download for students.' },
+      },
+      {
+        h: { ar: 'مصمم بالعربية أولًا', en: 'Arabic-first by design' },
+        p: { ar: 'واجهة RTL كاملة بخطوط عربية، وتبديل إنجليزي بنقرة واحدة.', en: 'Full RTL interface in Arabic fonts, with one-tap English switch.' },
+      },
+    ];
+
+    function featsRender(lang) {
+      document.getElementById('feat').innerHTML = feats
+        .map((f) => `<div class="card"><h3>${f.h[lang]}</h3><p>${f.p[lang]}</p></div>`)
+        .join('');
+    }
+
+    let lang = 'ar';
+    function t(lang) {
+      document.querySelectorAll('[data-t]').forEach((el) => {
+        const key = el.getAttribute('data-t');
+        const v = dict[key]?.[lang];
+        if (v) el.innerHTML = v;
+      });
+      featsRender(lang);
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.getElementById('lang').textContent = lang === 'ar' ? 'English' : 'العربية';
+    }
+    function toggleLang() {
+      lang = lang === 'ar' ? 'en' : 'ar';
+      t(lang);
+    }
+    t('ar');
+  </script>
+</body>
+</html>

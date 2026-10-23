@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: emtiaz-pg-docker
+    environment:
+      POSTGRES_USER: emtiaz
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: emtiaz
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emtiaz"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: ./backend
+    container_name: emtiaz-api-docker
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://emtiaz:password@db:5432/emtiaz
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-change-me-in-production}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8088}
+    ports:
+      - "3100:3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: emtiaz-web-docker
+    depends_on:
+      - api
+    environment:
+      APP_URL: http://localhost:8088
+    ports:
+      - "8088:80"
+
+volumes:
+  pgdata:
