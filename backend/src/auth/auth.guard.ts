@@ -10,11 +10,11 @@ import { auth } from './auth';
 import { ROLES_KEY, type Role } from './roles.decorator';
 import type { Request } from 'express';
 
-type AuthSession = { session: Record<string, any>; user: Record<string, any> } | null;
+type AuthSession = { session: Record<string, any>; user: { id: string; role: string; isActive: boolean } & Record<string, any> } | null;
 
 declare module 'express' {
   interface Request {
-    user?: Record<string, any>;
+    user?: { id: string; role: string; isActive: boolean } & Record<string, any>;
     session?: Record<string, any>;
   }
 }

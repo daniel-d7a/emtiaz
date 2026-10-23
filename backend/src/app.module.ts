@@ -4,9 +4,16 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard, RolesGuard } from './auth/auth.guard';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { StudentModule } from './modules/student/student.module';
+import { TeacherModule } from './modules/teacher/teacher.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
-  imports: [OnboardingModule, StudentModule],
+  imports: [
+    OnboardingModule,
+    StudentModule,
+    TeacherModule,
+    StorageModule,
+  ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

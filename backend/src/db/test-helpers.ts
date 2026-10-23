@@ -72,6 +72,17 @@ export async function seedWorld() {
   await request(server).post('/api/onboarding/student').send(STUDENT1);
   await request(server).post('/api/onboarding/student').send(STUDENT2);
 
+  const { rows: gradeRows } = await testPool.query(
+    `INSERT INTO grades (name, display_order) VALUES ('Grade 10', 5)
+     ON CONFLICT DO NOTHING
+     RETURNING id`,
+  );
+  const gradeId = gradeRows[0].id;
+  const { rows: categoryRows } = await testPool.query(
+    `INSERT INTO categories (name) VALUES ('English Speaking') RETURNING id`,
+  );
+  const categoryId = categoryRows[0].id;
+
   const teacher = await getUserByEmail(TEACHER.email);
   const s1 = await getUserByEmail(STUDENT1.email);
   const s2 = await getUserByEmail(STUDENT2.email);
@@ -146,5 +157,7 @@ export async function seedWorld() {
     teacher,
     s1,
     s2,
+    gradeId,
+    categoryId,
   };
 }

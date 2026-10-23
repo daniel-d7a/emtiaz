@@ -1,0 +1,93 @@
+import { Body, Controller, Get, Injectable, Module, Param, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { eq } from 'drizzle-orm';
+import { db } from '../../db';
+import { lessonAttachments, lessons, modules, courses } from '../../db/schema';
+import { Roles } from '../../auth/roles.decorator';
+import { R2StorageService } from './r2.service';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+
+@Controller()
+@Injectable()
+export class StorageController {
+  constructor(private r2: R2StorageService) {}
+
+  @Roles('TEACHER')
+  @Post('api/storage/presigned-upload')
+  async presignedUpload(
+    @Req() req: Request,
+    @Body()
+    dto: {
+      courseId: string;
+      lessonId: string;
+      fileName: string;
+      mimeType: string;
+      fileSizeBytes: number;
+    },
+  ) {
+    // Verify teacher owns the course the lesson belongs to.
+    const lesson = (await db.select().from(lessons).where(eq(lessons.id, dto.lessonId)))[0];
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    const mod = (await db.select().from(modules).where(eq(modules.id, lesson.moduleId)))[0];
+    if (!mod || mod.courseId !== dto.courseId) {
+      throw new ForbiddenException('Lesson/course mismatch');
+    }
+    const course = (await db.select().from(courses).where(eq(courses.id, mod.courseId)))[0];
+    if (!course) throw new NotFoundException('Course not found');
+    if (course.teacherId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      throw new ForbiddenException('Not your course');
+    }
+    const objectKey = R2StorageService.buildObjectKey(dto.courseId, dto.lessonId, dto.fileName);
+    const uploadUrl = await this.r2.presignedPut(objectKey);
+    return {
+      objectKey,
+      uploadUrl,
+      key: objectKey,
+      method: 'PUT',
+      maxBytes: 100 * 1024 * 1024,
+    };
+  }
+
+  @Roles('TEACHER')
+  @Post('api/storage/attachments')
+  async attach(
+    @Req() req: Request,
+    @Body()
+    dto: {
+      lessonId: string;
+      groupId?: string;
+      title: string;
+      objectKey: string;
+      mimeType?: string;
+      fileSizeBytes?: number;
+      verified?: boolean;
+    },
+  ) {
+    const downloadUrl = await this.r2.presignedGet(dto.objectKey);
+    const [row] = await db
+      .insert(lessonAttachments)
+      .values({
+        lessonId: dto.lessonId,
+        groupId: dto.groupId,
+        title: dto.title,
+        r2ObjectKey: dto.objectKey,
+        publicOrSignedUrl: downloadUrl,
+        fileType: R2StorageService.fileTypeFor(dto.mimeType),
+        fileSizeBytes: dto.fileSizeBytes,
+        mimeType: dto.mimeType,
+      })
+      .returning();
+    return row;
+  }
+
+  @Roles('STUDENT', 'TEACHER', 'ADMIN')
+  @Get('api/storage/attachments/:id/download')
+  async download(@Param('id') id: string) {
+    const [row] = await db
+      .select()
+      .from(lessonAttachments)
+      .where(eq(lessonAttachments.id, id));
+    if (!row) throw new NotFoundException('Attachment not found');
+    return { id: row.id, url: await this.r2.presignedGet(row.r2ObjectKey) };
+  }
+}
