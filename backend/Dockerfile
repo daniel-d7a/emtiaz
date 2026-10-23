@@ -18,4 +18,4 @@ RUN npm ci --legacy-peer-deps --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
 EXPOSE 3000
-CMD ["sh", "-c", "test -f dist/src/main.js && n=src || n=; node dist/${n:+src/}run-migrate.js && node dist/${n:+src/}main.js"]
+CMD ["sh", "-c", "test -f dist/src/main.js && n=src || n=; node dist/${n:+src/}run-migrate.js && node dist/${n:+src/}db/seed.js; node dist/${n:+src/}main.js"]
