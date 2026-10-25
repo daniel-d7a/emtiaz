@@ -490,6 +490,33 @@ describe('Phase 4: teacher endpoints', () => {
       const dl = await s.get(`/api/storage/attachments/${att.body.id}/download`);
       expect(dl.status).toBe(200);
       expect(dl.body.url).toContain(att.body.r2ObjectKey);
+
+      await request(server)
+        .post('/api/onboarding/student')
+        .send({
+          ...STUDENT1,
+          email: 'outsider-storage@student.om',
+          phoneNumber: '+96890000020',
+        });
+      const outsider = (await login(server, 'outsider-storage@student.om', STUDENT1.password)).session;
+      const denied = await outsider.get(`/api/storage/attachments/${att.body.id}/download`);
+      expect(denied.status).toBe(403);
+
+      const up2 = await t.post('/api/storage/presigned-upload').send({
+        courseId: world.courseId,
+        lessonId: world.lesson2,
+        fileName: 'other.pdf',
+        mimeType: 'application/pdf',
+        fileSizeBytes: 10,
+      });
+      const wrongLesson = await t.post('/api/storage/attachments').send({
+        lessonId: world.lesson1,
+        title: 'Wrong lesson',
+        objectKey: up2.body.objectKey,
+        mimeType: 'application/pdf',
+        fileSizeBytes: 10,
+      });
+      expect(wrongLesson.status).toBe(403);
     });
 
     it('returns 503 instead of a fake URL when storage is unconfigured', async () => {
@@ -528,6 +555,23 @@ describe('Phase 4: teacher endpoints', () => {
         fileSizeBytes: 1,
       });
       expect(res.status).toBe(403);
+
+      const st = (await login(server, 'stranger@teacher.om', TEACHER.password)).session;
+      const ownUpload = await st.post('/api/storage/presigned-upload').send({
+        courseId: otherCourse,
+        lessonId: otherLesson,
+        fileName: 'own.pdf',
+        mimeType: 'application/pdf',
+        fileSizeBytes: 1,
+      });
+      const foreignAttach = await st.post('/api/storage/attachments').send({
+        lessonId: world.lesson1,
+        title: 'Foreign',
+        objectKey: ownUpload.body.objectKey,
+        mimeType: 'application/pdf',
+        fileSizeBytes: 1,
+      });
+      expect(foreignAttach.status).toBe(403);
     });
   });
 });
