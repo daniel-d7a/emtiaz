@@ -46,7 +46,7 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: Typecheck backend
         working-directory: backend
-        run: npx tsc --noEmit
+        run: npm run typecheck
       - name: Test backend
         working-directory: backend
         run: npm test
@@ -59,6 +59,12 @@ jobs:
       - name: Test frontend
         working-directory: frontend
         run: npm test
+      - name: Install mobile
+        working-directory: mobile
+        run: npm ci --legacy-peer-deps
+      - name: Typecheck mobile
+        working-directory: mobile
+        run: npm run typecheck
 
   docker:
     runs-on: ubuntu-latest

@@ -38,6 +38,7 @@ cd frontend && npm install && npm run dev
 # tests
 cd backend && npm test    # uses emtiaz-pg-test on port 5434 (see backend/.env)
 cd frontend && npm test
+cd mobile && npm run typecheck
 
 # browser smoke test (login → group → lesson → quiz)
 # expects a seeded stack running at E2E_BASE_URL (default http://localhost:8088)

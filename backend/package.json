@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
     "storage:check": "tsx scripts/storage-check.ts",
-    "s3:init": "tsx scripts/ensure-bucket.ts"
+    "s3:init": "tsx scripts/ensure-bucket.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.716.0",
