@@ -3,10 +3,10 @@
  * Usage: npm run storage:check   (needs RustFS/R2 up and R2_* configured)
  */
 import 'dotenv/config';
-import { R2StorageService } from '../src/modules/storage/r2.service';
+import { StorageService } from '../src/modules/storage/storage.service';
 
 async function main() {
-  const svc = new R2StorageService();
+  const svc = new StorageService();
   if (!svc.isConfigured()) throw new Error('R2_* storage config missing — nothing to check');
   const key = `selfcheck/${Date.now()}.txt`;
   const bytes = new TextEncoder().encode('emtiaz storage check');

@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { categories, courses, groupStudents, groups, users } from '../../db/schema';
 import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
-import { R2StorageService } from '../storage/r2.service';
+import { StorageService } from '../storage/storage.service';
 
 const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`.slice(0, 6);
@@ -15,7 +15,7 @@ export { genJoinCode };
 export class OnboardingService {
   constructor(
     private readonly notifications: NotificationsService,
-    private readonly r2: R2StorageService,
+    private readonly storage: StorageService,
   ) {}
 
   /** Adds the given student to a group identified by its join code. */
@@ -126,7 +126,7 @@ export class OnboardingService {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user?.image) return null;
     try {
-      return await this.r2.presignedGet(user.image);
+      return await this.storage.presignedGet(user.image);
     } catch {
       return null;
     }

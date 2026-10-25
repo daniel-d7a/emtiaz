@@ -5,7 +5,7 @@ Date: 2026-10-23
 ## Decision
 Local development runs a real S3-compatible object store — **RustFS** (`rustfs/rustfs`)
 — via docker-compose. The storage module
-(`backend/src/modules/storage/r2.service.ts`) talks plain S3: presigned PUT for
+(`backend/src/modules/storage/storage.service.ts`) talks plain S3: presigned PUT for
 browser uploads, presigned GET for downloads, GET for verification. There is
 no fake-upload mode: if storage is not configured, upload endpoints return
 503 rather than pretending to store a file.
@@ -26,6 +26,11 @@ no fake-upload mode: if storage is not configured, upload endpoints return
 | `R2_PRESIGN_ENDPOINT` | Optional override embedded in presigned URLs so the user's browser can reach the endpoint (docker: `http://localhost:9200`) |
 | `R2_REGION` | `us-east-1` for RustFS/self-hosted stores, `auto` for real R2 |
 | `R2_BUCKET_NAME` | Bucket; auto-created by the `rustfs-init` one-shot container (`scripts/ensure-bucket.ts`) |
+
+## Naming
+Code lives in `storage.service.ts` as `StorageService`; the provider-specific
+`R2_*` env vars and the legacy `lesson_attachments.r2_object_key` column keep
+their names so existing deployments and migrations stay valid.
 
 ## Consequences
 - Attachment uploads work end-to-end in dev (`npm run storage:check` verifies

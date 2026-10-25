@@ -6,13 +6,13 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { lessonAttachments, lessons, modules, courses } from '../../db/schema';
 import { Roles } from '../../auth/roles.decorator';
-import { R2StorageService } from './r2.service';
+import { StorageService } from './storage.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 @Controller()
 @Injectable()
 export class StorageController {
-  constructor(private r2: R2StorageService) {}
+  constructor(private storage: StorageService) {}
 
   @Roles('TEACHER')
   @Post('api/storage/presigned-upload')
@@ -33,8 +33,8 @@ export class StorageController {
     if (course.teacherId !== req.user!.id && req.user!.role !== 'ADMIN') {
       throw new ForbiddenException('Not your course');
     }
-    const objectKey = R2StorageService.buildObjectKey(dto.courseId, dto.lessonId, dto.fileName);
-    const uploadUrl = await this.r2.presignedPut(objectKey);
+    const objectKey = StorageService.buildObjectKey(dto.courseId, dto.lessonId, dto.fileName);
+    const uploadUrl = await this.storage.presignedPut(objectKey);
     return {
       objectKey,
       uploadUrl,
@@ -51,8 +51,8 @@ export class StorageController {
     @Body(new ZodBodyPipe(AvatarUploadDto))
     dto: z.infer<typeof AvatarUploadDto>,
   ) {
-    const objectKey = R2StorageService.buildAvatarKey(req.user!.id, dto.fileName);
-    return { objectKey, uploadUrl: await this.r2.presignedPut(objectKey) };
+    const objectKey = StorageService.buildAvatarKey(req.user!.id, dto.fileName);
+    return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
   }
 
   @Roles('TEACHER')
@@ -62,7 +62,7 @@ export class StorageController {
     @Body(new ZodBodyPipe(AttachDto))
     dto: z.infer<typeof AttachDto>,
   ) {
-    const downloadUrl = await this.r2.presignedGet(dto.objectKey);
+    const downloadUrl = await this.storage.presignedGet(dto.objectKey);
     const [row] = await db
       .insert(lessonAttachments)
       .values({
@@ -71,7 +71,7 @@ export class StorageController {
         title: dto.title,
         r2ObjectKey: dto.objectKey,
         publicOrSignedUrl: downloadUrl,
-        fileType: R2StorageService.fileTypeFor(dto.mimeType),
+        fileType: StorageService.fileTypeFor(dto.mimeType),
         fileSizeBytes: dto.fileSizeBytes,
         mimeType: dto.mimeType,
       })
@@ -87,6 +87,6 @@ export class StorageController {
       .from(lessonAttachments)
       .where(eq(lessonAttachments.id, id));
     if (!row) throw new NotFoundException('Attachment not found');
-    return { id: row.id, url: await this.r2.presignedGet(row.r2ObjectKey) };
+    return { id: row.id, url: await this.storage.presignedGet(row.r2ObjectKey) };
   }
 }
