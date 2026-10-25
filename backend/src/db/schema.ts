@@ -235,14 +235,28 @@ export const lessonAttachments = pgTable('lesson_attachments', {
 // ==========================================
 // 7. QUIZZES, ATTEMPTS & COMPLETION
 // ==========================================
-export const quizzes = pgTable('quizzes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  lessonId: uuid('lesson_id')
-    .notNull()
-    .unique()
-    .references(() => lessons.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-});
+export const quizzes = pgTable(
+  'quizzes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    lessonId: uuid('lesson_id')
+      .unique()
+      .references(() => lessons.id, { onDelete: 'cascade' }),
+    moduleId: uuid('module_id')
+      .unique()
+      .references(() => modules.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .unique()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+  },
+  (t) => [
+    check(
+      'quiz_target_chk',
+      sql`(${t.lessonId} IS NOT NULL)::int + (${t.moduleId} IS NOT NULL)::int + (${t.courseId} IS NOT NULL)::int = 1`,
+    ),
+  ],
+);
 
 export const quizQuestions = pgTable('quiz_questions', {
   id: uuid('id').defaultRandom().primaryKey(),

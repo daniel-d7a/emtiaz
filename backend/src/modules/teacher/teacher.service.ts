@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   courses,
@@ -24,6 +24,18 @@ import {
 
 export const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`;
+
+type QuizPayload = {
+  title: string;
+  questions: Array<{
+    questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
+    prompt: string;
+    options?: string[] | null;
+    correctAnswer: string;
+    explanation?: string | null;
+    points: number;
+  }>;
+};
 
 @Injectable()
 export class TeacherService {
@@ -233,12 +245,16 @@ export class TeacherService {
           .orderBy(asc(lessons.displayOrder))
       : [];
     const lessonIds = allLessons.map((l) => l.id);
-    const quizRows = lessonIds.length
-      ? await db
-          .select()
-          .from(quizzes)
-          .where(inArray(quizzes.lessonId, lessonIds))
-      : [];
+    const modIds = mods.map((m) => m.id);
+    const quizTargets = [
+      eq(quizzes.courseId, courseId),
+      ...(modIds.length ? [inArray(quizzes.moduleId, modIds)] : []),
+      ...(lessonIds.length ? [inArray(quizzes.lessonId, lessonIds)] : []),
+    ];
+    const quizRows = await db
+      .select()
+      .from(quizzes)
+      .where(or(...quizTargets));
     const questionRows = quizRows.length
       ? await db
           .select()
@@ -252,40 +268,37 @@ export class TeacherService {
           .from(lessonAttachments)
           .where(inArray(lessonAttachments.lessonId, lessonIds))
       : [];
-    return mods.map((m) => ({
-      ...m,
-      lessons: allLessons
-        .filter((l) => l.moduleId === m.id)
-        .map((l) => {
-          const quiz = quizRows.find((q) => q.lessonId === l.id);
-          return {
-            ...l,
-            quiz: quiz
-              ? {
-                  ...quiz,
-                  questions: questionRows.filter((q) => q.quizId === quiz.id),
-                }
-              : null,
-            attachments: attachments.filter((a) => a.lessonId === l.id),
-          };
-        }),
-    }));
+    const withQuestions = (quiz: typeof quizRows[number]) => ({
+      ...quiz,
+      questions: questionRows.filter((q) => q.quizId === quiz.id),
+    });
+    const courseQuiz = quizRows.find((q) => q.courseId === courseId);
+    return {
+      quiz: courseQuiz ? withQuestions(courseQuiz) : null,
+      modules: mods.map((m) => {
+        const moduleQuiz = quizRows.find((q) => q.moduleId === m.id);
+        return {
+          ...m,
+          quiz: moduleQuiz ? withQuestions(moduleQuiz) : null,
+          lessons: allLessons
+            .filter((l) => l.moduleId === m.id)
+            .map((l) => {
+              const quiz = quizRows.find((q) => q.lessonId === l.id);
+              return {
+                ...l,
+                quiz: quiz ? withQuestions(quiz) : null,
+                attachments: attachments.filter((a) => a.lessonId === l.id),
+              };
+            }),
+        };
+      }),
+    };
   }
 
   async upsertQuiz(
     user: { id: string; role: string },
     lessonId: string,
-    payload: {
-      title: string;
-      questions: Array<{
-        questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
-        prompt: string;
-        options?: string[] | null;
-        correctAnswer: string;
-        explanation?: string | null;
-        points: number;
-      }>;
-    },
+    payload: QuizPayload,
   ) {
     const lesson = (
       await db.select().from(lessons).where(eq(lessons.id, lessonId))
@@ -296,7 +309,33 @@ export class TeacherService {
       .from(modules)
       .where(eq(modules.id, lesson.moduleId));
     await this.assertCourseAccess(user, mod.courseId);
+    return this.upsertQuizFor({ lessonId }, payload);
+  }
 
+  async upsertModuleQuiz(
+    user: { id: string; role: string },
+    moduleId: string,
+    payload: QuizPayload,
+  ) {
+    const [mod] = await db.select().from(modules).where(eq(modules.id, moduleId));
+    if (!mod) throw new NotFoundException('Module not found');
+    await this.assertCourseAccess(user, mod.courseId);
+    return this.upsertQuizFor({ moduleId }, payload);
+  }
+
+  async upsertCourseQuiz(
+    user: { id: string; role: string },
+    courseId: string,
+    payload: QuizPayload,
+  ) {
+    await this.assertCourseAccess(user, courseId);
+    return this.upsertQuizFor({ courseId }, payload);
+  }
+
+  private async upsertQuizFor(
+    target: { lessonId?: string; moduleId?: string; courseId?: string },
+    payload: QuizPayload,
+  ) {
     for (const q of payload.questions) {
       if (q.questionType === 'MCQ' && q.options && !q.options.includes(q.correctAnswer)) {
         throw new ForbiddenException('correctAnswer must be one of options');
@@ -306,16 +345,14 @@ export class TeacherService {
       }
     }
 
-    let quiz = (
-      await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId))
-    )[0];
+    const targetCondition = target.lessonId
+      ? eq(quizzes.lessonId, target.lessonId)
+      : target.moduleId
+        ? eq(quizzes.moduleId, target.moduleId)
+        : eq(quizzes.courseId, target.courseId!);
+    let quiz = (await db.select().from(quizzes).where(targetCondition))[0];
     if (!quiz) {
-      quiz = (
-        await db
-          .insert(quizzes)
-          .values({ lessonId, title: payload.title })
-          .returning()
-      )[0];
+      quiz = (await db.insert(quizzes).values({ ...target, title: payload.title }).returning())[0];
     } else {
       quiz = (
         await db
@@ -613,12 +650,12 @@ export class TeacherService {
           .from(lessons)
           .where(inArray(lessons.moduleId, mods.map((m) => m.id)))
       : [];
-    const quizRows = lessonsInCourse.length
-      ? await db
-          .select()
-          .from(quizzes)
-          .where(inArray(quizzes.lessonId, lessonsInCourse.map((l) => l.id)))
-      : [];
+    const quizTargets = [
+      eq(quizzes.courseId, course.id),
+      ...(mods.length ? [inArray(quizzes.moduleId, mods.map((m) => m.id))] : []),
+      ...(lessonsInCourse.length ? [inArray(quizzes.lessonId, lessonsInCourse.map((l) => l.id))] : []),
+    ];
+    const quizRows = await db.select().from(quizzes).where(or(...quizTargets));
     const questionTotals: Record<string, number> = {};
     if (quizRows.length) {
       const qq = await db
@@ -629,10 +666,12 @@ export class TeacherService {
         questionTotals[q.quizId] = (questionTotals[q.quizId] ?? 0) + q.points;
       }
     }
-    const lessonTitles = Object.fromEntries(
-      lessonsInCourse.map((l) => [
-        quizRows.find((q) => q.lessonId === l.id)?.id,
-        l.title,
+    const quizLabels = Object.fromEntries(
+      quizRows.map((q) => [
+        q.id,
+        lessonsInCourse.find((l) => l.id === q.lessonId)?.title ??
+          mods.find((m) => m.id === q.moduleId)?.title ??
+          (q.courseId ? course.title : q.title),
       ]),
     );
 
@@ -653,7 +692,7 @@ export class TeacherService {
 
     const quizColumns = quizRows.map((q) => ({
       quizId: q.id,
-      lessonTitle: lessonTitles[q.id],
+      lessonTitle: quizLabels[q.id],
       maxScore: questionTotals[q.id] ?? 0,
     }));
 

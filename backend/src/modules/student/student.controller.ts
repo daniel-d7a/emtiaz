@@ -70,6 +70,16 @@ export class StudentController {
     return this.students.getQuiz(req.user!.id, quizId);
   }
 
+  @Get('api/student/groups/:groupId/quizzes/:quizId')
+  @Roles('STUDENT')
+  groupQuiz(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('quizId') quizId: string,
+  ) {
+    return this.students.getGroupQuiz(req.user!.id, groupId, quizId);
+  }
+
   @Post('api/student/quizzes/:quizId/submit')
   @Roles('STUDENT')
   submit(

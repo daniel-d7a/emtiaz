@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   categories,
@@ -195,9 +195,12 @@ export class StudentService {
             ),
           )
       : [];
-    const quizRows = lessonIds.length
-      ? await db.select().from(quizzes).where(inArray(quizzes.lessonId, lessonIds))
-      : [];
+    const quizTargets = [
+      eq(quizzes.courseId, group.courseId),
+      ...(mods.length ? [inArray(quizzes.moduleId, mods.map((m) => m.id))] : []),
+      ...(lessonIds.length ? [inArray(quizzes.lessonId, lessonIds)] : []),
+    ];
+    const quizRows = await db.select().from(quizzes).where(or(...quizTargets));
     const attemptRows = await db
       .select()
       .from(quizAttempts)
@@ -210,34 +213,44 @@ export class StudentService {
       return row ? row.isUnlocked : group.unlockAllByDefault;
     };
 
+    const bestFor = (quizId?: string) =>
+      attemptRows
+        .filter((a) => quizId && a.quizId === quizId)
+        .sort((a, b) => b.score - a.score)[0] ?? null;
+    const courseQuiz = quizRows.find((q) => q.courseId === group.courseId);
+
     return {
       course: (
         await db.select().from(courses).where(eq(courses.id, group.courseId))
       )[0],
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
-      modules: mods.map((m) => ({
-        ...m,
-        lessons: allLessons
-          .filter((l) => l.moduleId === m.id)
-          .map((l) => {
-            const quiz = quizRows.find((q) => q.lessonId === l.id);
-            return {
-              ...l,
-              unlocked: isUnlocked(l.id),
-              completed: completions.some((c) => c.lessonId === l.id),
-              hasQuiz: !!quiz,
-              bestAttempt:
-                attemptRows
-                  .filter((a) => quiz && a.quizId === quiz.id)
-                  .sort((a, b) => b.score - a.score)[0] ?? null,
-              attachments: attachments.filter(
-                (a) =>
-                  a.lessonId === l.id &&
-                  (!a.groupId || a.groupId === groupId),
-              ),
-            };
-          }),
-      })),
+      quiz: courseQuiz ? { ...courseQuiz, bestAttempt: bestFor(courseQuiz.id) } : null,
+      modules: mods.map((m) => {
+        const moduleQuiz = quizRows.find((q) => q.moduleId === m.id);
+        return {
+          ...m,
+          quiz: moduleQuiz
+            ? { ...moduleQuiz, bestAttempt: bestFor(moduleQuiz.id) }
+            : null,
+          lessons: allLessons
+            .filter((l) => l.moduleId === m.id)
+            .map((l) => {
+              const quiz = quizRows.find((q) => q.lessonId === l.id);
+              return {
+                ...l,
+                unlocked: isUnlocked(l.id),
+                completed: completions.some((c) => c.lessonId === l.id),
+                hasQuiz: !!quiz,
+                bestAttempt: bestFor(quiz?.id),
+                attachments: attachments.filter(
+                  (a) =>
+                    a.lessonId === l.id &&
+                    (!a.groupId || a.groupId === groupId),
+                ),
+              };
+            }),
+        };
+      }),
     };
   }
 
@@ -422,11 +435,28 @@ export class StudentService {
   ) {
     const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
     if (!group) throw new NotFoundException('Group not found');
-    const [lesson] = await db.select().from(lessons).where(eq(lessons.id, quiz.lessonId));
-    const [mod] = lesson
-      ? await db.select().from(modules).where(eq(modules.id, lesson.moduleId))
-      : [];
-    if (!mod || mod.courseId !== group.courseId) throw new ForbiddenException('Quiz not in this course');
+    let courseId: string | null = quiz.courseId;
+    if (quiz.moduleId) {
+      const [mod] = await db.select().from(modules).where(eq(modules.id, quiz.moduleId));
+      courseId = mod?.courseId ?? null;
+    } else if (quiz.lessonId) {
+      const [lesson] = await db.select().from(lessons).where(eq(lessons.id, quiz.lessonId));
+      const [mod] = lesson
+        ? await db.select().from(modules).where(eq(modules.id, lesson.moduleId))
+        : [];
+      courseId = mod?.courseId ?? null;
+    }
+    if (!courseId || courseId !== group.courseId) {
+      throw new ForbiddenException('Quiz not in this course');
+    }
+  }
+
+  async getGroupQuiz(studentId: string, groupId: string, quizId: string) {
+    await this.assertEnrolled(studentId, groupId);
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    await this.assertQuizInGroupCourse(quiz, groupId);
+    return this.getQuiz(studentId, quizId);
   }
 
   async myGrades(studentId: string, groupId: string) {
@@ -439,12 +469,16 @@ export class StudentService {
         quizId: quizAttempts.quizId,
         quizTitle: quizzes.title,
         lessonTitle: lessons.title,
+        moduleTitle: modules.title,
+        courseTitle: courses.title,
         score: quizAttempts.score,
         maxScore: quizAttempts.maxScore,
       })
       .from(quizAttempts)
       .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
-      .innerJoin(lessons, eq(quizzes.lessonId, lessons.id))
+      .leftJoin(lessons, eq(quizzes.lessonId, lessons.id))
+      .leftJoin(modules, eq(quizzes.moduleId, modules.id))
+      .leftJoin(courses, eq(quizzes.courseId, courses.id))
       .where(
         and(eq(quizAttempts.studentId, studentId), eq(quizAttempts.groupId, groupId)),
       );
@@ -466,7 +500,7 @@ export class StudentService {
             acc[r.quizId] = {
               quizId: r.quizId,
               title: r.quizTitle,
-              lessonTitle: r.lessonTitle,
+              lessonTitle: r.lessonTitle ?? r.moduleTitle ?? r.courseTitle ?? '—',
               score: r.score,
               maxScore: r.maxScore,
             };

@@ -13,17 +13,22 @@ type Question = {
   correctAnswer: string;
   points: number;
 };
-type Curriculum = Array<{
-  id: string;
-  title: string;
-  lessons: Array<{
+type QuizData = { id: string; title: string; questions: unknown[] } | null;
+type Curriculum = {
+  quiz: QuizData;
+  modules: Array<{
     id: string;
     title: string;
-    content: string | null;
-    quiz: { id: string; title: string; questions: unknown[] } | null;
-    attachments: Array<{ id: string; title: string }>;
+    quiz: QuizData;
+    lessons: Array<{
+      id: string;
+      title: string;
+      content: string | null;
+      quiz: QuizData;
+      attachments: Array<{ id: string; title: string }>;
+    }>;
   }>;
-}>;
+};
 
 function swap<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;
@@ -54,17 +59,18 @@ export default function TeacherCurriculum() {
     <Page title={t('curriculum')}>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <div className="flex flex-col gap-6">
-          {data?.map((mod, mi) => (
+          {data && <QuizBuilder endpoint={`/api/teacher/courses/${courseId}/quiz`} existing={data.quiz} />}
+          {data?.modules.map((mod, mi) => (
             <ModuleCard
               key={mod.id}
               mod={mod}
               courseId={courseId}
               focusLessonId={location.state?.lessonId}
               canUp={mi > 0}
-              canDown={mi < data.length - 1}
+              canDown={mi < data.modules.length - 1}
               onMoveModule={(dir) =>
                 api(`/api/teacher/courses/${courseId}/modules/reorder`, {
-                  body: { moduleIds: swap(data.map((m) => m.id), mi, dir) },
+                  body: { moduleIds: swap(data.modules.map((m) => m.id), mi, dir) },
                 }).then(() => qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] }))
               }
             />
@@ -88,7 +94,7 @@ export default function TeacherCurriculum() {
 }
 
 function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule }: {
-  mod: Curriculum[0];
+  mod: Curriculum['modules'][0];
   courseId: string;
   focusLessonId?: string;
   canUp: boolean;
@@ -153,6 +159,7 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
             </Button>
           </div>
           {addLesson.error && <ErrorBox error={addLesson.error} />}
+          <QuizBuilder endpoint={`/api/teacher/modules/${mod.id}/quiz`} existing={mod.quiz} />
         </div>
       )}
     </Card>
@@ -160,7 +167,7 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
 }
 
 function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
-  lesson: Curriculum[0]['lessons'][0];
+  lesson: Curriculum['modules'][0]['lessons'][0];
   courseId: string;
   autoFocus?: boolean;
   canUp: boolean;
@@ -218,7 +225,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
           </div>
           {save.error && <ErrorBox error={save.error} />}
           <AttachmentUploader lessonId={lesson.id} courseId={courseId} />
-          <QuizBuilder lessonId={lesson.id} existing={lesson.quiz} />
+          <QuizBuilder endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
         </div>
       )}
     </div>
@@ -272,7 +279,7 @@ function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId
   );
 }
 
-function QuizBuilder({ lessonId, existing }: { lessonId: string; existing: { title: string } | null }) {
+function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { title: string } | null }) {
   const { t } = useLang();
   const [title, setTitle] = useState(existing?.title ?? 'Quiz');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -280,7 +287,7 @@ function QuizBuilder({ lessonId, existing }: { lessonId: string; existing: { tit
 
   const upsert = useMutation({
     mutationFn: () =>
-      api(`/api/teacher/lessons/${lessonId}/quiz`, {
+      api(endpoint, {
         body: {
           title,
           questions: questions.map((q) => ({

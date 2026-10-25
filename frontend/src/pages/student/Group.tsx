@@ -6,11 +6,14 @@ import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
 
+type QuizRef = { id: string; title: string; bestAttempt: { score: number; maxScore: number } | null } | null;
 type Curriculum = {
   course: { title: string };
   group: { name: string; joinCode: string };
+  quiz: QuizRef;
   modules: Array<{
     title: string;
+    quiz: QuizRef;
     lessons: Array<{
       id: string;
       title: string;
@@ -68,9 +71,16 @@ export default function StudentGroup() {
         <div className="flex flex-col gap-6">
           <p className="text-sm text-ink-soft">{data.course.title}</p>
           {/* lesson modules only on the lessons tab */}
+      {tab === 'lessons' && data.quiz && (
+        <section>
+          <h2 className="mb-3 text-lg font-bold text-secondary">{t('quiz')}</h2>
+          <StudentQuiz quizId={data.quiz.id} groupId={groupId} />
+        </section>
+      )}
       {tab === 'lessons' && data.modules.map((mod) => (
             <section key={mod.title}>
               <h2 className="mb-3 text-lg font-bold text-secondary">{mod.title}</h2>
+              {mod.quiz && <div className="mb-3"><StudentQuiz quizId={mod.quiz.id} groupId={groupId} /></div>}
               <div className="flex flex-col gap-2">
                 {mod.lessons.map((l) => (
                   <div key={l.id}>
@@ -173,14 +183,18 @@ function AttachmentRow({ id, title }: { id: string; title: string }) {
   );
 }
 
-export function StudentQuiz({ lessonId, groupId }: { lessonId: string; groupId: string }) {
+export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; quizId?: string; groupId: string }) {
   const { t } = useLang();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<unknown>(null);
   const { data: quiz, isLoading } = useQuery({
-    queryKey: ['quiz', lessonId],
-    queryFn: () => api<any>(`/api/student/lessons/${lessonId}/quiz`),
+    queryKey: ['quiz', quizId ?? lessonId],
+    queryFn: () =>
+      quizId
+        ? api<any>(`/api/student/groups/${groupId}/quizzes/${quizId}`)
+        : api<any>(`/api/student/lessons/${lessonId}/quiz`),
+    enabled: !!(quizId || lessonId),
   });
 
   if (!quiz?.quiz?.id) return null;

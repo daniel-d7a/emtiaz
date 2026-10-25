@@ -119,9 +119,9 @@ describe('Phase 4: teacher endpoints', () => {
       expect(lesson2.body.displayOrder).toBe(1);
 
       const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
-      expect(cur.body[0].title).toBe('Algebra');
-      expect(cur.body[0].lessons).toHaveLength(2);
-      expect(cur.body[0].lessons[0].quiz).toBe(null);
+      expect(cur.body.modules[0].title).toBe('Algebra');
+      expect(cur.body.modules[0].lessons).toHaveLength(2);
+      expect(cur.body.modules[0].lessons[0].quiz).toBe(null);
     });
 
     it('reorders modules and lessons', async () => {
@@ -134,7 +134,7 @@ describe('Phase 4: teacher endpoints', () => {
         .put(`/api/teacher/courses/${courseId}/modules/reorder`)
         .send({ moduleIds: [mod2.id, moduleId] });
       const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
-      expect(cur.body[0].title).toBe('Geometry');
+      expect(cur.body.modules[0].title).toBe('Geometry');
     });
 
     it('students cannot create courses; teachers cannot touch other teachers\' courses', async () => {
@@ -174,6 +174,23 @@ describe('Phase 4: teacher endpoints', () => {
       expect(res.status).toBe(201);
       expect(res.body.questions).toHaveLength(4);
       expect(res.body.questions[3].points).toBe(2);
+    });
+
+    it('creates module and course quizzes', async () => {
+      const modQuiz = await t.post(`/api/teacher/modules/${moduleId}/quiz`).send({
+        title: 'Module check',
+        questions: [{ questionType: 'TRUE_FALSE', prompt: 'Algebra is math', correctAnswer: 'true' }],
+      });
+      expect(modQuiz.status).toBe(201);
+      const courseQuiz = await t.post(`/api/teacher/courses/${courseId}/quiz`).send({
+        title: 'Course final',
+        questions: [{ questionType: 'SHORT_ANSWER', prompt: 'x?', correctAnswer: 'y' }],
+      });
+      expect(courseQuiz.status).toBe(201);
+
+      const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      expect(cur.body.quiz.title).toBe('Course final');
+      expect(cur.body.modules.find((m: any) => m.id === moduleId).quiz.title).toBe('Module check');
     });
 
     it('re-upserting a quiz resets its questions and attempts', async () => {

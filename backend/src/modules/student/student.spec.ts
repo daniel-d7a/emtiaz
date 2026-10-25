@@ -149,6 +149,29 @@ describe('Phase 3: student endpoints', () => {
     expect(res3.body.quizzes[0].score).toBe(4);
   });
 
+  it('serves and grades a module quiz through the group', async () => {
+    const { rows: quizRows } = await testPool.query(
+      `INSERT INTO quizzes (module_id, title) VALUES ($1,'Module check') RETURNING id`,
+      [world.moduleId],
+    );
+    const { rows: questionRows } = await testPool.query(
+      `INSERT INTO quiz_questions (quiz_id, question_type, prompt, correct_answer, points) VALUES ($1,'SHORT_ANSWER','Capital of Oman?','Muscat',2) RETURNING id`,
+      [quizRows[0].id],
+    );
+    const got = await s1.get(`/api/student/groups/${world.group1}/quizzes/${quizRows[0].id}`);
+    expect(got.status).toBe(200);
+    expect(got.body.quiz.title).toBe('Module check');
+
+    const submitted = await s1
+      .post(`/api/student/quizzes/${quizRows[0].id}/submit`)
+      .send({ groupId: world.group1, answers: { [questionRows[0].id]: 'muscat' } });
+    expect(submitted.status).toBe(201);
+    expect(submitted.body.score).toBe(2);
+
+    const grades = await s1.get(`/api/student/groups/${world.group1}/grades`);
+    expect(grades.body.quizzes.find((q: any) => q.quizId === quizRows[0].id).title).toBe('Module check');
+  });
+
   it('requires enrollment before quiz submission', async () => {
     const otherStudent = (await login(server, STUDENT2.email, STUDENT2.password))
       .session;

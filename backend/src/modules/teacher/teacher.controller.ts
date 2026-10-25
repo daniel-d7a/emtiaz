@@ -148,6 +148,28 @@ export class TeacherController {
     return this.teachers.upsertQuiz(req.user!, lessonId, dto);
   }
 
+  @Post('api/teacher/modules/:moduleId/quiz')
+  @Roles('TEACHER')
+  upsertModuleQuiz(
+    @Req() req: Request,
+    @Param('moduleId') moduleId: string,
+    @Body(new ZodBodyPipe(UpsertQuizDto))
+    dto: z.infer<typeof UpsertQuizDto>,
+  ) {
+    return this.teachers.upsertModuleQuiz(req.user!, moduleId, dto);
+  }
+
+  @Post('api/teacher/courses/:courseId/quiz')
+  @Roles('TEACHER')
+  upsertCourseQuiz(
+    @Req() req: Request,
+    @Param('courseId') courseId: string,
+    @Body(new ZodBodyPipe(UpsertQuizDto))
+    dto: z.infer<typeof UpsertQuizDto>,
+  ) {
+    return this.teachers.upsertCourseQuiz(req.user!, courseId, dto);
+  }
+
   // ---------- Groups ----------
 
   @Post('api/teacher/courses/:courseId/groups')
