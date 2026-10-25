@@ -8,6 +8,7 @@ import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger, requestId } from './lib/logger';
+import { LoginLockout, loginLockoutMiddleware } from './auth/login-lockout';
 
 export async function createApp(): Promise<INestApplication> {
   const app = await NestFactory.create(

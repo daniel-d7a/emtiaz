@@ -9,6 +9,9 @@ Date: 2026-10-25
 - Better Auth rate limiting: 100/min general, 10/min on
   `/sign-in/email`, `/sign-up/email`, `/sign-in/phone-number`.
 - `trust proxy` enabled so the client IP is the forwarded one behind Caddy.
+- Per-account sign-in lockout: after `LOGIN_LOCKOUT_MAX` failures for the same
+  email within `LOGIN_LOCKOUT_WINDOW_MS`, further attempts get `429` with
+  `Retry-After` until `LOGIN_LOCKOUT_MS` elapses (`auth/login-lockout.ts`).
 
 ## Rationale
 - Credential endpoints are the highest-value attack surface (password
@@ -21,7 +24,7 @@ Date: 2026-10-25
 ## Consequences
 - Rate-limit state is in-memory per API instance: fine for one container,
   needs Redis (`@nestjs/throttler` storage) before horizontal scaling.
-- Per-account lockout (N failures for a given email) is *not* implemented yet;
-  the per-IP limits make spraying slow but a distributed attack could still
-  target one account. Add a failure counter + temporary lock when it matters.
+- Lockout state is also in-memory per API instance, so it has the same Redis
+  requirement before horizontal scaling. A successful sign-in clears the
+  counter; failures outside the window are forgotten.
 - 300/min is a starting value; revisit after real usage data.
