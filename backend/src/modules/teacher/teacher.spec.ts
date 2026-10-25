@@ -360,6 +360,20 @@ describe('Phase 4: teacher endpoints', () => {
       expect(cells).toHaveLength(1);
       expect(cells[0].score).toBe(19);
 
+      // rejects scores above the column maximum
+      const tooHigh = await t
+        .put(`/api/teacher/groups/${world.group1}/gradebook/cell`)
+        .send({ columnId: col.id, studentId: s1.id, score: 25 });
+      expect(tooHigh.status).toBe(400);
+
+      // clearing a cell deletes the value row
+      const clear = await t
+        .put(`/api/teacher/groups/${world.group1}/gradebook/cell`)
+        .send({ columnId: col.id, studentId: s1.id, score: null });
+      expect(clear.status).toBe(200);
+      const afterClear = (await t.get(`/api/teacher/groups/${world.group1}/gradebook`)).body;
+      expect(afterClear.manualCells.filter((c: any) => c.columnId === col.id)).toHaveLength(0);
+
       // refuses scores for students not in the group
       const s2 = await getUserByEmail(STUDENT2.email);
       await testPool.query(`DELETE FROM group_students WHERE group_id=$1 AND student_id=$2`, [world.group1, s2.id]);

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -735,7 +736,7 @@ export class TeacherService {
     groupId: string,
     columnId: string,
     studentId: string,
-    score: number,
+    score: number | null,
     teacherNote?: string,
   ) {
     const { group } = await this.assertOwnsGroup(user, groupId);
@@ -759,6 +760,20 @@ export class TeacherService {
       );
     if (!enrolled.length) {
       throw new ForbiddenException('Student not in this group');
+    }
+    if (score === null) {
+      await db
+        .delete(manualGradeValues)
+        .where(
+          and(
+            eq(manualGradeValues.columnId, columnId),
+            eq(manualGradeValues.studentId, studentId),
+          ),
+        );
+      return { ok: true };
+    }
+    if (score > col.maxScore) {
+      throw new BadRequestException(`score must be at most ${col.maxScore}`);
     }
     await db
       .insert(manualGradeValues)

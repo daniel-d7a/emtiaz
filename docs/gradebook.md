@@ -45,11 +45,11 @@ One row per `(column_id, student_id)` — enforced by
 - Shape returned by the API: `manualColumns[]` + `manualCells[]` with
   `{ columnId, studentId, score, note }`.
 - A missing row means "no mark entered yet"; the grid renders an empty input.
-- `max_score` is descriptive only: the API validates the score against
-  `0..1000`, not against the column's `max_score`. A column with `max_score: 10`
-  will accept `15` today.
+- The API rejects a score above the column's `max_score` (400) and also caps
+  input at `0..1000`.
 - The grid writes on blur via `PUT /gradebook/cell` with
-  `{ columnId, studentId, score, note? }`; deleting a column cascades its values.
+  `{ columnId, studentId, score, note? }`; `score: null` deletes the mark.
+  Deleting a column cascades its values.
 
 ## Student view
 
@@ -59,9 +59,5 @@ attempts plus every manual column for the group, with `score: null` and
 
 ## Known gaps
 
-- Clearing an input in the web grid sends `score: null`, but the DTO requires a
-  number, so clearing fails. Delete the row in the DB or enter `0` until the
-  endpoint supports an explicit delete.
-- `max_score` is not enforced against `score` (see above).
 - Quiz columns show every quiz in the course, even if the group has not unlocked
   the lesson yet; the attempt is what decides whether a cell has a value.

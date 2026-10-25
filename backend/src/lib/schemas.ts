@@ -169,6 +169,6 @@ export const AddColumnDto = z.object({
 export const GradeCellDto = z.object({
   columnId: uuid,
   studentId: z.string().min(1),
-  score: z.number().int().min(0).max(1000),
+  score: z.number().int().min(0).max(1000).nullable(),
   note: optText(500),
 });
