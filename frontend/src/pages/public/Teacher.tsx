@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createRoute, Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, GraduationCap } from 'lucide-react';
@@ -17,6 +18,37 @@ export default function TeacherLanding() {
     queryKey: ['public-teacher', slug],
     queryFn: () => api<PublicTeacher>(`/api/public/teachers/${slug}`),
   });
+
+  useEffect(() => {
+    if (!data) return;
+    const previous = document.title;
+    const title = `${data.teacher.name} — ${t('appName')}`;
+    const description =
+      data.teacher.bio ??
+      `${data.teacher.name} — ${t('coursesBy')} ${data.teacher.name}`;
+    document.title = title;
+    const metas = [
+      ['name', 'description', description],
+      ['property', 'og:title', title],
+      ['property', 'og:description', description],
+      ['property', 'og:type', 'profile'],
+    ].map(([attr, key, content]) => {
+      const tag = document.createElement('meta');
+      tag.setAttribute(attr, key);
+      tag.content = content;
+      document.head.appendChild(tag);
+      return tag;
+    });
+    const canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    canonical.href = window.location.href;
+    document.head.appendChild(canonical);
+    return () => {
+      document.title = previous;
+      for (const tag of metas) tag.remove();
+      canonical.remove();
+    };
+  }, [data, slug, t]);
 
   if (isLoading) return <Loading />;
   if (error) return <div className="mx-auto max-w-3xl p-4"><ErrorBox error={error} /></div>;
