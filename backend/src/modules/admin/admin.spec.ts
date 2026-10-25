@@ -82,6 +82,39 @@ describe('Phase 5: admin endpoints', () => {
     expect((await sAgain.get('/api/student/groups')).status).toBe(200);
   });
 
+  it('soft-deletes users: row stays, sessions and memberships go, listings hide it', async () => {
+    const id = 'soft-delete-test-user';
+    await testPool.query(
+      `INSERT INTO "user" (id, name, email, role) VALUES ($1,$2,$3,'STUDENT')`,
+      [id, 'Soft Delete', 'soft-delete@test.om'],
+    );
+    await testPool.query(
+      `INSERT INTO group_students (group_id, student_id) VALUES ($1,$2)`,
+      [world.group1, id],
+    );
+
+    const res = await admin.delete(`/api/admin/users/${id}`);
+    expect(res.status).toBe(200);
+
+    const { rows } = await testPool.query(
+      `SELECT is_active, deleted_at FROM "user" WHERE id=$1`,
+      [id],
+    );
+    expect(rows[0].is_active).toBe(false);
+    expect(rows[0].deleted_at).not.toBeNull();
+
+    const memberships = await testPool.query(
+      `SELECT 1 FROM group_students WHERE student_id=$1`,
+      [id],
+    );
+    expect(memberships.rowCount).toBe(0);
+
+    const list = await admin.get('/api/admin/students');
+    expect(list.body.some((u: any) => u.id === id)).toBe(false);
+
+    expect((await admin.delete(`/api/admin/users/${id}`)).status).toBe(404);
+  });
+
   it('student directory filters by grade, group and shrieking search', async () => {
     const res = await admin.get('/api/admin/students');
     expect(res.body).toHaveLength(await countStudents());
@@ -101,7 +134,7 @@ describe('Phase 5: admin endpoints', () => {
 
   async function countStudents() {
     const { rows } = await testPool.query(
-      `SELECT COUNT(*)::int AS c FROM "user" WHERE role='STUDENT'`,
+      `SELECT COUNT(*)::int AS c FROM "user" WHERE role='STUDENT' AND deleted_at IS NULL`,
     );
     return rows[0].c;
   }

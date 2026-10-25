@@ -79,6 +79,12 @@ export class AdminController {
     return this.admin.setUserStatus(userId, dto.isActive, dto);
   }
 
+  @Delete('api/admin/users/:userId')
+  @Roles('ADMIN')
+  deleteUser(@Param('userId') userId: string) {
+    return this.admin.deleteUser(userId);
+  }
+
   @Post('api/admin/students/:studentId/enroll')
   @Roles('ADMIN')
   enroll(

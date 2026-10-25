@@ -2,7 +2,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -24,11 +24,11 @@ export class AdminService {
     const [teachers] = await db
       .select({ c: count() })
       .from(users)
-      .where(eq(users.role, 'TEACHER'));
+      .where(and(eq(users.role, 'TEACHER'), isNull(users.deletedAt)));
     const [students] = await db
       .select({ c: count() })
       .from(users)
-      .where(eq(users.role, 'STUDENT'));
+      .where(and(eq(users.role, 'STUDENT'), isNull(users.deletedAt)));
     const [allCourses] = await db.select({ c: count() }).from(courses);
     const [academic] = await db
       .select({ c: count() })
@@ -59,7 +59,7 @@ export class AdminService {
     search?: string;
     subjectId?: string;
   }) {
-    const conditions = [eq(users.role, 'TEACHER')];
+    const conditions = [eq(users.role, 'TEACHER'), isNull(users.deletedAt)];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
     if (filters.subjectId) conditions.push(eq(users.subjectCategoryId, filters.subjectId));
@@ -96,12 +96,25 @@ export class AdminService {
     opts: { revokeSessions?: boolean } = {},
   ) {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user) throw new NotFoundException('User not found');
+    if (!user || user.deletedAt) throw new NotFoundException('User not found');
     await db.update(users).set({ isActive }).where(eq(users.id, userId));
     if (!isActive && opts.revokeSessions !== false) {
       // Suspension is a lockout: drop all existing sessions
       await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
     }
+    return { ok: true };
+  }
+
+  async deleteUser(userId: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user || user.deletedAt) throw new NotFoundException('User not found');
+    await db
+      .update(users)
+      .set({ isActive: false, deletedAt: new Date() })
+      .where(eq(users.id, userId));
+    // Revoke access and drop memberships so rosters/grades stop showing the account.
+    await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
+    await db.delete(groupStudents).where(eq(groupStudents.studentId, userId));
     return { ok: true };
   }
 
@@ -128,7 +141,7 @@ export class AdminService {
     }
     if (filters.groupId) groupIds = [filters.groupId];
 
-    const conditions = [eq(users.role, 'STUDENT')];
+    const conditions = [eq(users.role, 'STUDENT'), isNull(users.deletedAt)];
     if (filters.gradeId) conditions.push(eq(users.gradeId, filters.gradeId));
     if (filters.search) {
       conditions.push(
@@ -229,7 +242,7 @@ export class AdminService {
     const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
     if (!group) throw new NotFoundException('Group not found');
     const [user] = await db.select().from(users).where(eq(users.id, studentId));
-    if (!user) throw new NotFoundException('Student not found');
+    if (!user || user.deletedAt) throw new NotFoundException('Student not found');
     const added = await db
       .insert(groupStudents)
       .values({ groupId, studentId })

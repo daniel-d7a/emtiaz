@@ -64,6 +64,7 @@ export const users = pgTable('user', {
   gradeId: uuid('grade_id').references(() => grades.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'), // soft delete: keep rows for history/audit
 });
 
 export const sessions = pgTable('session', {
