@@ -24,6 +24,7 @@ const dict = {
   teacher: { ar: 'معلم', en: 'Teacher' },
   student: { ar: 'طالب', en: 'Student' },
   parent: { ar: 'ولي أمر', en: 'Parent' },
+  parents: { ar: 'أولياء الأمور', en: 'Parents' },
   myChildren: { ar: 'أبنائي', en: 'My children' },
   childCode: { ar: 'رمز الطالب', en: 'Student code' },
   linkChild: { ar: 'ربط الطالب', en: 'Link student' },

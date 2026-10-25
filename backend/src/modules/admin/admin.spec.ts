@@ -132,6 +132,20 @@ describe('Phase 5: admin endpoints', () => {
     expect(emptyForeign.body).toHaveLength(0);
   });
 
+  it('parent directory lists linked children only', async () => {
+    await testPool.query(
+      `INSERT INTO "user" (id, name, email, role) VALUES ('test-parent-admin', 'Umm Aisha', 'parent-admin@test.om', 'PARENT') ON CONFLICT DO NOTHING`,
+    );
+    await testPool.query(
+      `INSERT INTO parent_students (parent_id, student_id) VALUES ('test-parent-admin', $1) ON CONFLICT DO NOTHING`,
+      [world.s1.id],
+    );
+    const res = await admin.get('/api/admin/parents?search=parent-admin');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].children.map((c: any) => c.id)).toContain(world.s1.id);
+  });
+
   async function countStudents() {
     const { rows } = await testPool.query(
       `SELECT COUNT(*)::int AS c FROM "user" WHERE role='STUDENT' AND deleted_at IS NULL`,

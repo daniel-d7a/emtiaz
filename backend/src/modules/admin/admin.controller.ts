@@ -54,6 +54,14 @@ export class AdminController {
     return this.admin.listStudents(q);
   }
 
+  @Get('api/admin/parents')
+  @Roles('ADMIN')
+  parents(
+    @Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string },
+  ) {
+    return this.admin.listParents(q);
+  }
+
   @Get('api/admin/courses')
   @Roles('ADMIN')
   courses(

@@ -15,6 +15,11 @@ type StudentRow = {
   isActive: boolean; createdAt: string;
   enrollments: Array<{ groupName: string; courseTitle: string; courseId: string }>;
 };
+type ParentRow = {
+  id: string; name: string; email: string; phoneNumber: string | null; isActive: boolean;
+  createdAt: string;
+  children: Array<{ id: string; name: string; email: string }>;
+};
 type NotificationSettings = {
   whatsappEnabled: boolean;
   emailEnabled: boolean;
@@ -40,13 +45,18 @@ type CourseRow = {
 
 export default function AdminDashboard() {
   const { t } = useLang();
-  const [tab, setTab] = useState<'teachers' | 'students' | 'courses' | 'notifications' | 'taxonomy'>('teachers');
+  const [tab, setTab] = useState<'teachers' | 'students' | 'parents' | 'courses' | 'notifications' | 'taxonomy'>('teachers');
   const [search, setSearch] = useState('');
 
   const overview = useQuery(adminOverviewQuery);
   const teachers = useQuery({
     queryKey: ['admin-teachers', search],
     queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?search=${encodeURIComponent(search)}`),
+  });
+  const parents = useQuery({
+    queryKey: ['admin-parents', search],
+    queryFn: () => api<ParentRow[]>(`/api/admin/parents?search=${encodeURIComponent(search)}`),
+    enabled: tab === 'parents',
   });
   const students = useQuery({
     queryKey: ['admin-students', search],
@@ -113,9 +123,9 @@ export default function AdminDashboard() {
       ) : <Loading />}
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['teachers', 'students', 'courses', 'notifications', 'taxonomy'] as const).map((k) => (
+        {(['teachers', 'students', 'parents', 'courses', 'notifications', 'taxonomy'] as const).map((k) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
-            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'courses' ? t('courses') : k === 'notifications' ? t('notifications') : t('taxonomy')}
+            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'parents' ? t('parents') : k === 'courses' ? t('courses') : k === 'notifications' ? t('notifications') : t('taxonomy')}
           </button>
         ))}
       </div>
@@ -234,6 +244,28 @@ export default function AdminDashboard() {
           search={search}
           setSearch={setSearch}
         />
+      )}
+
+      {tab === 'parents' && (
+        <Card>
+          <div className="mb-3">
+            <Input label={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} />
+          </div>
+          {parents.isLoading ? <Loading /> : parents.error ? <ErrorBox error={parents.error} /> : (
+            <ul className="flex flex-col divide-y divide-line">
+              {parents.data?.map((u) => (
+                <li key={u.id} className="py-2">
+                  <p className="font-semibold">{u.name}</p>
+                  <p className="text-sm text-ink-soft" dir="ltr">{u.email}{u.phoneNumber ? ` · ${u.phoneNumber}` : ''}</p>
+                  <p className="mt-1 text-sm">
+                    {u.children.length ? u.children.map((c) => c.name).join(' · ') : '—'}
+                  </p>
+                </li>
+              ))}
+              {parents.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
+            </ul>
+          )}
+        </Card>
       )}
 
       {tab === 'courses' && (

@@ -11,6 +11,7 @@ import {
   grades,
   groupStudents,
   groups,
+  parentStudents,
   users,
 } from '../../db/schema';
 
@@ -189,6 +190,48 @@ export class AdminService {
       enrollments: memberships
         .filter((m) => m.studentId === s.id)
         .map((m) => ({ groupName: m.groupName, courseId: m.courseId, courseTitle: m.courseTitle })),
+    }));
+  }
+
+  async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED' }) {
+    const conditions = [eq(users.role, 'PARENT'), isNull(users.deletedAt)];
+    if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
+    if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
+    if (filters.search) {
+      conditions.push(
+        or(
+          ilike(users.name, `%${filters.search}%`),
+          ilike(users.email, `%${filters.search}%`),
+          ilike(users.phoneNumber, `%${filters.search}%`),
+        )!,
+      );
+    }
+    const parents = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(and(...conditions))
+      .orderBy(desc(users.createdAt));
+    const links = await db
+      .select({
+        parentId: parentStudents.parentId,
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      })
+      .from(parentStudents)
+      .innerJoin(users, eq(parentStudents.studentId, users.id));
+    return parents.map((p) => ({
+      ...p,
+      children: links
+        .filter((l) => l.parentId === p.id)
+        .map(({ parentId: _parentId, ...child }) => child),
     }));
   }
 
