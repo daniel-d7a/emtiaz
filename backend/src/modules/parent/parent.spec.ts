@@ -77,6 +77,16 @@ describe('parent role', () => {
       .post(`/api/student/quizzes/${world.quiz}/submit`)
       .send({ groupId: world.group1, answers: {} });
     expect(readOnly.status).toBe(403);
+
+    expect((await parent.delete(`/api/parent/students/${world.s1.id}`)).status).toBe(200);
+    expect((await parent.get('/api/parent/students')).body).toHaveLength(0);
+    expect(
+      (
+        await parent.get(
+          `/api/parent/students/${world.s1.id}/groups/${world.group1}/grades`,
+        )
+      ).status,
+    ).toBe(403);
   });
 
   it('rejects a bad signup code before creating the account', async () => {

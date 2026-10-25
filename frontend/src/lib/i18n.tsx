@@ -29,6 +29,7 @@ const dict = {
   myChildren: { ar: 'أبنائي', en: 'My children' },
   childCode: { ar: 'رمز الطالب', en: 'Student code' },
   linkChild: { ar: 'ربط الطالب', en: 'Link student' },
+  unlinkChild: { ar: 'فصل الطالب', en: 'Unlink child' },
   noChildren: { ar: 'لم يتم ربط أي طالب بعد — استخدم رمز الطالب.', en: 'No students linked yet — use the student code.' },
   viewGrades: { ar: 'عرض الدرجات', en: 'View grades' },
   parentCode: { ar: 'رمز ولي الأمر', en: 'Parent code' },

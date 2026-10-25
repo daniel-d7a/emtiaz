@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GraduationCap, Link2 } from 'lucide-react';
+import { GraduationCap, Link2, Unlink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
@@ -35,6 +35,11 @@ export default function ParentDashboard() {
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
   });
+  const unlink = useMutation({
+    mutationFn: (studentId: string) =>
+      api(`/api/parent/students/${studentId}`, { method: 'DELETE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['parent-students'] }),
+  });
 
   return (
     <Page title={t('myChildren')}>
@@ -50,13 +55,22 @@ export default function ParentDashboard() {
         {link.error && <div className="mt-2"><ErrorBox error={link.error} /></div>}
       </Card>
 
+      {unlink.error && <ErrorBox error={unlink.error} />}
       {children.isLoading ? <Loading /> : children.error ? <ErrorBox error={children.error} /> : (
         <div className="flex flex-col gap-4">
           {children.data?.map((child) => (
             <Card key={child.id}>
               <div className="mb-3 flex items-center gap-2 text-primary">
                 <GraduationCap size={18} />
-                <h2 className="text-lg font-bold">{child.name}</h2>
+                <h2 className="grow text-lg font-bold">{child.name}</h2>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (window.confirm(t('unlinkChild') + '?')) unlink.mutate(child.id);
+                  }}
+                >
+                  <Unlink size={16} /> {t('unlinkChild')}
+                </Button>
               </div>
               <p className="mb-4 text-sm text-ink-soft" dir="ltr">{child.email}{child.phoneNumber ? ` · ${child.phoneNumber}` : ''}</p>
               <div className="flex flex-col gap-3">

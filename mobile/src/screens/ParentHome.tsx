@@ -35,6 +35,11 @@ export default function ParentHome({ onLogout }: { onLogout: () => void }) {
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
   });
+  const unlink = useMutation({
+    mutationFn: (studentId: string) =>
+      api(`/api/parent/students/${studentId}`, { method: 'DELETE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['parent-students'] }),
+  });
 
   return (
     <ScrollView style={s.page}>
@@ -55,12 +60,14 @@ export default function ParentHome({ onLogout }: { onLogout: () => void }) {
         <Btn label="ربط الطالب" onPress={() => link.mutate()} disabled={code.trim().length < 4 || link.isPending} />
         {link.error && <ErrorBox error={link.error} />}
       </Card>
+      {unlink.error && <ErrorBox error={unlink.error} />}
       {children.isLoading ? <Loading /> : children.error ? <ErrorBox error={children.error} /> : (
         <>
           {children.data?.map((child) => (
             <Card key={child.id}>
               <Text style={s.h2}>{child.name}</Text>
               <Text style={{ color: c.inkSoft, marginBottom: 8 }}>{child.email}</Text>
+              <Btn label="فصل الطالب" variant="ghost" onPress={() => unlink.mutate(child.id)} />
               {child.groups.map((g) => {
                 const key = `${child.id}:${g.group.id}`;
                 return (

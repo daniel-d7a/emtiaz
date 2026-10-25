@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { Roles } from '../../auth/roles.decorator';
@@ -19,6 +19,12 @@ export class ParentController {
   @Roles('PARENT')
   students(@Req() req: Request) {
     return this.parents.myStudents(req.user!.id);
+  }
+
+  @Delete('api/parent/students/:studentId')
+  @Roles('PARENT')
+  unlink(@Req() req: Request, @Param('studentId') studentId: string) {
+    return this.parents.unlink(req.user!.id, studentId);
   }
 
   @Get('api/parent/students/:studentId/groups/:groupId/grades')

@@ -57,6 +57,15 @@ export class ParentService {
     );
   }
 
+  async unlink(parentId: string, studentId: string) {
+    await db
+      .delete(parentStudents)
+      .where(
+        and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)),
+      );
+    return { ok: true };
+  }
+
   async grades(parentId: string, studentId: string, groupId: string) {
     await this.assertLinked(parentId, studentId);
     return this.students.myGrades(studentId, groupId);
