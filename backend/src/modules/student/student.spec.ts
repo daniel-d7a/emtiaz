@@ -91,6 +91,16 @@ describe('Phase 3: student endpoints', () => {
     const res3 = await s1.get('/api/student/groups');
     // lesson2 is locked for group1 (locked in the previous test), so 1/1 = 100
     expect(res3.body.find((x: any) => x.group.id === world.group1).progress).toBe(100);
+
+    // a completion earned before a lesson was locked must not inflate progress
+    const student = await getUserByEmail(STUDENT1.email);
+    await testPool.query(
+      `INSERT INTO lesson_completions (student_id, lesson_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+      [student.id, world.lesson2],
+    );
+    const after = await s1.get('/api/student/groups');
+    const g1 = after.body.find((x: any) => x.group.id === world.group1);
+    expect(g1).toMatchObject({ progress: 100, completedLessons: 1, totalLessons: 1 });
   });
 
   it('refuses to submit a quiz that belongs to another course', async () => {

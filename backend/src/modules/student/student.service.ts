@@ -110,10 +110,11 @@ export class StudentService {
         );
         return row ? row.isUnlocked : r.group.unlockAllByDefault;
       };
-      const total = courseLessons.filter((l) => isUnlocked(l.lessonId)).length;
-      const done = completions.filter(
-        (c) => courseLessons.some((l) => l.lessonId === c.lessonId),
-      ).length;
+      const unlockedIds = new Set(
+        courseLessons.filter((l) => isUnlocked(l.lessonId)).map((l) => l.lessonId),
+      );
+      const total = unlockedIds.size;
+      const done = completions.filter((c) => unlockedIds.has(c.lessonId)).length;
       return {
         ...r,
         progress: total === 0 ? 0 : Math.round((done / total) * 100),
