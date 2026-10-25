@@ -9,6 +9,7 @@ import {
   groups,
   lessonCompletions,
   lessons,
+  parentStudents,
   modules,
   quizQuestions,
   quizzes,
@@ -19,7 +20,7 @@ import { eq } from 'drizzle-orm';
 
 const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? 'demo-password';
 
-async function signUp(name: string, email: string, password: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT', extra: { phoneNumber?: string; gradeId?: string } = {}) {
+async function signUp(name: string, email: string, password: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT', extra: { phoneNumber?: string; gradeId?: string } = {}) {
   try {
     const { response, error } = (await auth.api.signUpEmail({
       body: { name, email, password, role, ...extra },
@@ -148,6 +149,10 @@ async function seedDemo() {
   for (let i = 1; i <= 6; i++) {
     studentIds.push(await signUp(`Student ${i}`, `student${i}@demo.om`, DEMO_PASSWORD, 'STUDENT', { phoneNumber: `+96894100006${i}` }));
   }
+  const parentId = await signUp('Umm Student One', 'parent1@demo.om', DEMO_PASSWORD, 'PARENT', {
+    phoneNumber: '+968941000070',
+  });
+  await db.insert(parentStudents).values({ parentId, studentId: studentIds[0] }).onConflictDoNothing();
 
   const [anyCourse] = await db.select({ id: courses.id }).from(courses).limit(1);
   if (anyCourse) {
@@ -189,6 +194,7 @@ async function seedDemo() {
     `Demo seeded (${DEMO_PASSWORD} everywhere):\n` +
       `  teachers: salim@teacher.om, fatma@teacher.om\n` +
       `  students: student1@demo.om … student6@demo.om\n` +
+      `  parent: parent1@demo.om (linked to Student 1)\n` +
       `  courses: ${physics.title}, ${english.title}, ${math.title}, ${ielts.title}\n` +
       `  join codes: ${g1a.joinCode}, ${g1b.joinCode}, ${g1c.joinCode}, ${g2a.joinCode}, ${g2b.joinCode}`,
   );

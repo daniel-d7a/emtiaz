@@ -24,6 +24,7 @@ cd backend && npm install && npm run db:migrate && npm run db:seed && npm run st
 #
 # db:seed also creates a DEMO world (override password with SEED_DEMO_PASSWORD, or skip entirely with SEED_DEMO=0):
 #   teachers: salim@teacher.om, fatma@teacher.om   — students: student1@demo.om … student6@demo.om
+#   parent: parent1@demo.om (linked to Student 1)
 #   password for all demo users: demo-password
 #   courses: Physics — Grade 10 (ACADEMIC, 2 groups), English Speaking (GENERAL), Math — Grade 7 (ACADEMIC), IELTS Crash Prep (GENERAL)
 #   with groups, lessons, scaffolded progress, and a quiz on the first physics lesson

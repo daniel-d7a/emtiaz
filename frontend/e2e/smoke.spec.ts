@@ -16,5 +16,17 @@ test('student: login -> group -> lesson -> quiz', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Physics — Sun Tue' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Speed & velocity' }).click();
-  await expect(page.getByText('Speed & velocity — Quiz')).toBeVisible();
+  await expect(page.getByText('اختبار قصير')).toBeVisible();
+});
+
+test('parent: login -> linked child -> grades', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('البريد الإلكتروني').fill(process.env.E2E_PARENT_EMAIL ?? 'parent1@demo.om');
+  await page.getByLabel('كلمة المرور').fill(process.env.E2E_PARENT_PASSWORD ?? 'demo-password');
+  await page.getByRole('button', { name: 'تسجيل الدخول' }).click();
+
+  await expect(page.getByRole('heading', { name: 'أبنائي' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Student 1' })).toBeVisible();
+  await page.getByRole('button', { name: 'عرض الدرجات' }).first().click();
+  await expect(page.getByText('اختبار قصير')).toBeVisible();
 });

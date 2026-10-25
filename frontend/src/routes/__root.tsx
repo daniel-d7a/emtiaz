@@ -25,6 +25,9 @@ function TopBar() {
         {data?.user?.role === 'ADMIN' && (
           <Link to="/admin/dashboard" className="rounded-lg px-3 py-2 hover:bg-line/60">{t('admin')}</Link>
         )}
+        {data?.user?.role === 'PARENT' && (
+          <Link to="/parent/dashboard" className="rounded-lg px-3 py-2 hover:bg-line/60">{t('myChildren')}</Link>
+        )}
         <button
           aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
           onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}

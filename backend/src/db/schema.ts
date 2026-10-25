@@ -15,7 +15,7 @@ import { sql } from 'drizzle-orm';
 // ==========================================
 // 1. ENUMS
 // ==========================================
-export const roleEnum = pgEnum('role', ['ADMIN', 'TEACHER', 'STUDENT']);
+export const roleEnum = pgEnum('role', ['ADMIN', 'TEACHER', 'STUDENT', 'PARENT']);
 export const courseTypeEnum = pgEnum('course_type', ['ACADEMIC', 'GENERAL']);
 export const attachmentTypeEnum = pgEnum('attachment_type', [
   'PDF',
@@ -58,6 +58,10 @@ export const users = pgTable('user', {
   phoneNumberVerified: boolean('phone_number_verified').default(false),
   image: text('image'),
   role: roleEnum('role').notNull().default('STUDENT'),
+  parentInviteCode: text('parent_invite_code')
+    .notNull()
+    .unique()
+    .default(sql`('P' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 7)))`),
   isActive: boolean('is_active').notNull().default(true),
   specialization: text('specialization'), // legacy freetext; superseded by subjectCategoryId FK for teachers
   subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),
@@ -329,6 +333,16 @@ export const manualGradeValues = pgTable(
       table.studentId,
     ),
   }),
+);
+
+export const parentStudents = pgTable(
+  'parent_students',
+  {
+    parentId: text('parent_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    studentId: text('student_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('parent_students_pair').on(t.parentId, t.studentId)],
 );
 
 export const notificationSettings = pgTable('notification_settings', {

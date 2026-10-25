@@ -9,6 +9,10 @@ export default function Profile() {
   const { t } = useLang();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(sessionQuery);
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<{ user: { parentInviteCode: string } }>('/api/me'),
+  });
   const user: SessionUser | null = data?.user ?? null;
   const { data: subjects = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ['categories'],
@@ -95,6 +99,13 @@ export default function Profile() {
         </div>
         {avatarErr && <div className="mb-3"><ErrorBox error={avatarErr} /></div>}
         <p className="mb-4 text-sm text-ink-soft" dir="ltr">{user.email || user.phoneNumber}</p>
+        {user.role === 'STUDENT' && me?.user.parentInviteCode && (
+          <div className="mb-4 rounded-xl border border-line bg-primary-light/40 p-3">
+            <p className="text-xs font-semibold text-ink-soft">{t('parentCode')}</p>
+            <p className="text-lg font-bold tracking-widest text-primary" dir="ltr">{me.user.parentInviteCode}</p>
+            <p className="text-xs text-ink-soft">{t('parentCodeHint')}</p>
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
           <Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />

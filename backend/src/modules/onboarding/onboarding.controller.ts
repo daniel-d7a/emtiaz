@@ -5,15 +5,19 @@ import { auth } from '../../auth/auth';
 import { Public } from '../../auth/public.decorator';
 import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
-import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, UpdateMeDto } from '../../lib/schemas';
+import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto } from '../../lib/schemas';
 import { z } from 'zod';
+import { ParentService } from '../parent/parent.service';
 
 const syntheticPhoneEmail = (phone: string) =>
   `${phone.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
 
 @Controller()
 export class OnboardingController {
-  constructor(private onboarding: OnboardingService) {}
+  constructor(
+    private onboarding: OnboardingService,
+    private parents: ParentService,
+  ) {}
 
   /** Authenticated students join a group by code (past signup). */
   @Post('api/onboarding/join/:joinCode')
@@ -65,14 +69,38 @@ export class OnboardingController {
     return { user: data.response.user, status: 'ok' };
   }
 
+  @Public()
+  @Post('api/onboarding/parent')
+  async registerParent(
+    @Body(new ZodBodyPipe(ParentSignupDto))
+    dto: z.infer<typeof ParentSignupDto>,
+  ) {
+    // Validate the code before creating the account so a typo does not leave an orphan login.
+    if (dto.studentCode) await this.parents.resolveStudent(dto.studentCode);
+    const data = await auth.api.signUpEmail({
+      body: {
+        name: dto.name,
+        email: dto.email,
+        password: dto.password,
+        role: 'PARENT',
+        phoneNumber: dto.phoneNumber,
+      },
+      returnHeaders: true,
+    });
+    if (dto.studentCode) {
+      await this.parents.linkByCode(data.response.user.id, dto.studentCode);
+    }
+    return { user: data.response.user, status: 'ok' };
+  }
+
   @Get('api/me')
-  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
   meGet(@Req() req: Request) {
     return this.onboarding.me(req.user!.id);
   }
 
   @Patch('api/me')
-  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
   me(
     @Req() req: Request,
     @Body(new ZodBodyPipe(UpdateMeDto)) dto: z.infer<typeof UpdateMeDto>,
@@ -82,7 +110,7 @@ export class OnboardingController {
 
   /** Redirects to a fresh signed URL for the caller's avatar. */
   @Get('api/me/avatar')
-  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
   async avatar(@Req() req: Request, @Res() res: Response) {
     const url = await this.onboarding.avatarUrl(req.user!.id);
     if (!url) throw new NotFoundException('No avatar');

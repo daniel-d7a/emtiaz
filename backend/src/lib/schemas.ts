@@ -153,6 +153,16 @@ export const QuizSubmitDto = z
       .catchall(z.string().min(1).max(500)),
   });
 
+// ---------- parent ----------
+export const ParentSignupDto = z.object({
+  name: safeText(120),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(128),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{6,14}$/).optional(),
+  studentCode: z.string().trim().min(4).max(16).optional(),
+});
+export const ParentLinkDto = z.object({ code: z.string().trim().min(4).max(16) });
+
 // ---------- admin ----------
 export const SetUserStatusDto = z
   .object({ isActive: z.boolean(), revokeSessions: z.boolean().optional() });

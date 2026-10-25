@@ -17,7 +17,12 @@ export default function Login() {
 
   const go = (role: string) => {
     if (join) return navigate({ to: '/join/$joinCode', params: { joinCode: join } });
-    navigate({ to: role === 'TEACHER' ? '/teacher/dashboard' : '/student/dashboard' });
+    const home = {
+      TEACHER: '/teacher/dashboard',
+      ADMIN: '/admin/dashboard',
+      PARENT: '/parent/dashboard',
+    } as const;
+    navigate({ to: home[role as keyof typeof home] ?? '/student/dashboard' });
   };
 
   const submit = async () => {
@@ -50,12 +55,15 @@ export default function Login() {
           {error && <ErrorBox error={error} />}
           <Button type="submit" disabled={busy}>{t('login')}</Button>
         </form>
-        <div className="mt-4 flex justify-between text-sm">
+        <div className="mt-4 flex flex-wrap justify-between gap-2 text-sm">
           <Link to="/register/$role" params={{ role: 'student' }} search={{ join }} className="text-primary underline">
             {t('student')} — {t('register')}
           </Link>
           <Link to="/register/$role" params={{ role: 'teacher' }} search={{ join }} className="text-primary underline">
             {t('teacher')} — {t('register')}
+          </Link>
+          <Link to="/register/$role" params={{ role: 'parent' }} search={{ join }} className="text-primary underline">
+            {t('parent')} — {t('register')}
           </Link>
         </div>
       </Card>

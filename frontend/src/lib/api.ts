@@ -47,4 +47,7 @@ export const onboardingApi = {
   registerStudent: (dto: {
     name: string; password: string; phoneNumber: string; email?: string; gradeId?: string;
   }) => api('/api/onboarding/student', { body: dto }),
+  registerParent: (dto: {
+    name: string; email: string; password: string; phoneNumber?: string; studentCode?: string;
+  }) => api('/api/onboarding/parent', { body: dto }),
 };
