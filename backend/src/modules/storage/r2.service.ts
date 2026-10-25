@@ -15,13 +15,13 @@ export class R2StorageService {
   private getClient(): S3Client {
     if (!this.client) {
       this.client = new S3Client({
-        region: process.env.R2_REGION ?? 'us-east-1', // MinIO wants a concrete region; Cloudflare R2 sets R2_REGION=auto
+        region: process.env.R2_REGION ?? 'us-east-1', // S3-compatible stores want a concrete region; Cloudflare R2 sets R2_REGION=auto
         endpoint: process.env.R2_ENDPOINT,
         credentials: {
           accessKeyId: process.env.R2_ACCESS_KEY_ID!,
           secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
         },
-        forcePathStyle: true, // R2 + MinIO both use https://endpoint/bucket path style
+        forcePathStyle: true, // R2 and self-hosted S3 stores use https://endpoint/bucket path style
       });
     }
     return this.client;

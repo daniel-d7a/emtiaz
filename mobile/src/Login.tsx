@@ -25,7 +25,7 @@ export default function Login({ onIn }: { onIn: (user: any) => void }) {
   return (
     <View style={s.page}>
       <Text style={s.h1}>امتياز</Text>
-      <Text style={{ color: '#78716C', marginBottom: 16 }}>منصة تعلّم بسيطة للمعلمين والطلبة في عُمان</Text>
+      <Text style={{ color: '#78716C', marginBottom: 16 }}>منصة تعلّم بسيطة للمعلمين والطلبة في سلطنة عُمان</Text>
       <Field label="البريد الإلكتروني" value={email} onChange={setEmail} placeholder="you@example.com" />
       <Field label="كلمة المرور" value={password} onChange={setPassword} secure />
       {error && <ErrorBox error={error} />}

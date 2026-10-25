@@ -1,6 +1,6 @@
 /**
  * Storage self-check: presign → PUT bytes → objectExists → GET bytes via the real service.
- * Usage: npm run storage:check   (needs MinIO/R2 up; run without R2_* to test stub mode)
+ * Usage: npm run storage:check   (needs RustFS/R2 up; run without R2_* to test stub mode)
  */
 import 'dotenv/config';
 import { R2StorageService } from '../src/modules/storage/r2.service';
@@ -11,7 +11,7 @@ async function main() {
   const bytes = new TextEncoder().encode('emtiaz storage check');
 
   const putUrl = await svc.presignedPut(key);
-  console.log('mode:', svc.isConfigured() ? 'R2/MinIO' : 'stub');
+  console.log('mode:', svc.isConfigured() ? 'R2/RustFS' : 'stub');
   const code = putUrl.includes('stub-upload') ? 'stub' : 'real';
   if (!putUrl.includes('stub-upload') && svc.isConfigured()) {
     const res = await fetch(putUrl, { method: 'PUT', body: bytes });

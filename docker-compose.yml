@@ -17,10 +17,10 @@ services:
   rustfs:
     image: rustfs/rustfs:latest
     container_name: emtiaz-rustfs-docker
-    # S3-compatible object store (MinIO alternative) — local stand-in for Cloudflare R2
+    # S3-compatible object store — local stand-in for Cloudflare R2
     environment:
-      RUSTFS_ACCESS_KEY: minioadmin
-      RUSTFS_SECRET_KEY: minioadmin
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
       RUSTFS_VOLUMES: /data
     volumes:
       - s3data:/data
@@ -42,8 +42,8 @@ services:
     environment:
       R2_ENDPOINT: http://rustfs:9000
       R2_REGION: us-east-1
-      R2_ACCESS_KEY_ID: minioadmin
-      R2_SECRET_ACCESS_KEY: minioadmin
+      R2_ACCESS_KEY_ID: rustfsadmin
+      R2_SECRET_ACCESS_KEY: rustfsadmin
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-lms-attachments}
 
   api:
@@ -59,8 +59,8 @@ services:
       R2_ENDPOINT: http://rustfs:9000
       R2_PRESIGN_ENDPOINT: http://localhost:9200
       R2_REGION: us-east-1
-      R2_ACCESS_KEY_ID: minioadmin
-      R2_SECRET_ACCESS_KEY: minioadmin
+      R2_ACCESS_KEY_ID: rustfsadmin
+      R2_SECRET_ACCESS_KEY: rustfsadmin
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-lms-attachments}
     ports:
       - "3100:3000"

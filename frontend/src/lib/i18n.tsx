@@ -6,7 +6,7 @@ export type Lang = 'ar' | 'en';
 const dict = {
   // shared
   appName: { ar: 'امتياز', en: 'Emtiaz' },
-  tagline: { ar: 'منصة إدارة تعلّم بسيطة للمعلمين والطلبة في عُمان', en: 'A simple LMS for teachers and students in Oman' },
+  tagline: { ar: 'منصة إدارة تعلّم بسيطة للمعلمين والطلبة في سلطنة عُمان', en: 'A simple LMS for teachers and students in the Sultanate of Oman' },
   login: { ar: 'تسجيل الدخول', en: 'Log in' },
   logout: { ar: 'خروج', en: 'Log out' },
   register: { ar: 'إنشاء حساب', en: 'Sign up' },

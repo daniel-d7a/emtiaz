@@ -9,8 +9,8 @@ const client = new S3Client({
   region: process.env.R2_REGION ?? 'us-east-1',
   endpoint: process.env.R2_ENDPOINT,
   credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? 'minioadmin',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? 'minioadmin',
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? 'rustfsadmin',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? 'rustfsadmin',
   },
   forcePathStyle: true,
 });
