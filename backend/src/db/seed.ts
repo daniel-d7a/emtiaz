@@ -141,6 +141,10 @@ async function seedDemo() {
     phoneNumber: '+96894000001',
   });
   await db.update(users).set({ subjectCategoryId: (await getOrCreateCategory('Sciences')).id }).where(eq(users.id, teacher1));
+  await db
+    .update(users)
+    .set({ landingSlug: 'salim', landingBio: 'Physics teacher in Muscat.', landingPublished: true })
+    .where(eq(users.id, teacher1));
   const teacher2 = await signUp('Fatma Al Hinai', 'fatma@teacher.om', DEMO_PASSWORD, 'TEACHER', {
     phoneNumber: '+96894000002',
   });

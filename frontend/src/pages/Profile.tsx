@@ -11,7 +11,15 @@ export default function Profile() {
   const { data, isLoading } = useQuery(sessionQuery);
   const { data: me } = useQuery({
     queryKey: ['me'],
-    queryFn: () => api<{ user: { parentInviteCode: string } }>('/api/me'),
+    queryFn: () =>
+      api<{
+        user: {
+          parentInviteCode: string;
+          landingSlug: string | null;
+          landingBio: string | null;
+          landingPublished: boolean;
+        };
+      }>('/api/me'),
   });
   const user: SessionUser | null = data?.user ?? null;
   const { data: subjects = [] } = useQuery<{ id: string; name: string }[]>({
@@ -25,12 +33,22 @@ export default function Profile() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
+  const [landingSlug, setLandingSlug] = useState('');
+  const [landingBio, setLandingBio] = useState('');
+  const [landingPublished, setLandingPublished] = useState(false);
   const [init, setInit] = useState(false);
+  const [landingInit, setLandingInit] = useState(false);
   if (user && !init) {
     setName(user.name);
     setPhone(user.phoneNumber ?? '');
     setSubject('');
     setInit(true);
+  }
+  if (me?.user && !landingInit) {
+    setLandingSlug(me.user.landingSlug ?? '');
+    setLandingBio(me.user.landingBio ?? '');
+    setLandingPublished(me.user.landingPublished);
+    setLandingInit(true);
   }
 
   const uploadAvatar = async (file: File) => {
@@ -64,9 +82,19 @@ export default function Profile() {
     mutationFn: () =>
       api('/api/me', {
         method: 'PATCH',
-        body: { name, phoneNumber: phone || undefined, subject: user?.role === 'TEACHER' && subject ? subject : undefined },
+        body: {
+          name,
+          phoneNumber: phone || undefined,
+          subject: user?.role === 'TEACHER' && subject ? subject : undefined,
+          ...(user?.role === 'TEACHER'
+            ? { landingSlug, landingBio, landingPublished }
+            : {}),
+        },
       }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['session'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['session'] });
+      void qc.invalidateQueries({ queryKey: ['me'] });
+    },
   });
 
   if (isLoading || !user) return <Loading />;
@@ -137,6 +165,44 @@ export default function Profile() {
                 {subjects.map((c) => <option key={c.id} value={c.name} />)}
               </datalist>
             </label>
+          )}
+          {user.role === 'TEACHER' && (
+            <div className="rounded-xl border border-line p-3">
+              <p className="mb-2 text-sm font-bold">{t('landingPage')}</p>
+              <div className="flex flex-col gap-3">
+                <Input
+                  label={t('landingSlug')}
+                  value={landingSlug}
+                  onChange={(e) => setLandingSlug(e.target.value.toLowerCase())}
+                  placeholder="salim-physics"
+                  dir="ltr"
+                />
+                <label className="block">
+                  <span className="mb-1 block text-sm text-ink">{t('landingBio')}</span>
+                  <textarea
+                    className="w-full rounded-lg border border-border bg-white px-3 py-2"
+                    rows={3}
+                    maxLength={500}
+                    value={landingBio}
+                    onChange={(e) => setLandingBio(e.target.value)}
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-primary"
+                    checked={landingPublished}
+                    onChange={(e) => setLandingPublished(e.target.checked)}
+                  />
+                  {t('publishLanding')}
+                </label>
+                {landingSlug && (
+                  <a className="text-sm text-primary underline" href={`/t/${landingSlug}`} target="_blank" rel="noreferrer">
+                    {t('viewLanding')}: /t/{landingSlug}
+                  </a>
+                )}
+              </div>
+            </div>
           )}
           {save.error && <ErrorBox error={save.error} />}
           <Button onClick={() => save.mutate()} disabled={!name.trim() || save.isPending}>{t('save')}</Button>

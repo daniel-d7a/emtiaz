@@ -54,6 +54,16 @@ export const UpdateMeDto = z
       .optional(),
     subject: optText(60),
     image: z.string().trim().max(512).nullable().optional(),
+    landingSlug: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .refine((v) => v === '' || /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(v), {
+        message: 'slug must be 3-40 lowercase letters, numbers, or hyphens',
+      })
+      .optional(),
+    landingBio: optText(500),
+    landingPublished: z.boolean().optional(),
   });
 
 // ---------- courses / curriculum ----------

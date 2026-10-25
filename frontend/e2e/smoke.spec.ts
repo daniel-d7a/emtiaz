@@ -30,3 +30,9 @@ test('parent: login -> linked child -> grades', async ({ page }) => {
   await page.getByRole('button', { name: 'عرض الدرجات' }).first().click();
   await expect(page.getByText('اختبار قصير')).toBeVisible();
 });
+
+test('public teacher landing lists published courses', async ({ page }) => {
+  await page.goto('/t/salim');
+  await expect(page.getByRole('heading', { name: 'Salim Al Balushi', exact: true })).toBeVisible();
+  await expect(page.getByText('Physics — Grade 10')).toBeVisible();
+});

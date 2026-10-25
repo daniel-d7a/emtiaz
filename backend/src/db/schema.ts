@@ -59,6 +59,9 @@ export const users = pgTable('user', {
   phoneNumberVerified: boolean('phone_number_verified').default(false),
   image: text('image'),
   role: roleEnum('role').notNull().default('STUDENT'),
+  landingSlug: text('landing_slug').unique(),
+  landingBio: text('landing_bio'),
+  landingPublished: boolean('landing_published').notNull().default(false),
   parentInviteCode: text('parent_invite_code')
     .notNull()
     .unique()

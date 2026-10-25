@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { and, asc, eq, ilike } from 'drizzle-orm';
 import { db } from '../../db';
 import { categories, courses, groupStudents, groups, users } from '../../db/schema';
@@ -88,8 +88,13 @@ export class OnboardingService {
       phoneNumber: string;
       subject: string;
       image: string | null;
+      landingSlug: string;
+      landingBio: string;
+      landingPublished: boolean;
     }>,
   ) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new NotFoundException('User not found');
     const allowed: Partial<typeof schema.users.$inferInsert> = {};
     if (dto.name !== undefined && dto.name.trim()) allowed.name = dto.name.trim();
     if (dto.phoneNumber !== undefined) allowed.phoneNumber = dto.phoneNumber.trim() || null;
@@ -103,14 +108,25 @@ export class OnboardingService {
       }
       allowed.image = image;
     }
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user) throw new NotFoundException('User not found');
+    if (
+      (dto.landingSlug !== undefined || dto.landingBio !== undefined || dto.landingPublished !== undefined) &&
+      user.role !== 'TEACHER'
+    ) {
+      throw new BadRequestException('landing pages are only available to teachers');
+    }
+    if (dto.landingSlug !== undefined) allowed.landingSlug = dto.landingSlug.trim().toLowerCase() || null;
+    if (dto.landingBio !== undefined) allowed.landingBio = dto.landingBio.trim() || null;
+    if (dto.landingPublished !== undefined) allowed.landingPublished = dto.landingPublished;
     if (!Object.keys(allowed).length) return user;
     const [updated] = await db
       .update(users)
       .set(allowed)
       .where(eq(users.id, userId))
-      .returning();
+      .returning()
+      .catch((e) => {
+        if (e?.code === '23505') throw new ConflictException('Landing link already taken');
+        throw e;
+      });
     const oldImage = user.image;
     if (
       allowed.image !== undefined &&

@@ -11,6 +11,7 @@ import { TeacherModule } from './modules/teacher/teacher.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { PublicModule } from './modules/public/public.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { DatabaseLifecycle } from './db';
 
@@ -24,6 +25,7 @@ import { DatabaseLifecycle } from './db';
     StorageModule,
     AdminModule,
     ParentModule,
+    PublicModule,
   ],
   providers: [
     DatabaseLifecycle,

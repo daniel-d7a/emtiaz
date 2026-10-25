@@ -33,6 +33,7 @@ cd backend && npm install && npm run db:migrate && npm run db:seed && npm run st
 cd frontend && npm install && npm run dev
 # → http://localhost:5173
 
+# Teacher landing pages: teachers set a slug on /profile → /t/<slug>
 # API docs (Swagger UI) are served at /api/docs outside production; set ENABLE_API_DOCS=1 to expose in production
 
 # tests
