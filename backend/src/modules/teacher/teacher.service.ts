@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../../db';
+import { logger } from '../../lib/logger';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   courses,
   groupLessonAccess,
@@ -17,6 +19,7 @@ import {
   manualGradeColumns,
   manualGradeValues,
   modules,
+  parentStudents,
   quizAttempts,
   quizQuestions,
   quizzes,
@@ -40,6 +43,8 @@ type QuizPayload = {
 
 @Injectable()
 export class TeacherService {
+  constructor(private readonly notifications: NotificationsService) {}
+
   private async assertOwnsCourse(teacherId: string, courseId: string) {
     const [course] = await db
       .select()
@@ -676,9 +681,37 @@ export class TeacherService {
       );
     if (!existing.length) {
       await db.insert(groupStudents).values({ groupId, studentId });
+      await this.notifyEnrolled(studentId, groupId);
       return true;
     }
     return false;
+  }
+
+  private async notifyEnrolled(studentId: string, groupId: string) {
+    try {
+      const [[student], [group]] = await Promise.all([
+        db.select().from(users).where(eq(users.id, studentId)),
+        db.select().from(groups).where(eq(groups.id, groupId)),
+      ]);
+      if (!student || !group) return;
+      const message = `تم تسجيلك في «${group.name}» بنجاح 🎉`;
+      await this.notifications.sendInApp(studentId, message, 'TEACHER');
+      const parents = await db
+        .select({ id: parentStudents.parentId })
+        .from(parentStudents)
+        .where(eq(parentStudents.studentId, studentId));
+      await Promise.all(
+        parents.map((p) =>
+          this.notifications.sendInApp(
+            p.id,
+            `تم تسجيل ${student.name} في «${group.name}»`,
+            'PARENT',
+          ),
+        ),
+      );
+    } catch (e) {
+      logger.error({ err: e }, 'teacher enrollment notification failed');
+    }
   }
 
   async moveStudent(

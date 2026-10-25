@@ -282,6 +282,14 @@ describe('Phase 4: teacher endpoints', () => {
         await t.get(`/api/teacher/groups/${newGroupId}/roster`)
       ).body;
       expect(roster.students).toHaveLength(2);
+      const bulk = await testPool.query(
+        `SELECT id FROM "user" WHERE phone_number='+96877770001'`,
+      );
+      const inbox = await testPool.query(
+        `SELECT message FROM inbox_notifications WHERE user_id=$1`,
+        [bulk.rows[0].id],
+      );
+      expect(inbox.rows[0]?.message).toContain('تم تسجيلك');
     });
 
     it('moves a student between groups of the same course and refuses cross-course moves', async () => {
