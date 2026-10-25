@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Download, FileDown, Lock, NotebookPen, Trophy } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Download, FileDown, Lock, NotebookPen, RotateCcw, Trophy } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
@@ -262,7 +262,7 @@ export function StudentQuiz({ lessonId, groupId }: { lessonId: string; groupId: 
               <span className="text-ink-soft"> — {r.expected}{r.explanation ? `: ${r.explanation}` : ''}</span>
             </div>
           ))}
-          <Button variant="ghost" onClick={() => { setResult(null); setAnswers({}); }}>↺</Button>
+          <Button variant="ghost" aria-label={t('retry')} onClick={() => { setResult(null); setAnswers({}); }}><RotateCcw size={18} /></Button>
         </div>
       )}
     </Card>

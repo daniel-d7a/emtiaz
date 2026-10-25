@@ -42,6 +42,7 @@ const dict = {
   download: { ar: 'تنزيل', en: 'Download' },
   quiz: { ar: 'اختبار قصير', en: 'Quiz' },
   submit: { ar: 'إرسال', en: 'Submit' },
+  retry: { ar: 'إعادة المحاولة', en: 'Retry' },
   yourScore: { ar: 'نتيجتك', en: 'Your score' },
   markComplete: { ar: 'إتمام الدرس', en: 'Mark as complete' },
   completed: { ar: 'تم', en: 'Completed' },
