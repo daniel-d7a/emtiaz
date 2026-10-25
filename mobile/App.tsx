@@ -20,7 +20,7 @@ type Screen =
   | { name: 'teacher-group'; groupId: string }
   | { name: 'group'; groupId: string }
   | { name: 'lesson'; lessonId: string; groupId: string }
-  | { name: 'quiz'; lessonId: string; groupId: string };
+  | { name: 'quiz'; lessonId?: string; quizId?: string; groupId: string };
 
 function Root() {
   const [session, setSession] = useState<any | null>(null);
@@ -75,7 +75,20 @@ function Root() {
         />
       );
     case 'quiz':
-      return <Quiz lessonId={screen.lessonId} groupId={screen.groupId} onBack={(refresh) => setScreen({ name: 'lesson', lessonId: screen.lessonId, groupId: screen.groupId })} />;
+      return (
+        <Quiz
+          lessonId={screen.lessonId}
+          quizId={screen.quizId}
+          groupId={screen.groupId}
+          onBack={(refresh) =>
+            setScreen(
+              screen.lessonId
+                ? { name: 'lesson', lessonId: screen.lessonId, groupId: screen.groupId }
+                : { name: 'group', groupId: screen.groupId },
+            )
+          }
+        />
+      );
     case 'lesson':
       return (
         <LessonView
@@ -91,6 +104,7 @@ function Root() {
           onBack={() => setScreen({ name: 'courses' })}
           onOpenLesson={(lessonId) => setScreen({ name: 'lesson', lessonId, groupId: screen.groupId })}
           onOpenQuiz={(lessonId) => setScreen({ name: 'quiz', lessonId, groupId: screen.groupId })}
+          onOpenQuizById={(quizId) => setScreen({ name: 'quiz', quizId, groupId: screen.groupId })}
         />
       );
     default:

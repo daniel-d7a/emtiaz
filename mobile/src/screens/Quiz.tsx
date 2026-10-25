@@ -15,12 +15,16 @@ type QuizPayload = {
   }>;
 };
 
-export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; groupId: string; onBack: (refresh: boolean) => void }) {
+export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?: string; quizId?: string; groupId: string; onBack: (refresh: boolean) => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>(null);
   const quiz = useQuery({
-    queryKey: ['quiz', lessonId],
-    queryFn: () => api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`),
+    queryKey: ['quiz', quizId ?? lessonId],
+    queryFn: () =>
+      quizId
+        ? api<QuizPayload>(`/api/student/groups/${groupId}/quizzes/${quizId}`)
+        : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`),
+    enabled: !!(quizId || lessonId),
   });
   const submit = useMutation({
     mutationFn: (vars: { quizId: string; answers: Record<string, string> }) =>

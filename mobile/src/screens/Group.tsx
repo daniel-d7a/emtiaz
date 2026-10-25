@@ -3,20 +3,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
+type QuizRef = { id: string; title: string } | null;
 type Curriculum = {
   group: { name: string; joinCode: string };
   course: { title: string };
+  quiz: QuizRef;
   modules: Array<{
     title: string;
+    quiz: QuizRef;
     lessons: Array<{ id: string; title: string; unlocked: boolean; completed: boolean; hasQuiz: boolean }>;
   }>;
 };
 
-export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
+export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz, onOpenQuizById }: {
   groupId: string;
   onBack: () => void;
   onOpenLesson: (lessonId: string) => void;
   onOpenQuiz: (lessonId: string) => void;
+  onOpenQuizById: (quizId: string) => void;
 }) {
   const qc = useQueryClient();
   const curriculum = useQuery({
@@ -41,9 +45,25 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
       <Btn label="رجوع" variant="ghost" onPress={onBack} />
       <Text style={s.h1}>{data.group.name}</Text>
       <Text style={{ color: '#78716C', marginBottom: 12 }}>{data.course.title} — {data.group.joinCode}</Text>
+      {data.quiz && (
+        <Card>
+          <View style={s.row}>
+            <Text style={{ fontWeight: '700', flex: 1, textAlign: 'right' }}>{data.quiz.title}</Text>
+            <Btn label="اختبار المقرر" onPress={() => onOpenQuizById(data.quiz!.id)} />
+          </View>
+        </Card>
+      )}
       {data.modules.map((mod) => (
         <View key={mod.title}>
           <Text style={s.h2}>{mod.title}</Text>
+          {mod.quiz && (
+            <Card>
+              <View style={s.row}>
+                <Text style={{ fontWeight: '700', flex: 1, textAlign: 'right' }}>{mod.quiz.title}</Text>
+                <Btn label="اختبار الوحدة" variant="ghost" onPress={() => onOpenQuizById(mod.quiz!.id)} />
+              </View>
+            </Card>
+          )}
           {mod.lessons.map((l) => (
             <Card key={l.id}>
               <View style={s.row}>
