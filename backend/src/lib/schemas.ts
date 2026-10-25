@@ -129,6 +129,7 @@ export const BulkStudentsDto = z
       .max(60),
   });
 export const ToGroupDto = z.object({ toGroupId: uuid });
+export const AnnounceDto = z.object({ message: safeText(1000) });
 
 // ---------- storage ----------
 export const AvatarUploadDto = z.object({

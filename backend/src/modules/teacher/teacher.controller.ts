@@ -19,6 +19,7 @@ import {
   AddGroupDto,
   AddLessonDto,
   AddModuleDto,
+  AnnounceDto,
   BulkStudentsDto,
   CreateCourseDto,
   GradeCellDto,
@@ -210,6 +211,17 @@ export class TeacherController {
   @Roles('TEACHER')
   roster(@Req() req: Request, @Param('groupId') groupId: string) {
     return this.teachers.groupRoster(req.user!, groupId);
+  }
+
+  @Post('api/teacher/groups/:groupId/announce')
+  @Roles('TEACHER')
+  announce(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Body(new ZodBodyPipe(AnnounceDto))
+    dto: z.infer<typeof AnnounceDto>,
+  ) {
+    return this.teachers.announce(req.user!, groupId, dto.message);
   }
 
   @Post('api/teacher/groups/:groupId/roster/bulk')

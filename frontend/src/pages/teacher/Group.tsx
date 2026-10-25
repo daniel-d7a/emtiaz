@@ -245,6 +245,18 @@ export function RosterTab({ groupId }: { groupId: string }) {
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['roster', groupId] });
   const [bulk, setBulk] = useState('');
   const [okMsg, setOkMsg] = useState('');
+  const [announcement, setAnnouncement] = useState('');
+  const [announceMsg, setAnnounceMsg] = useState('');
+  const announce = useMutation({
+    mutationFn: () =>
+      api<{ sent: number }>(`/api/teacher/groups/${groupId}/announce`, {
+        body: { message: announcement },
+      }),
+    onSuccess: (res) => {
+      setAnnouncement('');
+      setAnnounceMsg(`${res.sent} notified`);
+    },
+  });
   const doBulk = useMutation({
     mutationFn: () =>
       api(`/api/teacher/groups/${groupId}/roster/bulk`, {
@@ -322,6 +334,26 @@ export function RosterTab({ groupId }: { groupId: string }) {
           </div>
         </div>
         <p className="mt-2 text-sm text-ink-soft">{t('oneStepJoin')}</p>
+      </Card>
+      <Card>
+        <h3 className="font-bold">{t('announce')}</h3>
+        <textarea
+          className="mt-2 min-h-20 w-full rounded-lg border border-line px-3 py-2 text-sm"
+          placeholder={t('announcePlaceholder')}
+          value={announcement}
+          onChange={(e) => { setAnnouncement(e.target.value); setAnnounceMsg(''); }}
+        />
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            onClick={() => announce.mutate()}
+            disabled={!announcement.trim() || announce.isPending}
+            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {t('send')}
+          </button>
+          {announceMsg && <span className="text-sm font-semibold text-primary">{announceMsg}</span>}
+          {announce.error && <ErrorBox error={announce.error} />}
+        </div>
       </Card>
       <Card>
         <ul className="flex flex-col divide-y divide-line">

@@ -631,6 +631,27 @@ export class TeacherService {
     };
   }
 
+  async announce(user: { id: string; role: string }, groupId: string, message: string) {
+    const { group } = await this.assertOwnsGroup(user, groupId);
+    const students = await db
+      .select({ id: groupStudents.studentId })
+      .from(groupStudents)
+      .where(eq(groupStudents.groupId, groupId));
+    const studentIds = students.map((s) => s.id);
+    const parents = studentIds.length
+      ? await db
+          .select({ id: parentStudents.parentId })
+          .from(parentStudents)
+          .where(inArray(parentStudents.studentId, studentIds))
+      : [];
+    const text = `📣 ${group.name}: ${message}`;
+    await Promise.all([
+      ...studentIds.map((id) => this.notifications.sendInApp(id, text, 'TEACHER')),
+      ...parents.map((p) => this.notifications.sendInApp(p.id, text, 'PARENT')),
+    ]);
+    return { sent: studentIds.length + new Set(parents.map((p) => p.id)).size };
+  }
+
   async bulkAddStudents(
     user: { id: string; role: string },
     groupId: string,

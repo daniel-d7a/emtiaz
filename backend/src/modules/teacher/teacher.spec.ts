@@ -292,6 +292,18 @@ describe('Phase 4: teacher endpoints', () => {
       expect(inbox.rows[0]?.message).toContain('تم تسجيلك');
     });
 
+    it('announces to enrolled students', async () => {
+      const res = await t
+        .post(`/api/teacher/groups/${world.group1}/announce`)
+        .send({ message: 'Quiz on Sunday' });
+      expect(res.status).toBe(201);
+      expect(res.body.sent).toBeGreaterThanOrEqual(2);
+
+      const student = await login(server, STUDENT1.email, STUDENT1.password);
+      const inbox = await student.session.get('/api/notifications');
+      expect(inbox.body.some((n: any) => n.message.includes('Quiz on Sunday'))).toBe(true);
+    });
+
     it('moves a student between groups of the same course and refuses cross-course moves', async () => {
       const { rows } = await testPool.query(
         `SELECT student_id FROM group_students WHERE group_id=$1 LIMIT 1`,
