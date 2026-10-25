@@ -66,7 +66,7 @@ export default function TeacherGroup({ groupId, onBack }: { groupId: string; onB
           style={{ borderWidth: 1, borderColor: '#E7E5E4', borderRadius: 8, padding: 10, marginTop: 8, minHeight: 72 }}
         />
         {announceMsg ? <Text style={{ color: '#0F766E', marginTop: 6 }}>{announceMsg}</Text> : null}
-        <Btn label="إرسال" onPress={() => announce.mutate()} variant="ghost" />
+        <Btn label="إرسال" onPress={() => announce.mutate()} variant="ghost" disabled={!announcement.trim() || announce.isPending} />
       </Card>
       <Card>
         <Text style={s.h2}>فتح الدروس</Text>
