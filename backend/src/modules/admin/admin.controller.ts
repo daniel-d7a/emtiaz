@@ -34,7 +34,7 @@ export class AdminController {
   @Roles('ADMIN')
   teachers(
     @Query()
-    q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; subjectId?: string },
+    q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; subjectId?: string; limit?: string },
   ) {
     return this.admin.listTeachers(q);
   }
@@ -49,6 +49,7 @@ export class AdminController {
       groupId?: string;
       teacherId?: string;
       search?: string;
+      limit?: string;
     },
   ) {
     return this.admin.listStudents(q);
@@ -57,7 +58,7 @@ export class AdminController {
   @Get('api/admin/parents')
   @Roles('ADMIN')
   parents(
-    @Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string },
+    @Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; limit?: string },
   ) {
     return this.admin.listParents(q);
   }
@@ -71,6 +72,7 @@ export class AdminController {
       gradeId?: string;
       categoryId?: string;
       teacherId?: string;
+      limit?: string;
     },
   ) {
     return this.admin.listCourses(q);

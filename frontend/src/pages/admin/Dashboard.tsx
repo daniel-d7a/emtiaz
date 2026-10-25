@@ -47,25 +47,27 @@ export default function AdminDashboard() {
   const { t } = useLang();
   const [tab, setTab] = useState<'teachers' | 'students' | 'parents' | 'courses' | 'notifications' | 'taxonomy'>('teachers');
   const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(20);
+  const changeSearch = (v: string) => { setSearch(v); setLimit(20); };
 
   const overview = useQuery(adminOverviewQuery);
   const teachers = useQuery({
-    queryKey: ['admin-teachers', search],
-    queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?search=${encodeURIComponent(search)}`),
+    queryKey: ['admin-teachers', search, limit],
+    queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?limit=${limit}&search=${encodeURIComponent(search)}`),
   });
   const parents = useQuery({
-    queryKey: ['admin-parents', search],
-    queryFn: () => api<ParentRow[]>(`/api/admin/parents?search=${encodeURIComponent(search)}`),
+    queryKey: ['admin-parents', search, limit],
+    queryFn: () => api<ParentRow[]>(`/api/admin/parents?limit=${limit}&search=${encodeURIComponent(search)}`),
     enabled: tab === 'parents',
   });
   const students = useQuery({
-    queryKey: ['admin-students', search],
-    queryFn: () => api<StudentRow[]>(`/api/admin/students?search=${encodeURIComponent(search)}`),
+    queryKey: ['admin-students', search, limit],
+    queryFn: () => api<StudentRow[]>(`/api/admin/students?limit=${limit}&search=${encodeURIComponent(search)}`),
   });
   const courses = useQuery({
-    queryKey: ['admin-courses'],
+    queryKey: ['admin-courses', limit],
     queryFn: () =>
-      api<CourseRow[]>('/api/admin/courses'),
+      api<CourseRow[]>(`/api/admin/courses?limit=${limit}`),
   });
   const settings = useQuery({
     queryKey: ['notification-settings'],
@@ -135,7 +137,7 @@ export default function AdminDashboard() {
       {tab === 'teachers' && (
         <Card>
           <div className="mb-3">
-            <Input label={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} />
+            <Input label={t('search')} value={search} onChange={(e) => changeSearch(e.target.value)} placeholder={t('search')} />
           </div>
           {teachers.isLoading ? <Loading /> : teachers.error ? <ErrorBox error={teachers.error} /> : (
             <ul className="flex flex-col divide-y divide-line">
@@ -165,6 +167,9 @@ export default function AdminDashboard() {
               ))}
               {teachers.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
             </ul>
+          )}
+          {(teachers.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
           )}
           {setStatus.error && <ErrorBox error={setStatus.error} />}
         </Card>
@@ -242,14 +247,16 @@ export default function AdminDashboard() {
           setStatus={setStatus}
           onDelete={confirmDelete}
           search={search}
-          setSearch={setSearch}
+          setSearch={changeSearch}
+          limit={limit}
+          onLoadMore={() => setLimit((l) => l + 20)}
         />
       )}
 
       {tab === 'parents' && (
         <Card>
           <div className="mb-3">
-            <Input label={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} />
+            <Input label={t('search')} value={search} onChange={(e) => changeSearch(e.target.value)} placeholder={t('search')} />
           </div>
           {parents.isLoading ? <Loading /> : parents.error ? <ErrorBox error={parents.error} /> : (
             <ul className="flex flex-col divide-y divide-line">
@@ -264,6 +271,9 @@ export default function AdminDashboard() {
               ))}
               {parents.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
             </ul>
+          )}
+          {(parents.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
           )}
         </Card>
       )}
@@ -295,6 +305,9 @@ export default function AdminDashboard() {
               ))}
               {courses.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
             </ul>
+          )}
+          {(courses.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
           )}
         </Card>
       )}
@@ -372,6 +385,8 @@ function StudentsTab({
   onDelete,
   search,
   setSearch,
+  limit,
+  onLoadMore,
 }: {
   students: StudentQuery;
   invalidate: () => void;
@@ -379,6 +394,8 @@ function StudentsTab({
   onDelete: (u: { id: string; name: string }) => void;
   search: string;
   setSearch: (v: string) => void;
+  limit: number;
+  onLoadMore: () => void;
 }) {
   const { t } = useLang();
   const groups = useQuery({
@@ -437,6 +454,9 @@ function StudentsTab({
           ))}
           {students.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
         </ul>
+      )}
+      {(students.data?.length ?? 0) >= limit && limit < 200 && (
+        <div className="mt-3"><Button variant="ghost" onClick={onLoadMore}>{t('loadMore')}</Button></div>
       )}
       {((enroll.error ?? setStatus.error) as Error | null) && <ErrorBox error={enroll.error ?? setStatus.error} />}
     </Card>

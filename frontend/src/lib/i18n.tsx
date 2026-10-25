@@ -70,6 +70,7 @@ const dict = {
   submit: { ar: 'إرسال', en: 'Submit' },
   retry: { ar: 'إعادة المحاولة', en: 'Retry' },
   exportCsv: { ar: 'تصدير CSV', en: 'Export CSV' },
+  loadMore: { ar: 'عرض المزيد', en: 'Load more' },
   yourScore: { ar: 'نتيجتك', en: 'Your score' },
   markComplete: { ar: 'إتمام الدرس', en: 'Mark as complete' },
   completed: { ar: 'تم', en: 'Completed' },

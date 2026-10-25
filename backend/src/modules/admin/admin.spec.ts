@@ -146,6 +146,13 @@ describe('Phase 5: admin endpoints', () => {
     expect(res.body[0].children.map((c: any) => c.id)).toContain(world.s1.id);
   });
 
+  it('caps admin lists with limit', async () => {
+    expect((await admin.get('/api/admin/teachers?limit=1')).body).toHaveLength(1);
+    expect((await admin.get('/api/admin/students?limit=1')).body).toHaveLength(1);
+    expect((await admin.get('/api/admin/parents?limit=1')).body.length).toBeLessThanOrEqual(1);
+    expect((await admin.get('/api/admin/courses?limit=1')).body).toHaveLength(1);
+  });
+
   async function countStudents() {
     const { rows } = await testPool.query(
       `SELECT COUNT(*)::int AS c FROM "user" WHERE role='STUDENT' AND deleted_at IS NULL`,

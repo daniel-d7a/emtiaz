@@ -59,7 +59,9 @@ export class AdminService {
     status?: 'ACTIVE' | 'SUSPENDED';
     search?: string;
     subjectId?: string;
+    limit?: string;
   }) {
+    const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
     const conditions = [eq(users.role, 'TEACHER'), isNull(users.deletedAt)];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
@@ -73,7 +75,7 @@ export class AdminService {
         )!,
       );
     }
-    return db
+    const query = db
       .select({
         id: users.id,
         name: users.name,
@@ -89,6 +91,7 @@ export class AdminService {
       .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
       .where(and(...conditions))
       .orderBy(asc(users.name));
+    return limit ? query.limit(limit) : query;
   }
 
   async setUserStatus(
@@ -125,7 +128,9 @@ export class AdminService {
     groupId?: string;
     teacherId?: string;
     search?: string;
+    limit?: string;
   }) {
+    const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
     let groupIds: string[] | null = null;
     if (filters.teacherId || filters.courseId) {
       const conditions = [];
@@ -162,7 +167,7 @@ export class AdminService {
       if (!ids.length) return [];
       conditions.push(inArray(users.id, ids));
     }
-    const students = await db
+    const query = db
       .select({
         id: users.id,
         name: users.name,
@@ -175,6 +180,7 @@ export class AdminService {
       .from(users)
       .where(and(...conditions))
       .orderBy(desc(users.createdAt));
+    const students = limit ? await query.limit(limit) : await query;
     const memberships = await db
       .select({
         studentId: groupStudents.studentId,
@@ -193,7 +199,8 @@ export class AdminService {
     }));
   }
 
-  async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED' }) {
+  async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED'; limit?: string }) {
+    const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
     const conditions = [eq(users.role, 'PARENT'), isNull(users.deletedAt)];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
@@ -206,7 +213,7 @@ export class AdminService {
         )!,
       );
     }
-    const parents = await db
+    const query = db
       .select({
         id: users.id,
         name: users.name,
@@ -218,15 +225,20 @@ export class AdminService {
       .from(users)
       .where(and(...conditions))
       .orderBy(desc(users.createdAt));
-    const links = await db
-      .select({
-        parentId: parentStudents.parentId,
-        id: users.id,
-        name: users.name,
-        email: users.email,
-      })
-      .from(parentStudents)
-      .innerJoin(users, eq(parentStudents.studentId, users.id));
+    const parents = limit ? await query.limit(limit) : await query;
+    const parentIds = parents.map((p) => p.id);
+    const links = parentIds.length
+      ? await db
+          .select({
+            parentId: parentStudents.parentId,
+            id: users.id,
+            name: users.name,
+            email: users.email,
+          })
+          .from(parentStudents)
+          .innerJoin(users, eq(parentStudents.studentId, users.id))
+          .where(inArray(parentStudents.parentId, parentIds))
+      : [];
     return parents.map((p) => ({
       ...p,
       children: links
@@ -240,7 +252,9 @@ export class AdminService {
     gradeId?: string;
     categoryId?: string;
     teacherId?: string;
+    limit?: string;
   }) {
+    const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
     const conditions = [];
     if (filters.courseType)
       conditions.push(eq(courses.courseType, filters.courseType));
@@ -248,7 +262,7 @@ export class AdminService {
     if (filters.categoryId)
       conditions.push(eq(courses.categoryId, filters.categoryId));
     if (filters.teacherId) conditions.push(eq(courses.teacherId, filters.teacherId));
-    const rows = await db
+    const query = db
       .select({
         course: courses,
         teacherName: users.name,
@@ -257,6 +271,7 @@ export class AdminService {
       .innerJoin(users, eq(courses.teacherId, users.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(courses.createdAt));
+    const rows = limit ? await query.limit(limit) : await query;
     const courseIds = rows.map((r) => r.course.id);
     const groupRows = courseIds.length
       ? await db.select().from(groups).where(inArray(groups.courseId, courseIds))
