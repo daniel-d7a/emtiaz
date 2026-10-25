@@ -15,6 +15,10 @@ type StudentRow = {
   isActive: boolean; createdAt: string;
   enrollments: Array<{ groupName: string; courseTitle: string; courseId: string }>;
 };
+type AuditRow = {
+  id: string; action: string; targetType: string; targetId: string | null;
+  metadata: Record<string, unknown> | null; createdAt: string; actorName: string;
+};
 type ParentRow = {
   id: string; name: string; email: string; phoneNumber: string | null; isActive: boolean;
   createdAt: string;
@@ -45,7 +49,7 @@ type CourseRow = {
 
 export default function AdminDashboard() {
   const { t } = useLang();
-  const [tab, setTab] = useState<'teachers' | 'students' | 'parents' | 'courses' | 'notifications' | 'taxonomy'>('teachers');
+  const [tab, setTab] = useState<'teachers' | 'students' | 'parents' | 'courses' | 'notifications' | 'taxonomy' | 'audit'>('teachers');
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(20);
   const changeSearch = (v: string) => { setSearch(v); setLimit(20); };
@@ -73,6 +77,11 @@ export default function AdminDashboard() {
     queryKey: ['notification-settings'],
     queryFn: () => api<NotificationSettings>('/api/admin/notification-settings'),
   });
+  const audit = useQuery({
+    queryKey: ['admin-audit'],
+    queryFn: () => api<AuditRow[]>('/api/admin/audit?limit=100'),
+    enabled: tab === 'audit',
+  });
   const notifications = useQuery({
     queryKey: ['admin-notifications'],
     queryFn: () => api<NotificationRow[]>('/api/admin/notifications'),
@@ -94,6 +103,9 @@ export default function AdminDashboard() {
     mutationFn: (patch: Partial<NotificationSettings>) =>
       api('/api/admin/notification-settings', { method: 'PATCH', body: patch }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['notification-settings'] }),
+  });
+  const monthlySummary = useMutation({
+    mutationFn: () => api<{ parents: number }>('/api/admin/notifications/monthly-summary', { method: 'POST' }),
   });
   const deleteUser = useMutation({
     mutationFn: (id: string) => api(`/api/admin/users/${id}`, { method: 'DELETE' }),
@@ -125,9 +137,9 @@ export default function AdminDashboard() {
       ) : <Loading />}
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['teachers', 'students', 'parents', 'courses', 'notifications', 'taxonomy'] as const).map((k) => (
+        {(['teachers', 'students', 'parents', 'courses', 'notifications', 'taxonomy', 'audit'] as const).map((k) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
-            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'parents' ? t('parents') : k === 'courses' ? t('courses') : k === 'notifications' ? t('notifications') : t('taxonomy')}
+            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'parents' ? t('parents') : k === 'courses' ? t('courses') : k === 'notifications' ? t('notifications') : k === 'taxonomy' ? t('taxonomy') : t('auditLog')}
           </button>
         ))}
       </div>
@@ -213,6 +225,13 @@ export default function AdminDashboard() {
                 </label>
               ))}
               {updateSettings.error && <ErrorBox error={updateSettings.error} />}
+              <div className="mt-3 flex items-center gap-3">
+                <Button variant="ghost" onClick={() => monthlySummary.mutate()} disabled={monthlySummary.isPending}>
+                  {t('sendMonthlySummary')}
+                </Button>
+                {monthlySummary.data && <span className="text-sm text-ink-soft">{monthlySummary.data.parents}</span>}
+              </div>
+              {monthlySummary.error && <ErrorBox error={monthlySummary.error} />}
             </div>
           )}
 
@@ -239,6 +258,26 @@ export default function AdminDashboard() {
       )}
 
       {tab === 'taxonomy' && <TaxonomyTabs />}
+
+      {tab === 'audit' && (
+        <Card>
+          <h2 className="mb-3 text-lg font-bold">{t('auditLog')}</h2>
+          {audit.isLoading ? <Loading /> : audit.error ? <ErrorBox error={audit.error} /> : (
+            <ul className="flex flex-col divide-y divide-line text-sm">
+              {audit.data?.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
+                  <div>
+                    <p className="font-semibold">{r.action}</p>
+                    <p className="text-ink-soft">{r.actorName} · {r.targetType}{r.targetId ? ` · ${r.targetId}` : ''}</p>
+                  </div>
+                  <span className="text-xs text-ink-soft">{new Date(r.createdAt).toLocaleString()}</span>
+                </li>
+              ))}
+              {audit.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
+            </ul>
+          )}
+        </Card>
+      )}
 
       {tab === 'students' && (
         <StudentsTab

@@ -8,9 +8,12 @@ import { MockEmailSender } from './mock-email.sender';
 import { WebhookEmailSender, emailWebhookConfigured } from './webhook-email.sender';
 import { NotificationSettingsService } from './notification-settings.service';
 import { InboxController } from './inbox.controller';
+import { MonthlySummaryService } from './monthly-summary.service';
+import { StudentModule } from '../student/student.module';
 
 @Global()
 @Module({
+  imports: [StudentModule],
   controllers: [InboxController],
   providers: [
     {
@@ -23,7 +26,8 @@ import { InboxController } from './inbox.controller';
     },
     NotificationSettingsService,
     NotificationsService,
+    MonthlySummaryService,
   ],
-  exports: [NotificationsService, NotificationSettingsService],
+  exports: [NotificationsService, NotificationSettingsService, MonthlySummaryService],
 })
 export class NotificationsModule {}

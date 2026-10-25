@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { closeApp, getApp, login, seedWorld, STUDENT1, testPool } from '../../db/test-helpers';
+import { ADMIN, closeApp, getApp, login, seedWorld, STUDENT1, testPool } from '../../db/test-helpers';
 
 jest.setTimeout(120000);
 
@@ -39,5 +39,24 @@ describe('in-app notification inbox', () => {
     expect((await student.get('/api/notifications/unread-count')).body.unread).toBe(1);
     expect((await student.post('/api/notifications/read-all')).status).toBe(201);
     expect((await student.get('/api/notifications/unread-count')).body.unread).toBe(0);
+  });
+
+  it('sends a monthly summary to linked parents', async () => {
+    await testPool.query(
+      `INSERT INTO "user" (id, name, email, role) VALUES ('monthly-parent', 'Umm Aisha', 'monthly@test.om', 'PARENT') ON CONFLICT DO NOTHING`,
+    );
+    await testPool.query(
+      `INSERT INTO parent_students (parent_id, student_id) VALUES ('monthly-parent', $1) ON CONFLICT DO NOTHING`,
+      [world.s1.id],
+    );
+    const admin = (await login(server, ADMIN.email, ADMIN.password)).session;
+    const res = await admin.post('/api/admin/notifications/monthly-summary');
+    expect(res.status).toBe(201);
+    expect(res.body.parents).toBeGreaterThanOrEqual(1);
+
+    const { rows } = await testPool.query(
+      `SELECT message FROM inbox_notifications WHERE user_id='monthly-parent'`,
+    );
+    expect(rows[0].message).toContain(STUDENT1.name);
   });
 });

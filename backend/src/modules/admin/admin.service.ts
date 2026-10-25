@@ -6,6 +6,7 @@ import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'driz
 import { db } from '../../db';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
+  auditLogs,
   categories,
   courses,
   grades,
@@ -92,6 +93,40 @@ export class AdminService {
       .where(and(...conditions))
       .orderBy(asc(users.name));
     return limit ? query.limit(limit) : query;
+  }
+
+  async audit(
+    actorId: string,
+    action: string,
+    targetType: string,
+    targetId: string | null,
+    metadata?: Record<string, unknown>,
+  ) {
+    await db.insert(auditLogs).values({
+      actorId,
+      action,
+      targetType,
+      targetId,
+      metadata,
+    });
+  }
+
+  async listAudit(limit = 100) {
+    const rows = await db
+      .select({
+        id: auditLogs.id,
+        action: auditLogs.action,
+        targetType: auditLogs.targetType,
+        targetId: auditLogs.targetId,
+        metadata: auditLogs.metadata,
+        createdAt: auditLogs.createdAt,
+        actorName: users.name,
+      })
+      .from(auditLogs)
+      .innerJoin(users, eq(auditLogs.actorId, users.id))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(Math.min(Math.max(limit, 1), 200));
+    return rows;
   }
 
   async setUserStatus(

@@ -8,13 +8,16 @@ import {
   Post,
   Put,
   Query,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
 import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MonthlySummaryService } from '../notifications/monthly-summary.service';
 
 @Controller()
 export class AdminController {
@@ -22,6 +25,7 @@ export class AdminController {
     private admin: AdminService,
     private notificationSettings: NotificationSettingsService,
     private notifications: NotificationsService,
+    private monthlySummary: MonthlySummaryService,
   ) {}
 
   @Get('api/admin/overview')
@@ -87,28 +91,43 @@ export class AdminController {
 
   @Patch('api/admin/users/:userId/status')
   @Roles('ADMIN')
-  setUserStatus(
+  async setUserStatus(
+    @Req() req: Request,
     @Param('userId') userId: string,
     @Body(new ZodBodyPipe(SetUserStatusDto))
     dto: z.infer<typeof SetUserStatusDto>,
   ) {
+    await this.admin.audit(req.user!.id, 'user.status', 'user', userId, {
+      isActive: dto.isActive,
+    });
     return this.admin.setUserStatus(userId, dto.isActive, dto);
   }
 
   @Delete('api/admin/users/:userId')
   @Roles('ADMIN')
-  deleteUser(@Param('userId') userId: string) {
+  async deleteUser(@Req() req: Request, @Param('userId') userId: string) {
+    await this.admin.audit(req.user!.id, 'user.delete', 'user', userId);
     return this.admin.deleteUser(userId);
   }
 
   @Post('api/admin/students/:studentId/enroll')
   @Roles('ADMIN')
-  enroll(
+  async enroll(
+    @Req() req: Request,
     @Param('studentId') studentId: string,
     @Body(new ZodBodyPipe(AdminEnrollDto))
     dto: z.infer<typeof AdminEnrollDto>,
   ) {
+    await this.admin.audit(req.user!.id, 'student.enroll', 'group', dto.groupId, {
+      studentId,
+    });
     return this.admin.adminEnroll(studentId, dto.groupId);
+  }
+
+  @Get('api/admin/audit')
+  @Roles('ADMIN')
+  auditLog(@Query('limit') limit?: string) {
+    return this.admin.listAudit(Number(limit) || 100);
   }
 
   @Get('api/admin/notification-settings')
@@ -123,12 +142,20 @@ export class AdminController {
     return this.notifications.recent(Number(limit) || 50);
   }
 
+  @Post('api/admin/notifications/monthly-summary')
+  @Roles('ADMIN')
+  sendMonthlySummary() {
+    return this.monthlySummary.run();
+  }
+
   @Patch('api/admin/notification-settings')
   @Roles('ADMIN')
-  updateNotificationSettings(
+  async updateNotificationSettings(
+    @Req() req: Request,
     @Body(new ZodBodyPipe(NotificationSettingsDto))
     dto: z.infer<typeof NotificationSettingsDto>,
   ) {
+    await this.admin.audit(req.user!.id, 'settings.notifications', 'settings', 'global', dto);
     return this.notificationSettings.update(dto);
   }
 

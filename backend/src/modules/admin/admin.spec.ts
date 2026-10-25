@@ -82,6 +82,13 @@ describe('Phase 5: admin endpoints', () => {
     expect((await sAgain.get('/api/student/groups')).status).toBe(200);
   });
 
+  it('records admin actions in the audit log', async () => {
+    const res = await admin.get('/api/admin/audit');
+    expect(res.status).toBe(200);
+    expect(res.body.some((r: any) => r.action === 'user.status')).toBe(true);
+    expect(res.body[0].actorName).toBeDefined();
+  });
+
   it('soft-deletes users: row stays, sessions and memberships go, listings hide it', async () => {
     const id = 'soft-delete-test-user';
     await testPool.query(

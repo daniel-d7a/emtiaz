@@ -16,6 +16,8 @@ const dict = {
   phone: { ar: 'رقم الهاتف', en: 'Phone number' },
   notifications: { ar: 'الإشعارات', en: 'Notifications' },
   markAllRead: { ar: 'تحديد الكل كمقروء', en: 'Mark all read' },
+  sendMonthlySummary: { ar: 'إرسال الملخص الشهري', en: 'Send monthly summary' },
+  auditLog: { ar: 'سجل الإدارة', en: 'Audit log' },
   whatsapp: { ar: 'واتساب', en: 'WhatsApp' },
   inApp: { ar: 'داخل التطبيق', en: 'In-app' },
   system: { ar: 'النظام', en: 'System' },
