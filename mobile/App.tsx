@@ -6,6 +6,7 @@ import Courses from './src/screens/Courses';
 import Group from './src/screens/Group';
 import LessonView from './src/screens/Lesson';
 import Login from './src/screens/Login';
+import ParentHome from './src/screens/ParentHome';
 import Profile from './src/screens/Profile';
 import TeacherHome from './src/screens/TeacherHome';
 import TeacherGroup from './src/screens/TeacherGroup';
@@ -42,6 +43,10 @@ function Root() {
         <Text style={{ color: '#78716C' }}>لوحة الإدارة متاحة على الموقع.</Text>
       </View>
     );
+  }
+
+  if (session.user.role === 'PARENT') {
+    return <ParentHome onLogout={() => setSession(null)} />;
   }
 
   if (session.user.role === 'TEACHER') {
