@@ -15,6 +15,18 @@ export const auth = betterAuth({
     },
   }),
   trustedOrigins: [process.env.FRONTEND_URL ?? 'http://localhost:5173'],
+  // IP-based throttling for credential endpoints (per-account lockout is a
+  // future addition; this already makes password spraying slow).
+  rateLimit: {
+    enabled: process.env.NODE_ENV !== 'test',
+    window: 60,
+    max: 100,
+    customRules: {
+      '/sign-in/email': { window: 60, max: 10 },
+      '/sign-up/email': { window: 60, max: 10 },
+      '/sign-in/phone-number': { window: 60, max: 10 },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,

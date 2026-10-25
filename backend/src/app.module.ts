@@ -1,7 +1,10 @@
 import 'reflect-metadata';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard, RolesGuard } from './auth/auth.guard';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthGuard } from './auth/auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { AppThrottlerGuard } from './auth/throttler.guard';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { StudentModule } from './modules/student/student.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
@@ -11,6 +14,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     NotificationsModule,
     OnboardingModule,
     StudentModule,
@@ -19,6 +23,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AdminModule,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: AppThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
