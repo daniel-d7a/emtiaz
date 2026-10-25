@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { authApi } from './src/api';
-import Courses from './src/Courses';
-import Group from './src/Group';
-import LessonView from './src/Lesson';
-import Login from './src/Login';
-import Profile from './src/Profile';
-import TeacherHome from './src/TeacherHome';
-import TeacherGroup from './src/TeacherGroup';
-import Quiz from './src/Quiz';
+import Courses from './src/screens/Courses';
+import Group from './src/screens/Group';
+import LessonView from './src/screens/Lesson';
+import Login from './src/screens/Login';
+import Profile from './src/screens/Profile';
+import TeacherHome from './src/screens/TeacherHome';
+import TeacherGroup from './src/screens/TeacherGroup';
+import Quiz from './src/screens/Quiz';
 import { Loading, s } from './src/ui';
 
 type Screen =

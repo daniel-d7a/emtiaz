@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
-import { api } from './api';
-import { Btn, Card, Empty, ErrorBox, Loading, s } from './ui';
+import { api } from '../api';
+import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
 type Lesson = { id: string; title: string; unlocked: boolean; overridden: boolean };
 type Pacing = { group: { id: string; name: string; joinCode: string }; lessons: Lesson[] };

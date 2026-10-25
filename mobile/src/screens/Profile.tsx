@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { api, authApi } from './api';
-import { Btn, Card, ErrorBox, Loading, c, s } from './ui';
+import { api, authApi } from '../api';
+import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
 
 type Me = {
   user: { id: string; name: string; email: string; phoneNumber?: string | null; image?: string | null };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableHighlight, View } from 'react-native';
-import { api } from './api';
-import { Btn, Card, ErrorBox, Loading, c, s } from './ui';
+import { api } from '../api';
+import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
 
 type QuizPayload = {
   quiz: { id: string; title: string };

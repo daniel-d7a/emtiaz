@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { authApi } from './api';
-import { Btn, ErrorBox, Field, s } from './ui';
+import { authApi } from '../api';
+import { Btn, ErrorBox, Field, s } from '../ui';
 
 export default function Login({ onIn }: { onIn: (user: any) => void }) {
   const [email, setEmail] = useState('');

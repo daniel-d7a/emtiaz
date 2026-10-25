@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { api } from './api';
-import { Btn, Card, Empty, ErrorBox, Loading, s } from './ui';
+import { api } from '../api';
+import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
 type Group = { id: string; name: string; joinCode: string };
 type Course = { id: string; title: string; groups: Group[] };

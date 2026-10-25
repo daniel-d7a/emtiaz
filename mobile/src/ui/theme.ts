@@ -1,7 +1,4 @@
-import { useEffect, useState } from 'react';
-
-
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const c = {
   primary: '#0F766E',
@@ -14,74 +11,6 @@ export const c = {
   ink: '#1C1917',
   inkSoft: '#78716C',
 };
-
-export function Card({ children }: { children: React.ReactNode }) {
-  return <View style={s.card}>{children}</View>;
-}
-
-export function Btn({
-  label,
-  onPress,
-  variant,
-  disabled,
-}: {
-  label: string;
-  onPress: () => void;
-  variant?: 'primary' | 'ghost';
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={[s.btn, variant === 'ghost' ? s.btnGhost : s.btnPrimary, disabled && { opacity: 0.5 }]}
-    >
-      <Text style={variant === 'ghost' ? s.btnGhostText : s.btnText}>{label}</Text>
-    </Pressable>
-  );
-}
-
-export function Field({
-  label,
-  value,
-  onChange,
-  secure,
-  placeholder,
-  dir,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  secure?: boolean;
-  placeholder?: string;
-  dir?: 'ltr';
-}) {
-  return (
-    <View>
-      <Text style={s.label}>{label}</Text>
-      <TextInput
-        style={[s.input, dir === 'ltr' && { textAlign: 'left', writingDirection: undefined as any }]}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={secure}
-        placeholder={placeholder}
-        placeholderTextColor={c.inkSoft}
-      />
-    </View>
-  );
-}
-
-export function Empty({ text }: { text: string }) {
-  return <Text style={s.empty}>{text}</Text>;
-}
-
-export function Loading() {
-  return <ActivityIndicator style={{ margin: 24 }} color={c.primary} />;
-}
-
-export function ErrorBox({ error }: { error: unknown }) {
-  return <View style={s.errBox}><Text style={s.errText}>{String((error as Error)?.message ?? error)}</Text></View>;
-}
 
 export const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: c.background, padding: 16, paddingTop: 60 },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { api } from './api';
-import { Btn, Card, Empty, ErrorBox, Loading, s } from './ui';
+import { api } from '../api';
+import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
 type Curriculum = {
   group: { name: string; joinCode: string };
