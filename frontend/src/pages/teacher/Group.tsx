@@ -254,7 +254,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
     .find((c) => c.id === data.group.courseId)
     ?.groups?.filter((g) => g.id !== groupId) ?? [];
   const inviteUrl = `https://wa.me/?text=${encodeURIComponent(
-    'Join my class on Emtiaz! Code: ' + data.group.joinCode + ' → ' + window.location.origin + '/join/' + data.group.joinCode,
+    'Join my class on Emtiaz! Code: ' + data.group.joinCode + '\n' + window.location.origin + '/join/' + data.group.joinCode,
   )}`;
 
   return (
@@ -289,7 +289,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
                   >
                     <option value="">{t('moveTo')}</option>
                     {siblingGroups.map((g) => (
-                      <option key={g.id} value={g.id}>→ {g.name}</option>
+                      <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
                 )}

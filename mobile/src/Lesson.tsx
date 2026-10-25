@@ -17,12 +17,12 @@ export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId:
   const load = () => api<Lesson>(`/api/student/lessons/${lessonId}/view`).then(setData).catch((e) => setError(e as Error));
   useEffect(() => { load(); }, [lessonId]);
 
-  if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع ←" variant="ghost" onPress={() => onBack()} /></View>;
+  if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع" variant="ghost" onPress={() => onBack()} /></View>;
   if (!data) return <Loading />;
 
   return (
     <ScrollView style={s.page}>
-      <Btn label="رجوع ←" variant="ghost" onPress={() => onBack(true)} />
+      <Btn label="رجوع" variant="ghost" onPress={() => onBack(true)} />
       <Text style={s.h1}>{data.title}</Text>
       {data.content ? (
         <Text style={{ marginBottom: 16, lineHeight: 24 }}>{data.content}</Text>

@@ -27,7 +27,7 @@ export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; 
       .catch((e) => setError(e as Error));
   }, [lessonId]);
 
-  if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="← رجوع" variant="ghost" onPress={() => onBack(false)} /></View>;
+  if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع" variant="ghost" onPress={() => onBack(false)} /></View>;
   if (!data) return <Loading />;
 
   const submit = async () => {
@@ -44,7 +44,7 @@ export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; 
 
   return (
     <ScrollView style={s.page}>
-      <Btn label="← رجوع" variant="ghost" onPress={() => onBack(!!result)} />
+      <Btn label="رجوع" variant="ghost" onPress={() => onBack(!!result)} />
       {result ? (
         <>
           <Text style={s.h1}>{result.score} / {result.maxScore}</Text>

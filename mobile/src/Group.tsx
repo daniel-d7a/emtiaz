@@ -29,7 +29,7 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
 
   return (
     <ScrollView style={s.page}>
-      <Btn label="← رجوع" variant="ghost" onPress={onBack} />
+      <Btn label="رجوع" variant="ghost" onPress={onBack} />
       <Text style={s.h1}>{data.group.name}</Text>
       <Text style={{ color: '#78716C', marginBottom: 12 }}>{data.course.title} — {data.group.joinCode}</Text>
       {data.modules.map((mod) => (
