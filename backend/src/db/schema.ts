@@ -8,6 +8,7 @@ import {
   timestamp,
   pgEnum,
   uniqueIndex,
+  index,
   jsonb,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -69,7 +70,7 @@ export const users = pgTable('user', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'), // soft delete: keep rows for history/audit
-});
+}, (t) => [index('user_role_idx').on(t.role)]);
 
 export const sessions = pgTable('session', {
   id: text('id').primaryKey(),
@@ -82,7 +83,7 @@ export const sessions = pgTable('session', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-});
+}, (t) => [index('session_user_idx').on(t.userId)]);
 
 export const accounts = pgTable('account', {
   id: text('id').primaryKey(),
@@ -100,7 +101,7 @@ export const accounts = pgTable('account', {
   password: text('password'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (t) => [index('account_user_idx').on(t.userId)]);
 
 export const verifications = pgTable('verification', {
   id: text('id').primaryKey(),
@@ -129,7 +130,7 @@ export const courses = pgTable('courses', {
   }),
   isPublished: boolean('is_published').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => [index('course_teacher_idx').on(t.teacherId)]);
 
 export const modules = pgTable('modules', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -138,7 +139,7 @@ export const modules = pgTable('modules', {
     .references(() => courses.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   displayOrder: integer('display_order').notNull().default(0),
-});
+}, (t) => [index('module_course_idx').on(t.courseId)]);
 
 export const lessons = pgTable('lessons', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -149,7 +150,7 @@ export const lessons = pgTable('lessons', {
   content: text('content'), // Teacher notes / instructions
   displayOrder: integer('display_order').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => [index('lesson_module_idx').on(t.moduleId)]);
 
 // ==========================================
 // 5. GROUPS (COHORTS) & ENROLLMENTS
@@ -164,7 +165,7 @@ export const groups = pgTable('groups', {
   unlockAllByDefault: boolean('unlock_all_by_default').notNull().default(true),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => [index('group_course_idx').on(t.courseId)]);
 
 export const groupStudents = pgTable(
   'group_students',
@@ -183,6 +184,7 @@ export const groupStudents = pgTable(
       table.groupId,
       table.studentId,
     ),
+    studentIdx: index('group_student_student_idx').on(table.studentId),
   }),
 );
 
@@ -203,6 +205,7 @@ export const groupLessonAccess = pgTable(
       table.groupId,
       table.lessonId,
     ),
+    lessonIdx: index('group_lesson_lesson_idx').on(table.lessonId),
   }),
 );
 
@@ -224,7 +227,7 @@ export const lessonAttachments = pgTable('lesson_attachments', {
   fileSizeBytes: integer('file_size_bytes'),
   mimeType: text('mime_type'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => [index('attachment_lesson_idx').on(t.lessonId)]);
 
 // ==========================================
 // 7. QUIZZES, ATTEMPTS & COMPLETION
@@ -251,6 +254,7 @@ export const quizQuestions = pgTable('quiz_questions', {
   points: integer('points').notNull().default(1),
   displayOrder: integer('display_order').notNull().default(0),
 }, (table) => ({
+  quizIdx: index('question_quiz_idx').on(table.quizId),
   quizPointsPositive: check(
     'quiz_points_positive_chk',
     sql`${table.points} > 0`,
@@ -273,6 +277,8 @@ export const quizAttempts = pgTable('quiz_attempts', {
   answersJson: jsonb('answers_json').notNull(), // Stores student responses
   submittedAt: timestamp('submitted_at').notNull().defaultNow(),
 }, (table) => ({
+  studentGroupIdx: index('attempt_student_group_idx').on(table.studentId, table.groupId),
+  quizIdx: index('attempt_quiz_idx').on(table.quizId),
   attemptScoreSane: check(
     'attempt_score_sane_chk',
     sql`${table.score} >= 0 AND ${table.maxScore} >= 1 AND ${table.score} <= ${table.maxScore}`,
@@ -296,6 +302,7 @@ export const lessonCompletions = pgTable(
       table.lessonId,
       table.studentId,
     ),
+    studentIdx: index('completion_student_idx').on(table.studentId),
   }),
 );
 
@@ -332,6 +339,7 @@ export const manualGradeValues = pgTable(
       table.columnId,
       table.studentId,
     ),
+    studentIdx: index('manual_grade_student_idx').on(table.studentId),
   }),
 );
 
@@ -342,7 +350,10 @@ export const parentStudents = pgTable(
     studentId: text('student_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('parent_students_pair').on(t.parentId, t.studentId)],
+  (t) => [
+    uniqueIndex('parent_students_pair').on(t.parentId, t.studentId),
+    index('parent_students_student_idx').on(t.studentId),
+  ],
 );
 
 export const notificationSettings = pgTable('notification_settings', {
@@ -364,4 +375,4 @@ export const notifications = pgTable('notifications', {
   message: text('message').notNull(),
   status: text('status').notNull().default('SENT_MOCK'), // SENT_MOCK → SENT once a real provider is wired
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => [index('notification_created_idx').on(t.createdAt)]);

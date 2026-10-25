@@ -57,6 +57,20 @@
       "when": 1792928743854,
       "tag": "0007_wealthy_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792928999831,
+      "tag": "0008_heavy_frightful_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792929016239,
+      "tag": "0009_woozy_lily_hollister",
+      "breakpoints": true
     }
   ]
 }
