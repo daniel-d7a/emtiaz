@@ -36,6 +36,11 @@ cd frontend && npm install && npm run dev
 cd backend && npm test    # uses emtiaz-pg-test on port 5434 (see backend/.env)
 cd frontend && npm test
 
+# browser smoke test (login → group → lesson → quiz)
+# expects a seeded stack running at E2E_BASE_URL (default http://localhost:8088)
+cd frontend && npx playwright install --with-deps chromium
+cd frontend && npm run test:e2e
+
 # 4. mobile (Expo Go on a phone on the same LAN)
 #    - install Expo Go, run the app, scan the QR printed by the terminal
 #    - the API URL is derived from Metro's host, so keep the phone and the
