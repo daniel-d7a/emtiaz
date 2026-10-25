@@ -23,6 +23,7 @@ export async function createApp(): Promise<INestApplication> {
     credentials: true,
   });
   app.use(json({ limit: '2mb' }), urlencoded({ extended: true }));
+  app.enableShutdownHooks();
   app.use('/api/auth', toNodeHandler(auth.handler));
   await app.init();
   return app;
