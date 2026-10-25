@@ -89,6 +89,27 @@ describe('parent role', () => {
     expect(attempt.status).not.toBe(200);
   });
 
+  it('rotating a student code unlinks parents and invalidates the old code', async () => {
+    const oldCode = await parentCode(world.s2.id);
+    const email = 'parent3@example.om';
+    await request(server)
+      .post('/api/onboarding/parent')
+      .send({ ...PARENT, email, phoneNumber: '+96890000012', studentCode: oldCode });
+    const parent = (await login(server, email, PARENT.password)).session;
+    expect((await parent.get('/api/parent/students')).body).toHaveLength(1);
+
+    const student = (await login(server, STUDENT2.email, STUDENT2.password)).session;
+    const rotated = await student.post('/api/student/parent-code/rotate');
+    expect(rotated.status).toBe(201);
+    expect(rotated.body.parentInviteCode).not.toBe(oldCode);
+
+    expect((await parent.get('/api/parent/students')).body).toHaveLength(0);
+    expect((await parent.post('/api/parent/link').send({ code: oldCode })).status).toBe(404);
+    expect(
+      (await parent.post('/api/parent/link').send({ code: rotated.body.parentInviteCode })).status,
+    ).toBe(201);
+  });
+
   it('can link an existing child during signup and is idempotent', async () => {
     const code = await parentCode(world.s2.id);
     const email = 'parent2@example.om';

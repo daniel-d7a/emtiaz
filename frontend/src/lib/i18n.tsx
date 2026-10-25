@@ -28,6 +28,8 @@ const dict = {
   viewGrades: { ar: 'عرض الدرجات', en: 'View grades' },
   parentCode: { ar: 'رمز ولي الأمر', en: 'Parent code' },
   parentCodeHint: { ar: 'شارك هذا الرمز مع ولي أمرك لربط حسابه.', en: 'Share this code with a parent to link their account.' },
+  rotateParentCode: { ar: 'تجديد الرمز وفصل أولياء الأمور', en: 'Rotate code and unlink parents' },
+  rotateConfirm: { ar: 'سيتم فصل جميع أولياء الأمور المرتبطين. متابعة؟', en: 'All linked parents will be disconnected. Continue?' },
   admin: { ar: 'مدير', en: 'Admin' },
   grade: { ar: 'الصف', en: 'Grade' },
   semester: { ar: 'الفصل الدراسي', en: 'Semester' },

@@ -56,6 +56,10 @@ export default function Profile() {
     }
   };
 
+  const rotateCode = useMutation({
+    mutationFn: () => api('/api/student/parent-code/rotate', { body: {} }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
+  });
   const save = useMutation({
     mutationFn: () =>
       api('/api/me', {
@@ -104,6 +108,16 @@ export default function Profile() {
             <p className="text-xs font-semibold text-ink-soft">{t('parentCode')}</p>
             <p className="text-lg font-bold tracking-widest text-primary" dir="ltr">{me.user.parentInviteCode}</p>
             <p className="text-xs text-ink-soft">{t('parentCodeHint')}</p>
+            <Button
+              variant="ghost"
+              className="mt-2"
+              onClick={() => {
+                if (window.confirm(t('rotateConfirm'))) rotateCode.mutate();
+              }}
+            >
+              {t('rotateParentCode')}
+            </Button>
+            {rotateCode.error && <ErrorBox error={rotateCode.error} />}
           </div>
         )}
         <div className="flex flex-col gap-3">

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   categories,
@@ -18,6 +18,7 @@ import {
   manualGradeColumns,
   manualGradeValues,
   modules,
+  parentStudents,
   quizAttempts,
   quizQuestions,
   quizzes,
@@ -42,6 +43,21 @@ export class StudentService {
       .limit(1);
     if (!rows.length) throw new ForbiddenException('Not enrolled in this group');
     return rows[0];
+  }
+
+  /** Regenerates the student's parent code and revokes all existing parent links. */
+  async rotateParentCode(studentId: string) {
+    return db.transaction(async (tx) => {
+      await tx.delete(parentStudents).where(eq(parentStudents.studentId, studentId));
+      const [row] = await tx
+        .update(users)
+        .set({
+          parentInviteCode: sql`('P' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 7)))`,
+        })
+        .where(eq(users.id, studentId))
+        .returning({ parentInviteCode: users.parentInviteCode });
+      return row;
+    });
   }
 
   async myGroups(studentId: string) {
