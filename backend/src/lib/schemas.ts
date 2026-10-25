@@ -160,6 +160,13 @@ export const TaxonomyCreateDto = z
   .object({ name: safeText(80), displayOrder: z.number().int().min(0).optional() });
 export const TaxonomyUpdateDto = TaxonomyCreateDto.partial();
 export const AdminEnrollDto = z.object({ groupId: uuid });
+export const NotificationSettingsDto = z
+  .object({
+    whatsappEnabled: z.boolean().optional(),
+    emailEnabled: z.boolean().optional(),
+    inAppEnabled: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'at least one setting is required');
 
 // ---------- gradebook ----------
 export const AddColumnDto = z.object({

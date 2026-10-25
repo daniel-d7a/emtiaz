@@ -162,6 +162,24 @@ describe('Phase 5: admin endpoints', () => {
     expect(res.body.ok).toBe(true);
   });
 
+  it('toggles notification channels', async () => {
+    const initial = await admin.get('/api/admin/notification-settings');
+    expect(initial.status).toBe(200);
+    expect(initial.body.emailEnabled).toBe(true);
+
+    const off = await admin.patch('/api/admin/notification-settings').send({ emailEnabled: false });
+    expect(off.status).toBe(200);
+    expect(off.body.emailEnabled).toBe(false);
+
+    const persisted = await admin.get('/api/admin/notification-settings');
+    expect(persisted.body.emailEnabled).toBe(false);
+
+    const empty = await admin.patch('/api/admin/notification-settings').send({});
+    expect(empty.status).toBe(400);
+
+    await admin.patch('/api/admin/notification-settings').send({ emailEnabled: true });
+  });
+
   describe('taxonomy', () => {
     it('CRUD grades', async () => {
       const created = await admin

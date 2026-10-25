@@ -331,6 +331,14 @@ export const manualGradeValues = pgTable(
   }),
 );
 
+export const notificationSettings = pgTable('notification_settings', {
+  id: text('id').primaryKey().default('global'),
+  whatsappEnabled: boolean('whatsapp_enabled').notNull().default(true),
+  emailEnabled: boolean('email_enabled').notNull().default(true),
+  inAppEnabled: boolean('in_app_enabled').notNull().default(true),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 export const notifications = pgTable('notifications', {
   id: uuid('id').defaultRandom().primaryKey(),
   channel: text('channel').notNull().default('whatsapp'), // single channel today; future: email, sms

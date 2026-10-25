@@ -6,6 +6,7 @@ import { WHATSAPP_SENDER } from './whatsapp-sender';
 import { EMAIL_SENDER } from './email-sender';
 import { MockEmailSender } from './mock-email.sender';
 import { WebhookEmailSender, emailWebhookConfigured } from './webhook-email.sender';
+import { NotificationSettingsService } from './notification-settings.service';
 
 @Global()
 @Module({
@@ -18,8 +19,9 @@ import { WebhookEmailSender, emailWebhookConfigured } from './webhook-email.send
       provide: EMAIL_SENDER,
       useClass: emailWebhookConfigured() ? WebhookEmailSender : MockEmailSender,
     },
+    NotificationSettingsService,
     NotificationsService,
   ],
-  exports: [NotificationsService],
+  exports: [NotificationsService, NotificationSettingsService],
 })
 export class NotificationsModule {}

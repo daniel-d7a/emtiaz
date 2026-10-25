@@ -3,9 +3,15 @@ import { whatsappCloudConfigured } from './whatsapp-cloud.sender';
 import { WhatsAppSender } from './whatsapp-sender';
 import { EmailSender } from './email-sender';
 import { logger } from '../../lib/logger';
+import { NotificationSettingsService } from './notification-settings.service';
 
-function service(sender: WhatsAppSender, email: EmailSender = { send: jest.fn() }) {
-  return new NotificationsService(sender, email);
+function service(
+  sender: WhatsAppSender,
+  email: EmailSender = { send: jest.fn() },
+  enabled = true,
+) {
+  const settings = { isEnabled: jest.fn().mockResolvedValue(enabled) } as unknown as NotificationSettingsService;
+  return new NotificationsService(sender, email, settings);
 }
 
 describe('NotificationsService', () => {
@@ -20,6 +26,24 @@ describe('NotificationsService', () => {
     const spy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     await expect(service({ send }).sendWhatsApp('+96890000000', 'hi')).resolves.toBeUndefined();
     expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe('channel settings', () => {
+  it('skips a disabled channel and sends when settings lookup fails', async () => {
+    const send = jest.fn();
+    await service({ send }, { send: jest.fn() }, false).sendWhatsApp('+96890000000', 'hi');
+    expect(send).not.toHaveBeenCalled();
+
+    const spy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+    const broken = new NotificationsService(
+      { send },
+      { send: jest.fn() },
+      { isEnabled: jest.fn().mockRejectedValue(new Error('db down')) } as unknown as NotificationSettingsService,
+    );
+    await broken.sendWhatsApp('+96890000000', 'hi');
+    expect(send).toHaveBeenCalled();
     spy.mockRestore();
   });
 });

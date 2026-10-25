@@ -15,6 +15,7 @@ type StudentRow = {
   isActive: boolean; createdAt: string;
   enrollments: Array<{ groupName: string; courseTitle: string; courseId: string }>;
 };
+type NotificationSettings = { whatsappEnabled: boolean; emailEnabled: boolean; inAppEnabled: boolean };
 type CourseRow = {
   id: string; title: string; courseType: 'ACADEMIC' | 'GENERAL'; isPublished: boolean;
   teacherName: string;
@@ -23,7 +24,7 @@ type CourseRow = {
 
 export default function AdminDashboard() {
   const { t } = useLang();
-  const [tab, setTab] = useState<'teachers' | 'students' | 'courses' | 'taxonomy'>('teachers');
+  const [tab, setTab] = useState<'teachers' | 'students' | 'courses' | 'notifications' | 'taxonomy'>('teachers');
   const [search, setSearch] = useState('');
 
   const overview = useQuery(adminOverviewQuery);
@@ -40,6 +41,10 @@ export default function AdminDashboard() {
     queryFn: () =>
       api<CourseRow[]>('/api/admin/courses'),
   });
+  const settings = useQuery({
+    queryKey: ['notification-settings'],
+    queryFn: () => api<NotificationSettings>('/api/admin/notification-settings'),
+  });
   const qc = useQueryClient();
   const invalidateAll = () => {
     void qc.invalidateQueries({ queryKey: ['admin-teachers'] });
@@ -51,6 +56,11 @@ export default function AdminDashboard() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api(`/api/admin/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
     onSuccess: invalidateAll,
+  });
+  const updateSettings = useMutation({
+    mutationFn: (patch: Partial<NotificationSettings>) =>
+      api('/api/admin/notification-settings', { method: 'PATCH', body: patch }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['notification-settings'] }),
   });
   const deleteUser = useMutation({
     mutationFn: (id: string) => api(`/api/admin/users/${id}`, { method: 'DELETE' }),
@@ -82,9 +92,9 @@ export default function AdminDashboard() {
       ) : <Loading />}
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['teachers', 'students', 'courses', 'taxonomy'] as const).map((k) => (
+        {(['teachers', 'students', 'courses', 'notifications', 'taxonomy'] as const).map((k) => (
           <button key={k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
-            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'courses' ? t('courses') : t('taxonomy')}
+            {k === 'teachers' ? t('teachers') : k === 'students' ? t('students') : k === 'courses' ? t('courses') : k === 'notifications' ? t('notifications') : t('taxonomy')}
           </button>
         ))}
       </div>
@@ -126,6 +136,32 @@ export default function AdminDashboard() {
             </ul>
           )}
           {setStatus.error && <ErrorBox error={setStatus.error} />}
+        </Card>
+      )}
+
+      {tab === 'notifications' && (
+        <Card>
+          <h2 className="mb-3 text-lg font-bold">{t('notifications')}</h2>
+          {settings.isLoading ? <Loading /> : settings.error ? <ErrorBox error={settings.error} /> : settings.data && (
+            <div className="flex flex-col gap-3">
+              {([
+                ['whatsappEnabled', 'whatsapp'],
+                ['emailEnabled', 'email'],
+                ['inAppEnabled', 'inApp'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-3 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-primary"
+                    checked={settings.data[key]}
+                    onChange={(e) => updateSettings.mutate({ [key]: e.target.checked })}
+                  />
+                  {t(label)}
+                </label>
+              ))}
+              {updateSettings.error && <ErrorBox error={updateSettings.error} />}
+            </div>
+          )}
         </Card>
       )}
 
@@ -195,6 +231,10 @@ function TaxonomyTabs() {
 
 function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
   const { t } = useLang();
+  const settings = useQuery({
+    queryKey: ['notification-settings'],
+    queryFn: () => api<NotificationSettings>('/api/admin/notification-settings'),
+  });
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const list = useQuery({

@@ -10,13 +10,17 @@ import {
   Query,
 } from '@nestjs/common';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto } from '../../lib/schemas';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
+import { NotificationSettingsService } from '../notifications/notification-settings.service';
 
 @Controller()
 export class AdminController {
-  constructor(private admin: AdminService) {}
+  constructor(
+    private admin: AdminService,
+    private notificationSettings: NotificationSettingsService,
+  ) {}
 
   @Get('api/admin/overview')
   @Roles('ADMIN')
@@ -93,6 +97,21 @@ export class AdminController {
     dto: z.infer<typeof AdminEnrollDto>,
   ) {
     return this.admin.adminEnroll(studentId, dto.groupId);
+  }
+
+  @Get('api/admin/notification-settings')
+  @Roles('ADMIN')
+  getNotificationSettings() {
+    return this.notificationSettings.get();
+  }
+
+  @Patch('api/admin/notification-settings')
+  @Roles('ADMIN')
+  updateNotificationSettings(
+    @Body(new ZodBodyPipe(NotificationSettingsDto))
+    dto: z.infer<typeof NotificationSettingsDto>,
+  ) {
+    return this.notificationSettings.update(dto);
   }
 
   // ---------- Taxonomy ----------
