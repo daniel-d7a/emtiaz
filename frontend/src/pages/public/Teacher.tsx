@@ -27,18 +27,29 @@ export default function TeacherLanding() {
       data.teacher.bio ??
       `${data.teacher.name} — ${t('coursesBy')} ${data.teacher.name}`;
     document.title = title;
-    const metas = [
-      ['name', 'description', description],
-      ['property', 'og:title', title],
-      ['property', 'og:description', description],
-      ['property', 'og:type', 'profile'],
-    ].map(([attr, key, content]) => {
+    const addMeta = (attr: string, key: string, content: string) => {
       const tag = document.createElement('meta');
       tag.setAttribute(attr, key);
       tag.content = content;
       document.head.appendChild(tag);
       return tag;
-    });
+    };
+    const metas = [
+      addMeta('name', 'description', description),
+      addMeta('property', 'og:title', title),
+      addMeta('property', 'og:description', description),
+      addMeta('property', 'og:type', 'profile'),
+      addMeta('name', 'twitter:card', 'summary'),
+    ];
+    if (data.teacher.avatar) {
+      metas.push(
+        addMeta(
+          'property',
+          'og:image',
+          `${window.location.origin}/api/public/teachers/${slug}/avatar`,
+        ),
+      );
+    }
     const canonical = document.createElement('link');
     canonical.rel = 'canonical';
     canonical.href = window.location.href;
