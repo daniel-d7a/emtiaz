@@ -376,6 +376,7 @@ export class StudentService {
     await this.assertEnrolled(studentId, groupId);
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
+    await this.assertQuizInGroupCourse(quiz, groupId);
     if (!Object.keys(answers).length) {
       throw new BadRequestException('Answers required');
     }
@@ -412,6 +413,20 @@ export class StudentService {
     });
 
     return { score, maxScore, result };
+  }
+
+  /** A quiz is only reachable through a group whose course contains it. */
+  private async assertQuizInGroupCourse(
+    quiz: typeof quizzes.$inferSelect,
+    groupId: string,
+  ) {
+    const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+    if (!group) throw new NotFoundException('Group not found');
+    const [lesson] = await db.select().from(lessons).where(eq(lessons.id, quiz.lessonId));
+    const [mod] = lesson
+      ? await db.select().from(modules).where(eq(modules.id, lesson.moduleId))
+      : [];
+    if (!mod || mod.courseId !== group.courseId) throw new ForbiddenException('Quiz not in this course');
   }
 
   async myGrades(studentId: string, groupId: string) {

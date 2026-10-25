@@ -93,6 +93,30 @@ describe('Phase 3: student endpoints', () => {
     expect(res3.body.find((x: any) => x.group.id === world.group1).progress).toBe(100);
   });
 
+  it('refuses to submit a quiz that belongs to another course', async () => {
+    const { rows: courseRows } = await testPool.query(
+      `INSERT INTO courses (title, teacher_id) VALUES ('Foreign Course', $1) RETURNING id`,
+      [world.teacher.id],
+    );
+    const foreignCourse = courseRows[0].id;
+    const { rows: moduleRows } = await testPool.query(
+      `INSERT INTO modules (course_id, title) VALUES ($1,'Foreign Module') RETURNING id`,
+      [foreignCourse],
+    );
+    const { rows: lessonRows } = await testPool.query(
+      `INSERT INTO lessons (module_id, title) VALUES ($1,'Foreign Lesson') RETURNING id`,
+      [moduleRows[0].id],
+    );
+    const { rows: quizRows } = await testPool.query(
+      `INSERT INTO quizzes (lesson_id, title) VALUES ($1,'Foreign Quiz') RETURNING id`,
+      [lessonRows[0].id],
+    );
+    const res = await s1
+      .post(`/api/student/quizzes/${quizRows[0].id}/submit`)
+      .send({ groupId: world.group1, answers: { nope: 'x' } });
+    expect(res.status).toBe(403);
+  });
+
   it('grades a quiz correctly and records the attempt', async () => {
     const answers: Record<string, string> = {};
     answers[world.questionIds[0]] = 'm/s'; // correct
