@@ -12,6 +12,7 @@ import {
   groupStudents,
   groups,
   lessonAttachments,
+  lessonCompletions,
   lessons,
   manualGradeColumns,
   manualGradeValues,
@@ -71,22 +72,59 @@ export class TeacherService {
       ? await db.select().from(groups).where(inArray(groups.courseId, courseIds))
       : [];
     const groupIds = groupsList.map((g) => g.id);
-    const counts = groupIds.length
+    const memberships = groupIds.length
       ? await db
-          .select({ groupId: groupStudents.groupId, c: count() })
+          .select({ groupId: groupStudents.groupId, studentId: groupStudents.studentId })
           .from(groupStudents)
           .where(inArray(groupStudents.groupId, groupIds))
-          .groupBy(groupStudents.groupId)
       : [];
-    return coursesList.map((c) => ({
-      ...c,
-      groups: groupsList
-        .filter((g) => g.courseId === c.id)
-        .map((g) => ({
+    const lessonRows = courseIds.length
+      ? await db
+          .select({ id: lessons.id, courseId: modules.courseId })
+          .from(lessons)
+          .innerJoin(modules, eq(lessons.moduleId, modules.id))
+          .where(inArray(modules.courseId, courseIds))
+      : [];
+    const studentIds = [...new Set(memberships.map((m) => m.studentId))];
+    const lessonIds = lessonRows.map((l) => l.id);
+    const completions = lessonIds.length && studentIds.length
+      ? await db
+          .select({ studentId: lessonCompletions.studentId, lessonId: lessonCompletions.lessonId })
+          .from(lessonCompletions)
+          .where(
+            and(
+              inArray(lessonCompletions.lessonId, lessonIds),
+              inArray(lessonCompletions.studentId, studentIds),
+            ),
+          )
+      : [];
+    return coursesList.map((c) => {
+      const cGroups = groupsList.filter((g) => g.courseId === c.id);
+      const cGroupIds = new Set(cGroups.map((g) => g.id));
+      const cStudentIds = new Set(
+        memberships.filter((m) => cGroupIds.has(m.groupId)).map((m) => m.studentId),
+      );
+      const cLessonIds = new Set(
+        lessonRows.filter((l) => l.courseId === c.id).map((l) => l.id),
+      );
+      const done = completions.filter(
+        (x) => cStudentIds.has(x.studentId) && cLessonIds.has(x.lessonId),
+      ).length;
+      const possible = cStudentIds.size * cLessonIds.size;
+      return {
+        ...c,
+        analytics: {
+          students: cStudentIds.size,
+          groups: cGroups.length,
+          lessons: cLessonIds.size,
+          avgProgress: possible ? Math.round((done / possible) * 100) : 0,
+        },
+        groups: cGroups.map((g) => ({
           ...g,
-          studentCount: Number(counts.find((x) => x.groupId === g.id)?.c ?? 0),
+          studentCount: memberships.filter((m) => m.groupId === g.id).length,
         })),
-    }));
+      };
+    });
   }
 
   async createCourse(

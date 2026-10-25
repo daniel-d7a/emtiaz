@@ -14,6 +14,7 @@ type Course = {
   semester: string | null;
   isPublished: boolean;
   groups: Array<{ id: string; name: string; joinCode: string; studentCount: number }>;
+  analytics: { students: number; groups: number; lessons: number; avgProgress: number };
 };
 
 export default function TeacherDashboard() {
@@ -104,6 +105,9 @@ export default function TeacherDashboard() {
                 </span>
               </div>
               <h3 className="text-lg font-bold">{c.title}</h3>
+              <p className="mt-1 text-xs text-ink-soft">
+                {c.analytics.students} {t('students')} · {c.analytics.groups} {t('groups')} · {c.analytics.lessons} {t('lessons')} · {t('progress')} {c.analytics.avgProgress}%
+              </p>
               <div className="mt-3 flex flex-col gap-2 text-sm">
                 <div className="flex items-center gap-2">
                   <AddGroup courseId={c.id} />
