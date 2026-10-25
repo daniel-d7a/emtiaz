@@ -87,6 +87,8 @@ gradebook, files) is managed through the app itself; log in as the admin at
 2. Terminate HTTPS at a reverse proxy in front of port 8088, set
    `FRONTEND_URL=https://your-domain`, and put a 32+ char random
    `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL` in the api environment.
+   Compose includes Redis and sets `REDIS_URL`; keep it for shared rate
+   limits and sign-in lockout when running more than one API replica.
 3. Landing page: serve `landing/index.html` from the real domain and change
    `APP_URL` inside it to your app URL.
 4. Mobile: hardcode the production API URL in `mobile/src/api.ts` before

@@ -5,6 +5,7 @@ import { db } from '../../db';
 import { parentStudents, users } from '../../db/schema';
 import { StudentService } from '../student/student.service';
 import { NotificationsService } from './notifications.service';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class MonthlySummaryService implements OnModuleInit, OnModuleDestroy {
@@ -18,7 +19,6 @@ export class MonthlySummaryService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    // ponytail: one process sends the monthly run; add a DB/Redis lock if the API is scaled out.
     this.timer = setInterval(() => void this.tick(), 6 * 60 * 60 * 1000);
     this.timer.unref?.();
   }
@@ -32,8 +32,28 @@ export class MonthlySummaryService implements OnModuleInit, OnModuleDestroy {
     if (now.getDate() !== 1) return;
     const month = `${now.getFullYear()}-${now.getMonth() + 1}`;
     if (this.lastRunMonth === month) return;
+    if (!(await this.acquireRunLock(month))) return;
     this.lastRunMonth = month;
     await this.run();
+  }
+
+  /** One replica per month; without REDIS_URL this stays per-process. */
+  private async acquireRunLock(month: string) {
+    if (!process.env.REDIS_URL) return true;
+    const redis = new Redis(process.env.REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+    });
+    redis.on('error', () => {});
+    try {
+      await redis.connect();
+      const ok = await redis.set(`monthly-summary:${month}`, '1', 'PX', 25 * 60 * 60 * 1000, 'NX');
+      return ok === 'OK';
+    } catch {
+      return true;
+    } finally {
+      redis.disconnect();
+    }
   }
 
   async run() {
