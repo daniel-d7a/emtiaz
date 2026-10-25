@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { logger } from '../../lib/logger';
 import { WHATSAPP_SENDER, WhatsAppSender } from './whatsapp-sender';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class NotificationsService {
       await this.sender.send(to, message);
     } catch (e) {
       // notifications must never fail the primary flow
-      console.error('[notifications] send failed:', e);
+      logger.error({ err: e }, 'notification send failed');
     }
   }
 }

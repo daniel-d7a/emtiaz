@@ -6,6 +6,8 @@ import { auth } from './auth/auth';
 import { toNodeHandler } from 'better-auth/node';
 import { json, urlencoded } from 'express';
 import helmet from 'helmet';
+import pinoHttp from 'pino-http';
+import { logger, requestId } from './lib/logger';
 
 export async function createApp(): Promise<INestApplication> {
   const app = await NestFactory.create(
@@ -14,6 +16,7 @@ export async function createApp(): Promise<INestApplication> {
     { logger: process.env.NEST_LOG === '1' ? ['error', 'warn'] : false },
   );
   app.getHttpAdapter().getInstance().set('trust proxy', 1); // correct client IPs behind Caddy/nginx
+  app.use(pinoHttp({ logger, genReqId: requestId }));
   app.use(helmet());
   app.enableCors({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
@@ -28,7 +31,7 @@ export async function createApp(): Promise<INestApplication> {
 async function bootstrap() {
   const app = await createApp();
   await app.listen(3000);
-  console.log('Emtiaz LMS API running on http://localhost:3000');
+  logger.info('Emtiaz LMS API running on http://localhost:3000');
 }
 
 if (require.main === module) {

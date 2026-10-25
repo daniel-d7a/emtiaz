@@ -1,6 +1,7 @@
 import { NotificationsService } from './notifications.service';
 import { whatsappCloudConfigured } from './whatsapp-cloud.sender';
 import { WhatsAppSender } from './whatsapp-sender';
+import { logger } from '../../lib/logger';
 
 function service(sender: WhatsAppSender) {
   return new NotificationsService(sender);
@@ -15,7 +16,7 @@ describe('NotificationsService', () => {
 
   it('never lets a sender failure bubble into the primary flow', async () => {
     const send = jest.fn().mockRejectedValue(new Error('provider down'));
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     await expect(service({ send }).sendWhatsApp('+96890000000', 'hi')).resolves.toBeUndefined();
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
