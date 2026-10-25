@@ -9,8 +9,8 @@ COPY frontend/src ./src
 RUN npx vite build
 
 # ---------- runtime ----------
-FROM nginx:1.27-alpine
-COPY --from=build /fe/dist /usr/share/nginx/html
-COPY landing /usr/share/nginx/html/landing
-COPY web/nginx.conf /etc/nginx/conf.d/default.conf
+FROM caddy:2-alpine
+COPY --from=build /fe/dist /srv/www
+COPY landing /srv/www/landing
+COPY web/Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80

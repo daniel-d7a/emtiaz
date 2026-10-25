@@ -4,7 +4,7 @@ Date: 2026-10-23
 
 ## Decision
 `landing/index.html` is a self-contained bilingual (ar/en, RTL-first) static
-page with zero build step. It is served as `/landing/` by the web nginx
+page with zero build step. It is served as `/landing/` by the web Caddy
 container and can be opened from disk during development.
 
 ## Rationale
