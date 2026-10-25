@@ -7,4 +7,10 @@ describe('toCsv', () => {
       'name,score\n"A, ""B""",\n"C\nD",7',
     );
   });
+
+  it('neutralises spreadsheet formulas', () => {
+    expect(toCsv([['=1+1', '+96890000000', '-2', '@cmd']])).toBe(
+      "'=1+1,'+96890000000,'-2,'@cmd",
+    );
+  });
 });

@@ -5,7 +5,9 @@ export function toCsv(rows: unknown[][]): string {
       row
         .map((value) => {
           const text = value == null ? '' : String(value);
-          return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+          // stop spreadsheet formula execution from user-supplied names/phones
+          const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+          return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
         })
         .join(','),
     )
