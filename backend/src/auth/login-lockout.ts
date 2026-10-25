@@ -1,6 +1,21 @@
 import type { NextFunction, Request, Response } from 'express';
 
 type Attempt = { count: number; firstAt: number; lockedUntil: number };
+type LockState = { locked: boolean; retryAfterSec: number };
+
+export type LockoutStore = {
+  check(email: string): LockState | Promise<LockState>;
+  recordFailure(email: string): void | Promise<void>;
+  reset(email: string): void | Promise<void>;
+};
+
+type RedisLike = {
+  pttl(key: string): Promise<number>;
+  incr(key: string): Promise<number>;
+  pexpire(key: string, ms: number): Promise<number>;
+  set(key: string, value: string, mode: 'PX', ms: number): Promise<unknown>;
+  del(key: string): Promise<number>;
+};
 
 const envInt = (name: string, fallback: number) => {
   const n = Number(process.env[name]);
@@ -8,7 +23,7 @@ const envInt = (name: string, fallback: number) => {
 };
 
 /** Per-account failed-sign-in lockout. */
-// ponytail: in-memory map is per instance; move to Redis when running more than one API replica
+// ponytail: in-memory map is per instance; main.ts uses RedisLoginLockout when REDIS_URL is set
 export class LoginLockout {
   private readonly attempts = new Map<string, Attempt>();
   private readonly max: number;
@@ -23,7 +38,7 @@ export class LoginLockout {
     this.now = opts.now ?? Date.now;
   }
 
-  check(email: string): { locked: boolean; retryAfterSec: number } {
+  check(email: string): LockState {
     const key = normalizeEmail(email);
     const a = this.attempts.get(key);
     if (!a) return { locked: false, retryAfterSec: 0 };
@@ -55,25 +70,81 @@ export class LoginLockout {
   }
 }
 
+/** Redis-backed lockout so limits hold across API replicas. */
+export class RedisLoginLockout {
+  private readonly max: number;
+  private readonly windowMs: number;
+  private readonly lockMs: number;
+
+  constructor(
+    private readonly redis: RedisLike,
+    opts: { max?: number; windowMs?: number; lockMs?: number } = {},
+  ) {
+    this.max = opts.max ?? envInt('LOGIN_LOCKOUT_MAX', 5);
+    this.windowMs = opts.windowMs ?? envInt('LOGIN_LOCKOUT_WINDOW_MS', 15 * 60_000);
+    this.lockMs = opts.lockMs ?? envInt('LOGIN_LOCKOUT_MS', 15 * 60_000);
+  }
+
+  async check(email: string): Promise<LockState> {
+    const ttl = await this.redis.pttl(this.lockKey(email));
+    return ttl > 0
+      ? { locked: true, retryAfterSec: Math.ceil(ttl / 1000) }
+      : { locked: false, retryAfterSec: 0 };
+  }
+
+  async recordFailure(email: string): Promise<void> {
+    const key = this.failKey(email);
+    const count = await this.redis.incr(key);
+    if (count === 1) await this.redis.pexpire(key, this.windowMs);
+    if (count >= this.max) {
+      await this.redis.set(this.lockKey(email), '1', 'PX', this.lockMs);
+      await this.redis.del(key);
+    }
+  }
+
+  async reset(email: string): Promise<void> {
+    await this.redis.del(this.failKey(email));
+    await this.redis.del(this.lockKey(email));
+  }
+
+  private failKey(email: string) {
+    return `login:fail:${normalizeEmail(email)}`;
+  }
+
+  private lockKey(email: string) {
+    return `login:lock:${normalizeEmail(email)}`;
+  }
+}
+
 export const normalizeEmail = (email: unknown) =>
   typeof email === 'string' ? email.trim().toLowerCase() : '';
 
 /** Express middleware: reject locked accounts and record the outcome of each attempt. */
-export function loginLockoutMiddleware(lockout: LoginLockout) {
-  return (req: Request, res: Response, next: NextFunction) => {
+export function loginLockoutMiddleware(lockout: LockoutStore) {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== 'POST' || !req.path.startsWith('/sign-in')) return next();
     const email = normalizeEmail((req.body as { email?: unknown } | undefined)?.email);
     if (!email) return next();
 
-    const state = lockout.check(email);
+    let state: LockState;
+    try {
+      state = await lockout.check(email);
+    } catch {
+      return next(); // Redis down: keep serving, IP throttling still applies
+    }
     if (state.locked) {
       res.setHeader('Retry-After', String(state.retryAfterSec));
       return res.status(429).json({ message: 'Too many failed sign-in attempts. Try again later.' });
     }
 
     res.on('finish', () => {
-      if (res.statusCode >= 400) lockout.recordFailure(email);
-      else if (res.statusCode < 300) lockout.reset(email);
+      const action =
+        res.statusCode >= 400
+          ? lockout.recordFailure(email)
+          : res.statusCode < 300
+            ? lockout.reset(email)
+            : undefined;
+      Promise.resolve(action).catch(() => {});
     });
     next();
   };

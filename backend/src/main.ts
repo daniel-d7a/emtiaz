@@ -8,7 +8,8 @@ import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger, requestId } from './lib/logger';
-import { LoginLockout, loginLockoutMiddleware } from './auth/login-lockout';
+import { LoginLockout, RedisLoginLockout, loginLockoutMiddleware } from './auth/login-lockout';
+import { Redis } from 'ioredis';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export async function createApp(): Promise<INestApplication> {
@@ -35,7 +36,12 @@ export async function createApp(): Promise<INestApplication> {
   });
   app.use(json({ limit: '2mb' }), urlencoded({ extended: true }));
   app.enableShutdownHooks();
-  app.use('/api/auth', loginLockoutMiddleware(new LoginLockout()));
+  const redis = process.env.REDIS_URL
+    ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1 })
+    : undefined;
+  redis?.on('error', (err) => logger.warn({ err }, 'login lockout Redis error'));
+  const lockout = redis ? new RedisLoginLockout(redis) : new LoginLockout();
+  app.use('/api/auth', loginLockoutMiddleware(lockout));
   app.use('/api/auth', toNodeHandler(auth.handler));
   if (docsEnabled) {
     const config = new DocumentBuilder()
