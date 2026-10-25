@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearch, createRoute } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../lib/api';
 import { useLang } from '../lib/i18n';
@@ -7,7 +7,7 @@ import { Button, Card, ErrorBox, Input } from '../components/ui';
 
 export default function Login() {
   const { t } = useLang();
-  const [params] = useSearchParams();
+  const { join } = useSearch({ from: '/login' });
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
@@ -15,8 +15,10 @@ export default function Login() {
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const go = (role: string) =>
-    navigate(params.get('join') ? `/join/${params.get('join')}` : role === 'TEACHER' ? '/teacher/dashboard' : '/student/dashboard');
+  const go = (role: string) => {
+    if (join) return navigate({ to: '/join/$joinCode', params: { joinCode: join } });
+    navigate({ to: role === 'TEACHER' ? '/teacher/dashboard' : '/student/dashboard' });
+  };
 
   const submit = async () => {
     setBusy(true);
@@ -49,10 +51,10 @@ export default function Login() {
           <Button type="submit" disabled={busy}>{t('login')}</Button>
         </form>
         <div className="mt-4 flex justify-between text-sm">
-          <Link to={`/register/student${params.get('join') ? `?join=${params.get('join')}` : ''}`} className="text-primary underline">
+          <Link to="/register/$role" params={{ role: 'student' }} search={{ join }} className="text-primary underline">
             {t('student')} — {t('register')}
           </Link>
-          <Link to={`/register/teacher${params.get('join') ? `?join=${params.get('join')}` : ''}`} className="text-primary underline">
+          <Link to="/register/$role" params={{ role: 'teacher' }} search={{ join }} className="text-primary underline">
             {t('teacher')} — {t('register')}
           </Link>
         </div>
@@ -60,3 +62,13 @@ export default function Login() {
     </div>
   );
 }
+
+import { rootRoute } from '../routes/__root';
+import { requireRole } from '../lib/session';
+
+export const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  validateSearch: (s: Record<string, unknown>): { join?: string } => ({ join: typeof s.join === 'string' ? s.join : undefined }),
+  component: Login,
+});

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type SessionUser } from '../lib/api';
 import { useLang } from '../lib/i18n';
@@ -8,10 +8,7 @@ import { Button, Card, ErrorBox, Input, Loading, Page } from '../components/ui';
 export default function Profile() {
   const { t } = useLang();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ['session'],
-    queryFn: () => fetch('/api/auth/get-session', { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)),
-  });
+  const { data, isLoading } = useQuery(sessionQuery);
   const user: SessionUser | null = data?.user ?? null;
   const { data: subjects = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ['categories'],
@@ -38,7 +35,7 @@ export default function Profile() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['session'] }),
   });
 
-  if (isLoading || !user) return isLoading ? <Loading /> : <Navigate to="/login" replace />;
+  if (isLoading || !user) return <Loading />;
   return (
     <Page title={t('register')}>
       <Card className="max-w-md">
@@ -68,3 +65,15 @@ export default function Profile() {
     </Page>
   );
 }
+
+import { rootRoute } from '../routes/__root';
+import { requireRole, sessionQuery } from '../lib/session';
+import { queryClient } from '../lib/queryClient';
+
+export const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/profile',
+  beforeLoad: () => requireRole(),
+  loader: () => queryClient.ensureQueryData(sessionQuery),
+  component: Profile,
+});

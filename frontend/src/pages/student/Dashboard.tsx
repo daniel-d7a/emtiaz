@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, createRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus } from 'lucide-react';
-import { api, type SessionUser } from '../../lib/api';
+import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
 
@@ -16,11 +16,7 @@ type Enrolled = {
 export default function StudentDashboard() {
   const { t, lang } = useLang();
   const qc = useQueryClient();
-  const [user] = useState(() => ({} as SessionUser)); void user;
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['student-groups'],
-    queryFn: () => api<Enrolled[]>('/api/student/groups'),
-  });
+  const { data, isLoading, error } = useQuery(studentGroupsQuery);
   const [code, setCode] = useState('');
   const join = useMutation({
     mutationFn: () => api('/api/student/groups/join', { body: { joinCode: code.trim() } }),
@@ -54,7 +50,7 @@ export default function StudentDashboard() {
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <div className="grid gap-4 sm:grid-cols-2">
           {data?.map((e) => (
-            <Link key={e.group.id} to={`/student/groups/${e.group.id}`}>
+            <Link key={e.group.id} to="/student/groups/$groupId" params={{ groupId: e.group.id }}>
               <Card className="transition hover:shadow-md">
                 <div className="mb-2 flex items-center gap-2 text-primary">
                   <BookOpen size={18} />
@@ -83,3 +79,20 @@ export default function StudentDashboard() {
     </Page>
   );
 }
+
+import { rootRoute } from '../../routes/__root';
+import { requireRole } from '../../lib/session';
+import { queryClient } from '../../lib/queryClient';
+
+export const studentGroupsQuery = {
+  queryKey: ['student-groups'] as const,
+  queryFn: () => api<Enrolled[]>('/api/student/groups'),
+};
+
+export const studentDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/student/dashboard',
+  beforeLoad: () => requireRole('STUDENT'),
+  loader: () => queryClient.ensureQueryData(studentGroupsQuery),
+  component: StudentDashboard,
+});

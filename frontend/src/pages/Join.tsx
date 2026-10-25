@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { createRoute, useNavigate, useParams } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSession } from '../App';
+import { useSession } from '../lib/session';
 import { api, authApi, onboardingApi } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading } from '../components/ui';
@@ -9,7 +9,7 @@ import { Button, Card, ErrorBox, Input, Loading } from '../components/ui';
 /** WhatsApp magic join landing: enrolled instantly when logged in,
  *  otherwise a 1-step quick register card. */
 export default function JoinPage() {
-  const { joinCode = '' } = useParams();
+  const { joinCode } = useParams({ from: '/join/$joinCode' });
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading } = useSession();
@@ -27,7 +27,7 @@ export default function JoinPage() {
       await api(`/api/onboarding/join/${joinCode}`, { method: 'POST' });
       setJoined(true);
       qc.clear();
-      setTimeout(() => navigate('/student/dashboard'), 800);
+      setTimeout(() => navigate({ to: '/student/dashboard' }), 800);
     } catch (e) {
       setError(e as Error);
     }
@@ -81,3 +81,11 @@ export default function JoinPage() {
     </div>
   );
 }
+
+import { rootRoute } from '../routes/__root';
+
+export const joinRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/join/$joinCode',
+  component: JoinPage,
+});

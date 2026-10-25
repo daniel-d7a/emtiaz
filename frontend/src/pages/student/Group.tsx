@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, Download, FileDown, Lock, NotebookPen, Trophy } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -34,16 +34,13 @@ type Grades = {
 };
 
 export default function StudentGroup() {
-  const { groupId = '' } = useParams();
+  const { groupId } = useParams({ from: '/student/groups/$groupId' });
   const { t } = useLang();
   const qc = useQueryClient();
   const [openLesson, setOpenLesson] = useState<string | null>(null);
   const [tab, setTab] = useState<'lessons' | 'grades'>('lessons');
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['curriculum', groupId],
-    queryFn: () => api<Curriculum>(`/api/student/groups/${groupId}/curriculum`),
-  });
+  const { data, isLoading, error } = useQuery(studentCurriculumQuery(groupId));
   const { data: grades } = useQuery({
     queryKey: ['grades', groupId],
     queryFn: () => api<Grades>(`/api/student/groups/${groupId}/grades`),
@@ -271,3 +268,20 @@ export function StudentQuiz({ lessonId, groupId }: { lessonId: string; groupId: 
     </Card>
   );
 }
+
+import { rootRoute } from '../../routes/__root';
+import { requireRole } from '../../lib/session';
+import { queryClient } from '../../lib/queryClient';
+
+export const studentCurriculumQuery = (groupId: string) => ({
+  queryKey: ['curriculum', groupId] as const,
+  queryFn: () => api<Curriculum>(`/api/student/groups/${groupId}/curriculum`),
+});
+
+export const studentGroupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/student/groups/$groupId',
+  beforeLoad: () => requireRole('STUDENT'),
+  loader: ({ params }) => queryClient.ensureQueryData(studentCurriculumQuery(params.groupId)),
+  component: StudentGroup,
+});

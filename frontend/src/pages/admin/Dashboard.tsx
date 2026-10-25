@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -25,7 +26,7 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<'teachers' | 'students' | 'courses' | 'taxonomy'>('teachers');
   const [search, setSearch] = useState('');
 
-  const overview = useQuery({ queryKey: ['admin-overview'], queryFn: () => api<Overview>('/api/admin/overview') });
+  const overview = useQuery(adminOverviewQuery);
   const teachers = useQuery({
     queryKey: ['admin-teachers', search],
     queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?search=${encodeURIComponent(search)}`),
@@ -285,3 +286,20 @@ function StudentsTab({
     </Card>
   );
 }
+
+import { rootRoute } from '../../routes/__root';
+import { requireRole } from '../../lib/session';
+import { queryClient } from '../../lib/queryClient';
+
+export const adminOverviewQuery = {
+  queryKey: ['admin-overview'] as const,
+  queryFn: () => api<Overview>('/api/admin/overview'),
+};
+
+export const adminDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin/dashboard',
+  beforeLoad: () => requireRole('ADMIN'),
+  loader: () => queryClient.ensureQueryData(adminOverviewQuery),
+  component: AdminDashboard,
+});

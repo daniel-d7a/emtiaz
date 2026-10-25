@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearch, createRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi, onboardingApi } from '../lib/api';
@@ -7,7 +7,7 @@ import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input } from '../components/ui';
 
 export default function Register() {
-  const { role = 'student' } = useParams();
+  const { role } = useParams({ from: '/register/$role' });
   const isTeacher = role === 'teacher';
   const { t } = useLang();
   const navigate = useNavigate();
@@ -24,8 +24,7 @@ export default function Register() {
   });
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
-  const [params] = useSearchParams();
-  const joinCode = params.get('join');
+  const { join: joinCode } = useSearch({ from: '/register/$role' });
 
   useEffect(() => {
     document.title = isTeacher ? 'Emtiaz — Teacher sign up' : 'Emtiaz — Student sign up';
@@ -42,8 +41,8 @@ export default function Register() {
       }
       await authApi.login(isTeacher ? email : email || phone.replace(/[^\d]/g, '') + '@phone.emtiaz.om', password);
       qc.clear();
-      if (joinCode) return navigate(`/join/${joinCode}`);
-      navigate(isTeacher ? '/teacher/dashboard' : '/student/dashboard');
+      if (joinCode) return navigate({ to: '/join/$joinCode', params: { joinCode } });
+      navigate({ to: isTeacher ? '/teacher/dashboard' : '/student/dashboard' });
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -83,7 +82,7 @@ export default function Register() {
           <Button type="submit" disabled={busy}>{t('register')}</Button>
         </form>
         <p className="mt-4 text-center text-sm">
-          <Link to={`/login${joinCode ? `?join=${joinCode}` : ''}`} className="text-primary underline">
+          <Link to="/login" search={{ join: joinCode }} className="text-primary underline">
             {t('login')}
           </Link>
         </p>
@@ -91,3 +90,12 @@ export default function Register() {
     </div>
   );
 }
+
+import { rootRoute } from '../routes/__root';
+
+export const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/register/$role',
+  validateSearch: (s: Record<string, unknown>): { join?: string } => ({ join: typeof s.join === 'string' ? s.join : undefined }),
+  component: Register,
+});

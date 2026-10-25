@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, FileUp, ListTree, Plus, Users } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -20,10 +20,7 @@ export default function TeacherDashboard() {
   const { t } = useLang();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['teacher-courses'],
-    queryFn: () => api<Course[]>('/api/teacher/courses'),
-  });
+  const { data, isLoading, error } = useQuery(teacherCoursesQuery);
   const { data: grades } = useQuery({
     queryKey: ['grades-list'],
     queryFn: () => api<Array<{ id: string; name: string }>>('/api/admin/taxonomy/grades'),
@@ -118,18 +115,18 @@ export default function TeacherDashboard() {
                     {c.isPublished ? t('active') : t('suspended')}
                   </button>
                 </div>
-                <Link to={`/teacher/courses/${c.id}/curriculum`} className="flex items-center gap-2 font-semibold text-primary">
+                <Link to="/teacher/courses/$courseId/curriculum" params={{ courseId: c.id }} className="flex items-center gap-2 font-semibold text-primary">
                   <ListTree size={16} /> {t('curriculum')}
                 </Link>
                 {c.groups.map((g) => (
-                  <Link key={g.id} to={`/teacher/groups/${g.id}`} className="flex items-center gap-2 text-primary">
+                  <Link key={g.id} to="/teacher/groups/$groupId" params={{ groupId: g.id }} className="flex items-center gap-2 text-primary">
                     <Users size={16} /> {g.name}
                     <span className="rounded bg-background px-1.5 py-0.5 text-xs font-bold" dir="ltr">{g.joinCode}</span>
                   </Link>
                 ))}
                 <button
                   className="flex items-center gap-2 text-ink-soft"
-                  onClick={() => navigate(`/teacher/courses/${c.id}/curriculum?upload=1`)}
+                  onClick={() => navigate({ to: '/teacher/courses/$courseId/curriculum', params: { courseId: c.id } })}
                 >
                   <FileUp size={16} /> {t('pacing')}
                 </button>
@@ -180,3 +177,20 @@ function AddGroup({ courseId }: { courseId: string }) {
     </span>
   );
 }
+
+import { rootRoute } from '../../routes/__root';
+import { requireRole } from '../../lib/session';
+import { queryClient } from '../../lib/queryClient';
+
+export const teacherCoursesQuery = {
+  queryKey: ['teacher-courses'] as const,
+  queryFn: () => api<Course[]>('/api/teacher/courses'),
+};
+
+export const teacherDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/teacher/dashboard',
+  beforeLoad: () => requireRole('TEACHER'),
+  loader: () => queryClient.ensureQueryData(teacherCoursesQuery),
+  component: TeacherDashboard,
+});

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { createRoute, useLocation, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, FileUp, Plus, Save, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -34,15 +34,12 @@ function swap<T>(arr: T[], i: number, dir: -1 | 1): T[] {
 }
 
 export default function TeacherCurriculum() {
-  const { courseId = '' } = useParams();
+  const { courseId } = useParams({ from: '/teacher/courses/$courseId/curriculum' });
   const { t } = useLang();
   const qc = useQueryClient();
   const location = useLocation() as { state?: { lessonId?: string } };
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['teacher-curriculum', courseId],
-    queryFn: () => api<Curriculum>(`/api/teacher/courses/${courseId}/curriculum`),
-  });
+  const { data, isLoading, error } = useQuery(teacherCurriculumQuery(courseId));
 
   const [moduleName, setModuleName] = useState('');
   const addModule = useMutation({
@@ -407,3 +404,20 @@ function QuizBuilder({ lessonId, existing }: { lessonId: string; existing: { tit
     </Card>
   );
 }
+
+import { rootRoute } from '../../routes/__root';
+import { requireRole } from '../../lib/session';
+import { queryClient } from '../../lib/queryClient';
+
+export const teacherCurriculumQuery = (courseId: string) => ({
+  queryKey: ['teacher-curriculum', courseId] as const,
+  queryFn: () => api<Curriculum>(`/api/teacher/courses/${courseId}/curriculum`),
+});
+
+export const teacherCurriculumRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/teacher/courses/$courseId/curriculum',
+  beforeLoad: () => requireRole('TEACHER'),
+  loader: ({ params }) => queryClient.ensureQueryData(teacherCurriculumQuery(params.courseId)),
+  component: TeacherCurriculum,
+});

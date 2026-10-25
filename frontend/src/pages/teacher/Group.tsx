@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Lock, MessageCircle, Plus, Trash2, Unlock } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -24,7 +24,7 @@ type Roster = {
 };
 
 export default function TeacherGroup() {
-  const { groupId = '' } = useParams();
+  const { groupId } = useParams({ from: '/teacher/groups/$groupId' });
   const { t } = useLang();
   const [tab, setTab] = useState<'pacing' | 'gradebook' | 'roster'>('pacing');
 
@@ -47,10 +47,7 @@ export default function TeacherGroup() {
 export function PacingTab({ groupId }: { groupId: string }) {
   const { t } = useLang();
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['pacing', groupId],
-    queryFn: () => api<Pacing>(`/api/teacher/groups/${groupId}/pacing`),
-  });
+  const { data, isLoading, error } = useQuery(pacingQuery(groupId));
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['pacing', groupId] });
   const setAccess = useMutation({
     mutationFn: ({ lessonId, isUnlocked }: { lessonId: string; isUnlocked: boolean }) =>
@@ -323,3 +320,20 @@ export function RosterTab({ groupId }: { groupId: string }) {
     </div>
   );
 }
+
+import { rootRoute } from '../../routes/__root';
+import { requireRole } from '../../lib/session';
+import { queryClient } from '../../lib/queryClient';
+
+export const pacingQuery = (groupId: string) => ({
+  queryKey: ['pacing', groupId] as const,
+  queryFn: () => api<Pacing>(`/api/teacher/groups/${groupId}/pacing`),
+});
+
+export const teacherGroupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/teacher/groups/$groupId',
+  beforeLoad: () => requireRole('TEACHER'),
+  loader: ({ params }) => queryClient.ensureQueryData(pacingQuery(params.groupId)),
+  component: TeacherGroup,
+});
