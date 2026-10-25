@@ -1,11 +1,13 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
+import { logger } from '../../lib/logger';
 
 @Injectable()
 export class StorageService {
@@ -84,6 +86,18 @@ export class StorageService {
       Key: objectKey,
     });
     return getSignedUrl(this.getPresignClient(), cmd, { expiresIn: 3600 });
+  }
+
+  /** Best-effort delete for replaced objects; never fails the caller. */
+  async deleteObject(objectKey: string): Promise<void> {
+    if (!this.isConfigured()) return;
+    try {
+      await this.getClient().send(
+        new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: objectKey }),
+      );
+    } catch (e) {
+      logger.warn({ err: e, objectKey }, 'storage delete failed');
+    }
   }
 
   /** Verifies an object exists after the client claims to have PUT it. */

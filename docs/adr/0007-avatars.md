@@ -22,7 +22,9 @@ Date: 2026-10-25
 
 ## Consequences
 - If storage is unconfigured, avatar endpoints 503 (no fake URLs).
-- Old avatars are not deleted on replace (orphans in the bucket). Acceptable
-  for now; add lifecycle rules or delete-on-replace if storage grows.
+- Replaced/cleared avatars are deleted best-effort from the bucket
+  (`StorageService.deleteObject`); a failed delete is logged and never fails
+  the profile update. Objects uploaded but never saved to the profile still
+  need a bucket lifecycle rule.
 - Mobile fetches `avatarUrl` via `/api/me` because React Native image loaders
   do not reliably share the fetch cookie jar; web can use the 302 endpoint.

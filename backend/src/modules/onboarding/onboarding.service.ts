@@ -102,16 +102,23 @@ export class OnboardingService {
       }
       allowed.image = image;
     }
-    if (!Object.keys(allowed).length) {
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (!user) throw new NotFoundException('User not found');
-      return user;
-    }
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new NotFoundException('User not found');
+    if (!Object.keys(allowed).length) return user;
     const [updated] = await db
       .update(users)
       .set(allowed)
       .where(eq(users.id, userId))
       .returning();
+    const oldImage = user.image;
+    if (
+      allowed.image !== undefined &&
+      oldImage &&
+      oldImage.startsWith(`avatars/${userId}/`) &&
+      oldImage !== updated.image
+    ) {
+      await this.storage.deleteObject(oldImage);
+    }
     return updated;
   }
 

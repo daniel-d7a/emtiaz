@@ -4,6 +4,7 @@ import { createApp } from '../../main';
 import request from 'supertest';
 import { Pool } from 'pg';
 import { resetTestDb } from '../../db/migrate';
+import { StorageService } from '../storage/storage.service';
 
 jest.setTimeout(90000);
 
@@ -127,8 +128,12 @@ describe('Phase 2: auth & onboarding', () => {
       expect(av.status).toBe(302);
       expect(av.headers.location).toContain(up.body.objectKey);
 
+      const storage = app.get(StorageService);
+      const del = jest.spyOn(storage, 'deleteObject').mockResolvedValue();
       const cleared = await s.patch('/api/me').send({ image: null });
       expect(cleared.body.image).toBeNull();
+      expect(del).toHaveBeenCalledWith(up.body.objectKey);
+      del.mockRestore();
       const none = await s.get('/api/me/avatar');
       expect(none.status).toBe(404);
     } finally {
