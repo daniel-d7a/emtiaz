@@ -21,7 +21,7 @@ type Gradebook = {
 };
 type Roster = {
   group: { id: string; name: string; joinCode: string };
-  students: Array<{ studentId: string; name: string; phoneNumber: string | null; joinedAt: string }>;
+  students: Array<{ studentId: string; name: string; phoneNumber: string | null; joinedAt: string; completedLessons: number; totalLessons: number; progress: number }>;
 };
 
 export default function TeacherGroup() {
@@ -288,8 +288,13 @@ export function RosterTab({ groupId }: { groupId: string }) {
   )}`;
   const exportRoster = () => {
     const rows = [
-      ['Student', 'Phone', 'Joined'],
-      ...data.students.map((s) => [s.name, s.phoneNumber ?? '', s.joinedAt.slice(0, 10)]),
+      ['Student', 'Phone', 'Progress', 'Joined'],
+      ...data.students.map((s) => [
+        s.name,
+        s.phoneNumber ?? '',
+        `${s.progress}% (${s.completedLessons}/${s.totalLessons})`,
+        s.joinedAt.slice(0, 10),
+      ]),
     ];
     const blob = new Blob([`\uFEFF${toCsv(rows)}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -325,6 +330,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
               <span className="font-semibold">
                 {s.name}
                 {s.phoneNumber && <span dir="ltr" className="ms-2 text-sm text-ink-soft">{s.phoneNumber}</span>}
+                <span className="ms-2 text-xs text-ink-soft">{s.progress}% ({s.completedLessons}/{s.totalLessons})</span>
               </span>
               <span className="flex items-center gap-2 text-xs">
                 {siblingGroups.length > 0 && (

@@ -572,7 +572,58 @@ export class TeacherService {
       .from(groupStudents)
       .innerJoin(users, eq(groupStudents.studentId, users.id))
       .where(eq(groupStudents.groupId, groupId));
-    return { group, students: roster };
+
+    const mods = await db.select().from(modules).where(eq(modules.courseId, group.courseId));
+    const courseLessons = mods.length
+      ? await db
+          .select({ id: lessons.id })
+          .from(lessons)
+          .where(inArray(lessons.moduleId, mods.map((m) => m.id)))
+      : [];
+    const access = courseLessons.length
+      ? await db
+          .select()
+          .from(groupLessonAccess)
+          .where(
+            and(
+              eq(groupLessonAccess.groupId, groupId),
+              inArray(groupLessonAccess.lessonId, courseLessons.map((l) => l.id)),
+            ),
+          )
+      : [];
+    const unlocked = courseLessons.filter((l) => {
+      const row = access.find((a) => a.lessonId === l.id);
+      return row ? row.isUnlocked : group.unlockAllByDefault;
+    });
+    const completions =
+      roster.length && courseLessons.length
+        ? await db
+            .select({ studentId: lessonCompletions.studentId, lessonId: lessonCompletions.lessonId })
+            .from(lessonCompletions)
+            .where(
+              and(
+                inArray(lessonCompletions.studentId, roster.map((r) => r.studentId)),
+                inArray(lessonCompletions.lessonId, courseLessons.map((l) => l.id)),
+              ),
+            )
+        : [];
+
+    return {
+      group,
+      students: roster.map((r) => {
+        const done = completions.filter(
+          (c) =>
+            c.studentId === r.studentId &&
+            unlocked.some((l) => l.id === c.lessonId),
+        ).length;
+        return {
+          ...r,
+          completedLessons: done,
+          totalLessons: unlocked.length,
+          progress: unlocked.length ? Math.round((done / unlocked.length) * 100) : 0,
+        };
+      }),
+    };
   }
 
   async bulkAddStudents(

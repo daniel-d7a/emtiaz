@@ -252,6 +252,7 @@ describe('Phase 4: teacher endpoints', () => {
 
     it('roster shows enrolled students', async () => {
       const res = await t.get(`/api/teacher/groups/${world.group1}/roster`);
+      expect(res.body.students[0]).toMatchObject({ progress: expect.any(Number), totalLessons: expect.any(Number) });
       expect(res.status).toBe(200);
       expect(res.body.students).toHaveLength(2);
       const s1 = await getUserByEmail(STUDENT1.email);
