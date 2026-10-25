@@ -279,10 +279,10 @@ export class TeacherService {
       questions: Array<{
         questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
         prompt: string;
-        options?: string[];
+        options?: string[] | null;
         correctAnswer: string;
-        explanation?: string;
-        points?: number;
+        explanation?: string | null;
+        points: number;
       }>;
     },
   ) {

@@ -4,6 +4,8 @@ import { auth } from '../../auth/auth';
 import { Public } from '../../auth/auth.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
+import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, UpdateMeDto } from '../../lib/schemas';
+import { z } from 'zod';
 
 const syntheticPhoneEmail = (phone: string) =>
   `${phone.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
@@ -21,14 +23,8 @@ export class OnboardingController {
   @Public()
   @Post('api/onboarding/teacher')
   async registerTeacher(
-    @Body()
-    dto: {
-      name: string;
-      email: string;
-      password: string;
-      phoneNumber?: string;
-      subject: string;
-    },
+    @Body(new ZodBodyPipe(TeacherSignupDto))
+    dto: z.infer<typeof TeacherSignupDto>,
   ) {
     const subjectCategoryId = (await this.onboarding.ensureCategory(dto.subject)).id;
     const data = await auth.api.signUpEmail({
@@ -48,14 +44,8 @@ export class OnboardingController {
   @Public()
   @Post('api/onboarding/student')
   async registerStudent(
-    @Body()
-    dto: {
-      name: string;
-      password: string;
-      phoneNumber: string;
-      email?: string;
-      gradeId?: string;
-    },
+    @Body(new ZodBodyPipe(StudentSignupDto))
+    dto: z.infer<typeof StudentSignupDto>,
   ) {
     const email = dto.email?.trim()
       ? dto.email.trim().toLowerCase()
@@ -78,7 +68,7 @@ export class OnboardingController {
   @Roles('TEACHER', 'STUDENT', 'ADMIN')
   me(
     @Req() req: Request,
-    @Body() dto: { name?: string; phoneNumber?: string; subject?: string },
+    @Body(new ZodBodyPipe(UpdateMeDto)) dto: z.infer<typeof UpdateMeDto>,
   ) {
     return this.onboarding.updateMe(req.user!.id, dto);
   }

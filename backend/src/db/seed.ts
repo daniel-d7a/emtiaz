@@ -124,7 +124,7 @@ async function seed() {
     { name: 'IELTS' },
     { name: 'IELTS Preparation' },
   ]);
-  const adminId = await signUp('Platform Admin', 'admin@emtiaz.om', process.env.SEED_ADMIN_PASSWORD ?? 'admin-password-123', 'ADMIN');
+  await signUp('Platform Admin', 'admin@emtiaz.om', process.env.SEED_ADMIN_PASSWORD ?? 'admin-password-123', 'ADMIN');
   await db.delete(sessions); // don't seed a live session
   console.log('Seeded grades, categories, admin (admin@emtiaz.om).');
   await seedDemo();

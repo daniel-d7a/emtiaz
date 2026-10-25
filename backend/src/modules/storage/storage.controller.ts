@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Injectable, Module, Param, Post, Req } from '@nestjs/common';
+import { ZodBodyPipe, PresignedUploadDto, AttachDto } from '../../lib/schemas';
+import { z } from 'zod';
 import type { Request } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
@@ -16,14 +18,8 @@ export class StorageController {
   @Post('api/storage/presigned-upload')
   async presignedUpload(
     @Req() req: Request,
-    @Body()
-    dto: {
-      courseId: string;
-      lessonId: string;
-      fileName: string;
-      mimeType: string;
-      fileSizeBytes: number;
-    },
+    @Body(new ZodBodyPipe(PresignedUploadDto))
+    dto: z.infer<typeof PresignedUploadDto>,
   ) {
     // Verify teacher owns the course the lesson belongs to.
     const lesson = (await db.select().from(lessons).where(eq(lessons.id, dto.lessonId)))[0];
@@ -52,16 +48,8 @@ export class StorageController {
   @Post('api/storage/attachments')
   async attach(
     @Req() req: Request,
-    @Body()
-    dto: {
-      lessonId: string;
-      groupId?: string;
-      title: string;
-      objectKey: string;
-      mimeType?: string;
-      fileSizeBytes?: number;
-      verified?: boolean;
-    },
+    @Body(new ZodBodyPipe(AttachDto))
+    dto: z.infer<typeof AttachDto>,
   ) {
     const downloadUrl = await this.r2.presignedGet(dto.objectKey);
     const [row] = await db

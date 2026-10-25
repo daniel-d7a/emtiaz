@@ -12,6 +12,23 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
+import { z } from 'zod';
+import { ZodBodyPipe } from '../../lib/schemas';
+import {
+  AddColumnDto,
+  AddGroupDto,
+  AddLessonDto,
+  AddModuleDto,
+  BulkStudentsDto,
+  CreateCourseDto,
+  GradeCellDto,
+  IdListDto,
+  IdListDtoLessons,
+  ToGroupDto,
+  UpdateCourseDto,
+  UpdateLessonDto,
+  UpsertQuizDto,
+} from '../../lib/schemas';
 import { TeacherService } from './teacher.service';
 
 @Controller()
@@ -30,15 +47,8 @@ export class TeacherController {
   @Roles('TEACHER')
   createCourse(
     @Req() req: Request,
-    @Body()
-    dto: {
-      title: string;
-      description?: string;
-      courseType: 'ACADEMIC' | 'GENERAL';
-      gradeId?: string;
-      semester?: string;
-      categoryId?: string;
-    },
+    @Body(new ZodBodyPipe(CreateCourseDto))
+    dto: z.infer<typeof CreateCourseDto>,
   ) {
     return this.teachers.createCourse(req.user!.id, dto);
   }
@@ -48,7 +58,8 @@ export class TeacherController {
   updateCourse(
     @Req() req: Request,
     @Param('courseId') courseId: string,
-    @Body() dto: any,
+    @Body(new ZodBodyPipe(UpdateCourseDto))
+    dto: z.infer<typeof UpdateCourseDto>,
   ) {
     return this.teachers.updateCourse(req.user!, courseId, dto);
   }
@@ -64,7 +75,8 @@ export class TeacherController {
   addModule(
     @Req() req: Request,
     @Param('courseId') courseId: string,
-    @Body() dto: { title: string },
+    @Body(new ZodBodyPipe(AddModuleDto))
+    dto: z.infer<typeof AddModuleDto>,
   ) {
     return this.teachers.addModule(req.user!, courseId, dto.title);
   }
@@ -74,7 +86,8 @@ export class TeacherController {
   reorderModules(
     @Req() req: Request,
     @Param('courseId') courseId: string,
-    @Body() dto: { moduleIds: string[] },
+    @Body(new ZodBodyPipe(IdListDto))
+    dto: z.infer<typeof IdListDto>,
   ) {
     return this.teachers.reorderModules(req.user!, courseId, dto.moduleIds);
   }
@@ -84,7 +97,8 @@ export class TeacherController {
   addLesson(
     @Req() req: Request,
     @Param('moduleId') moduleId: string,
-    @Body() dto: { title: string; content?: string },
+    @Body(new ZodBodyPipe(AddLessonDto))
+    dto: z.infer<typeof AddLessonDto>,
   ) {
     return this.teachers.addLesson(req.user!, moduleId, dto);
   }
@@ -94,7 +108,8 @@ export class TeacherController {
   updateLesson(
     @Req() req: Request,
     @Param('lessonId') lessonId: string,
-    @Body() dto: { title?: string; content?: string },
+    @Body(new ZodBodyPipe(UpdateLessonDto))
+    dto: z.infer<typeof UpdateLessonDto>,
   ) {
     return this.teachers.updateLesson(req.user!, lessonId, dto);
   }
@@ -104,7 +119,8 @@ export class TeacherController {
   reorderLessons(
     @Req() req: Request,
     @Param('moduleId') moduleId: string,
-    @Body() dto: { lessonIds: string[] },
+    @Body(new ZodBodyPipe(IdListDtoLessons))
+    dto: z.infer<typeof IdListDtoLessons>,
   ) {
     return this.teachers.reorderLessons(req.user!, moduleId, dto.lessonIds);
   }
@@ -126,7 +142,8 @@ export class TeacherController {
   upsertQuiz(
     @Req() req: Request,
     @Param('lessonId') lessonId: string,
-    @Body() dto: any,
+    @Body(new ZodBodyPipe(UpsertQuizDto))
+    dto: z.infer<typeof UpsertQuizDto>,
   ) {
     return this.teachers.upsertQuiz(req.user!, lessonId, dto);
   }
@@ -138,7 +155,8 @@ export class TeacherController {
   addGroup(
     @Req() req: Request,
     @Param('courseId') courseId: string,
-    @Body() dto: { name: string },
+    @Body(new ZodBodyPipe(AddGroupDto))
+    dto: z.infer<typeof AddGroupDto>,
   ) {
     return this.teachers.addGroup(req.user!, courseId, dto.name);
   }
@@ -155,7 +173,8 @@ export class TeacherController {
     @Req() req: Request,
     @Param('groupId') groupId: string,
     @Param('lessonId') lessonId: string,
-    @Body() dto: { isUnlocked: boolean },
+    @Body(new ZodBodyPipe(z.object({ isUnlocked: z.boolean() })))
+    dto: { isUnlocked: boolean },
   ) {
     return this.teachers.setLessonAccess(
       req.user!,
@@ -176,7 +195,8 @@ export class TeacherController {
   bulkAdd(
     @Req() req: Request,
     @Param('groupId') groupId: string,
-    @Body() dto: { students: Array<{ name: string; phoneNumber: string }> },
+    @Body(new ZodBodyPipe(BulkStudentsDto))
+    dto: z.infer<typeof BulkStudentsDto>,
   ) {
     return this.teachers.bulkAddStudents(req.user!, groupId, dto.students);
   }
@@ -187,7 +207,8 @@ export class TeacherController {
     @Req() req: Request,
     @Param('groupId') groupId: string,
     @Param('studentId') studentId: string,
-    @Body() dto: { toGroupId: string },
+    @Body(new ZodBodyPipe(ToGroupDto))
+    dto: z.infer<typeof ToGroupDto>,
   ) {
     return this.teachers.moveStudent(
       req.user!,
@@ -220,7 +241,8 @@ export class TeacherController {
   addColumn(
     @Req() req: Request,
     @Param('groupId') groupId: string,
-    @Body() dto: { title: string; maxScore?: number },
+    @Body(new ZodBodyPipe(AddColumnDto))
+    dto: z.infer<typeof AddColumnDto>,
   ) {
     return this.teachers.addGradeColumn(req.user!, groupId, dto);
   }
@@ -240,7 +262,8 @@ export class TeacherController {
   setCell(
     @Req() req: Request,
     @Param('groupId') groupId: string,
-    @Body() dto: { columnId: string; studentId: string; score: number; note?: string },
+    @Body(new ZodBodyPipe(GradeCellDto))
+    dto: z.infer<typeof GradeCellDto>,
   ) {
     return this.teachers.setGradeCell(
       req.user!,

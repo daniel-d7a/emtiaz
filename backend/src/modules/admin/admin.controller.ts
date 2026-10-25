@@ -10,6 +10,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { Roles } from '../../auth/roles.decorator';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto } from '../../lib/schemas';
+import { z } from 'zod';
 import { AdminService } from './admin.service';
 
 @Controller()
@@ -71,7 +73,8 @@ export class AdminController {
   @Roles('ADMIN')
   setUserStatus(
     @Param('userId') userId: string,
-    @Body() dto: { isActive: boolean; revokeSessions?: boolean },
+    @Body(new ZodBodyPipe(SetUserStatusDto))
+    dto: z.infer<typeof SetUserStatusDto>,
   ) {
     return this.admin.setUserStatus(userId, dto.isActive, dto);
   }
@@ -80,7 +83,8 @@ export class AdminController {
   @Roles('ADMIN')
   enroll(
     @Param('studentId') studentId: string,
-    @Body() dto: { groupId: string },
+    @Body(new ZodBodyPipe(AdminEnrollDto))
+    dto: z.infer<typeof AdminEnrollDto>,
   ) {
     return this.admin.adminEnroll(studentId, dto.groupId);
   }
@@ -95,7 +99,7 @@ export class AdminController {
 
   @Post('api/admin/taxonomy/grades')
   @Roles('ADMIN')
-  createGrade(@Body() dto: { name: string; displayOrder?: number }) {
+  createGrade(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
     return this.admin.createGrade(dto.name, dto.displayOrder);
   }
 
@@ -103,7 +107,8 @@ export class AdminController {
   @Roles('ADMIN')
   updateGrade(
     @Param('id') id: string,
-    @Body() dto: { name?: string; displayOrder?: number },
+    @Body(new ZodBodyPipe(TaxonomyUpdateDto))
+    dto: z.infer<typeof TaxonomyUpdateDto>,
   ) {
     return this.admin.updateGrade(id, dto);
   }
@@ -122,13 +127,17 @@ export class AdminController {
 
   @Post('api/admin/taxonomy/categories')
   @Roles('ADMIN')
-  createCategory(@Body() dto: { name: string }) {
+  createCategory(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
     return this.admin.createCategory(dto.name);
   }
 
   @Put('api/admin/taxonomy/categories/:id')
   @Roles('ADMIN')
-  updateCategory(@Param('id') id: string, @Body() dto: { name: string }) {
+  updateCategory(
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(z.object({ name: z.string().trim().min(1).max(80) })))
+    dto: { name: string },
+  ) {
     return this.admin.updateCategory(id, dto.name);
   }
 

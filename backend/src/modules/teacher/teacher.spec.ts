@@ -43,6 +43,32 @@ describe('Phase 4: teacher endpoints', () => {
       expect(mine.groups).toHaveLength(2);
     });
 
+    it('rejects malformed write payloads with 400', async () => {
+      const badType = await t
+        .post('/api/teacher/courses')
+        .send({ title: 'X', courseType: 'VOCATIONAL', gradeId: world.gradeId });
+      expect(badType.status).toBe(400);
+      const badModule = await t
+        .post(`/api/teacher/courses/${world.courseId}/modules`)
+        .send({ title: '' });
+      expect(badModule.status).toBe(400);
+      const badReorder = await t
+        .put(`/api/teacher/modules/${world.moduleId}/lessons/reorder`)
+        .send({ lessonIds: ['not-a-uuid'] });
+      expect(badReorder.status).toBe(400);
+      const badQuiz = await t
+        .post(`/api/teacher/lessons/${world.lesson1}/quiz`)
+        .send({
+          title: 'Q',
+          questions: [{ questionType: 'MCQ', prompt: 'P', options: ['a'], correctAnswer: 'a' }],
+        });
+      expect(badQuiz.status).toBe(400); // MCQ needs ≥2 options
+      const badCell = await t
+        .put(`/api/teacher/groups/${world.group1}/gradebook/cell`)
+        .send({ columnId: '00000000-0000-0000-0000-000000000000', studentId: 'x', score: -1 });
+      expect(badCell.status).toBe(400);
+    });
+
     it('creates an academic course requiring a grade', async () => {
       const bad = await t
         .post('/api/teacher/courses')
