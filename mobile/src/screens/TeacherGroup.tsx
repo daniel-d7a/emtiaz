@@ -8,7 +8,7 @@ type Lesson = { id: string; title: string; unlocked: boolean; overridden: boolea
 type Pacing = { group: { id: string; name: string; joinCode: string }; lessons: Lesson[] };
 type Roster = {
   group: { id: string; name: string; joinCode: string };
-  students: Array<{ studentId: string; name: string; phoneNumber: string | null }>;
+  students: Array<{ studentId: string; name: string; phoneNumber: string | null; progress: number; completedLessons: number; totalLessons: number }>;
 };
 
 export default function TeacherGroup({ groupId, onBack }: { groupId: string; onBack: () => void }) {
@@ -69,7 +69,9 @@ export default function TeacherGroup({ groupId, onBack }: { groupId: string; onB
         {roster.data?.students.map((st) => (
           <View key={st.studentId} style={[s.row, { paddingVertical: 6 }]}>
             <Text style={{ fontWeight: '600' }}>{st.name}</Text>
-            <Text style={{ color: '#78716C', fontSize: 13 }}>{st.phoneNumber ?? '—'}</Text>
+            <Text style={{ color: '#78716C', fontSize: 13 }}>
+              {st.progress}% ({st.completedLessons}/{st.totalLessons}) · {st.phoneNumber ?? '—'}
+            </Text>
           </View>
         ))}
       </Card>
