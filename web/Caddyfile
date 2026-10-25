@@ -8,6 +8,14 @@
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 	}
 
+	handle /sitemap.xml {
+		reverse_proxy api:3000
+	}
+
+	handle /robots.txt {
+		reverse_proxy api:3000
+	}
+
 	handle /api/* {
 		reverse_proxy api:3000 {
 			# Preserve an upstream request id; the API mints one when empty.

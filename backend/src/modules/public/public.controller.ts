@@ -35,6 +35,40 @@ export class PublicController {
   }
 
   @Public()
+  @Get('sitemap.xml')
+  async sitemap(@Res() res: Response) {
+    const teachers = await db
+      .select({ slug: users.landingSlug })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'TEACHER'),
+          eq(users.landingPublished, true),
+          eq(users.isActive, true),
+          isNull(users.deletedAt),
+        ),
+      );
+    const base = (process.env.FRONTEND_URL ?? 'http://localhost:8088').replace(/\/$/, '');
+    const urls = [
+      `${base}/`,
+      ...teachers
+        .filter((t): t is { slug: string } => !!t.slug)
+        .map((t) => `${base}/t/${encodeURIComponent(t.slug)}`),
+    ];
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+      .map((url) => `  <url><loc>${url.replace(/&/g, '&amp;')}</loc></url>`)
+      .join('\n')}\n</urlset>\n`;
+    res.type('application/xml').send(xml);
+  }
+
+  @Public()
+  @Get('robots.txt')
+  robots(@Res() res: Response) {
+    const base = (process.env.FRONTEND_URL ?? 'http://localhost:8088').replace(/\/$/, '');
+    res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${base}/sitemap.xml\n`);
+  }
+
+  @Public()
   @Get('api/public/teachers/:slug')
   async teacher(@Param('slug') slug: string) {
     const [teacher] = await db

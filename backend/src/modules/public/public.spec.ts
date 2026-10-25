@@ -33,6 +33,13 @@ describe('public teacher landing', () => {
     expect(page.body.teacher.email).toBeUndefined();
     expect(page.body.courses.map((c: any) => c.title)).toContain('Physics 10');
 
+    const sitemap = await request(server).get('/sitemap.xml');
+    expect(sitemap.status).toBe(200);
+    expect(sitemap.text).toContain('/t/salim-physics');
+    expect(sitemap.text).toContain('<urlset');
+    const robots = await request(server).get('/robots.txt');
+    expect(robots.text).toContain('Sitemap:');
+
     expect((await request(server).get('/api/public/teachers/salim-physics/avatar')).status).toBe(404);
 
     const hidden = await teacher.patch('/api/me').send({ landingPublished: false });
