@@ -1,10 +1,11 @@
 import { NotificationsService } from './notifications.service';
 import { whatsappCloudConfigured } from './whatsapp-cloud.sender';
 import { WhatsAppSender } from './whatsapp-sender';
+import { EmailSender } from './email-sender';
 import { logger } from '../../lib/logger';
 
-function service(sender: WhatsAppSender) {
-  return new NotificationsService(sender);
+function service(sender: WhatsAppSender, email: EmailSender = { send: jest.fn() }) {
+  return new NotificationsService(sender, email);
 }
 
 describe('NotificationsService', () => {
@@ -18,6 +19,18 @@ describe('NotificationsService', () => {
     const send = jest.fn().mockRejectedValue(new Error('provider down'));
     const spy = jest.spyOn(logger, 'error').mockImplementation(() => {});
     await expect(service({ send }).sendWhatsApp('+96890000000', 'hi')).resolves.toBeUndefined();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
+describe('email', () => {
+  it('skips empty recipients and swallows provider failures', async () => {
+    const email = { send: jest.fn().mockRejectedValue(new Error('smtp down')) };
+    const spy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+    await service({ send: jest.fn() }, email).sendEmail('', 'Hi', 'Body');
+    expect(email.send).not.toHaveBeenCalled();
+    await expect(service({ send: jest.fn() }, email).sendEmail('a@b.om', 'Hi', 'Body')).resolves.toBeUndefined();
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
