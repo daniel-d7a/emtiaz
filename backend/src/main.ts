@@ -35,6 +35,7 @@ export async function createApp(): Promise<INestApplication> {
   });
   app.use(json({ limit: '2mb' }), urlencoded({ extended: true }));
   app.enableShutdownHooks();
+  app.use('/api/auth', loginLockoutMiddleware(new LoginLockout()));
   app.use('/api/auth', toNodeHandler(auth.handler));
   if (docsEnabled) {
     const config = new DocumentBuilder()

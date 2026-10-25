@@ -61,7 +61,7 @@ export const normalizeEmail = (email: unknown) =>
 /** Express middleware: reject locked accounts and record the outcome of each attempt. */
 export function loginLockoutMiddleware(lockout: LoginLockout) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (req.method !== 'POST') return next();
+    if (req.method !== 'POST' || !req.path.startsWith('/sign-in')) return next();
     const email = normalizeEmail((req.body as { email?: unknown } | undefined)?.email);
     if (!email) return next();
 

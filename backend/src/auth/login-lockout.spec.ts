@@ -33,7 +33,7 @@ describe('LoginLockout', () => {
 describe('loginLockoutMiddleware', () => {
   function run(lock: LoginLockout, status: number) {
     const listeners: Record<string, () => void> = {};
-    const req = { method: 'POST', body: { email: 'a@example.com' } } as any;
+    const req = { method: 'POST', path: '/sign-in/email', body: { email: 'a@example.com' } } as any;
     const res = {
       statusCode: status,
       setHeader: jest.fn(),
@@ -53,6 +53,17 @@ describe('loginLockoutMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(429);
     expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '10');
+  });
+
+  it('ignores non sign-in auth requests', () => {
+    const lock = new LoginLockout({ max: 1, lockMs: 10_000 });
+    lock.recordFailure('a@example.com');
+    const listeners: Record<string, () => void> = {};
+    const req = { method: 'POST', path: '/sign-up/email', body: { email: 'a@example.com' } } as any;
+    const res = { on(event: string, cb: () => void) { listeners[event] = cb; } } as any;
+    const next = jest.fn();
+    loginLockoutMiddleware(lock)(req, res, next);
+    expect(next).toHaveBeenCalled();
   });
 
   it('records failures and resets on success', () => {
