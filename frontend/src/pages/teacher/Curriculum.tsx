@@ -242,16 +242,12 @@ function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId
       const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/presigned-upload', {
         body: { courseId, lessonId, fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
       });
-      if (up.uploadUrl.includes('stub-upload')) {
-        // Dev stub mode (no real R2 configured) — record metadata directly.
-      } else {
-        const resp = await fetch(up.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-        if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
-      }
+      const resp = await fetch(up.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
       await api('/api/storage/attachments', {
         body: { lessonId, title: file.name, objectKey: up.objectKey, mimeType: file.type, fileSizeBytes: file.size },
       });

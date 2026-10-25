@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
   GetObjectCommand,
   PutObjectCommand,
@@ -64,10 +64,7 @@ export class R2StorageService {
 
   /** Endpoint embedded in presigned URLs — must be reachable from the user's browser, not just this process. */
   async presignedPut(objectKey: string, expiresIn = 900): Promise<string> {
-    if (!this.isConfigured()) {
-      // Dev/stub mode: pretend upload succeeded against a fixed local URL.
-      return `${process.env.R2_PUBLIC_URL ?? 'https://files.localhost'}/${objectKey}?stub-upload=1`;
-    }
+    this.assertConfigured();
     const cmd = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: objectKey,
@@ -76,9 +73,7 @@ export class R2StorageService {
   }
 
   async presignedGet(objectKey: string): Promise<string> {
-    if (!this.isConfigured()) {
-      return `${process.env.R2_PUBLIC_URL ?? 'https://files.localhost'}/${objectKey}?stub-download=1`;
-    }
+    this.assertConfigured();
     const cmd = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: objectKey,
@@ -88,7 +83,7 @@ export class R2StorageService {
 
   /** Verifies an object exists after the client claims to have PUT it. */
   async objectExists(objectKey: string): Promise<boolean> {
-    if (!this.isConfigured()) return true; // stub mode
+    if (!this.isConfigured()) return false;
     try {
       await this.getClient().send(
         new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: objectKey }),
@@ -96,6 +91,12 @@ export class R2StorageService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  private assertConfigured() {
+    if (!this.isConfigured()) {
+      throw new ServiceUnavailableException('Object storage is not configured');
     }
   }
 

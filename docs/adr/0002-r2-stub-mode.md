@@ -1,14 +1,14 @@
-# ADR-0002: Dev object storage via RustFS (S3-API); stub mode only as last resort
+# ADR-0002: Dev object storage via RustFS (S3-API)
 
-Date: 2026-10-23 (supersedes the original "stub mode until credentials exist" decision)
+Date: 2026-10-23
 
 ## Decision
 Local development runs a real S3-compatible object store — **RustFS** (`rustfs/rustfs`)
 — via docker-compose. The storage module
 (`backend/src/modules/storage/r2.service.ts`) talks plain S3: presigned PUT for
-browser uploads, presigned GET for downloads, HEAD for verification. The
-legacy stub mode (`?stub-upload=1` pretender) remains as an automatic fallback
-when no R2_* config exists at all.
+browser uploads, presigned GET for downloads, GET for verification. There is
+no fake-upload mode: if storage is not configured, upload endpoints return
+503 rather than pretending to store a file.
 
 ## Rationale
 - RustFS implements the actual S3 wire protocol, is containerized, and pulls
@@ -32,3 +32,5 @@ when no R2_* config exists at all.
   the roundtrip against the real store).
 - Enabling production storage is an env-mapping exercise only
   (`isConfigured()` flips to real mode the moment `R2_ENDPOINT` + creds exist).
+- Missing config is loud (503), so a broken dev setup fails visibly instead of
+  silently producing dead attachment links.

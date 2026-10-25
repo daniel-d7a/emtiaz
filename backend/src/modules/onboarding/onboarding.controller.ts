@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { auth } from '../../auth/auth';
-import { Public } from '../../auth/auth.guard';
+import { Public } from '../../auth/public.decorator';
 import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
 import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, UpdateMeDto } from '../../lib/schemas';

@@ -384,7 +384,31 @@ describe('Phase 4: teacher endpoints', () => {
     });
   });
 
-  describe('storage (stub mode)', () => {
+  describe('storage', () => {
+    const saved: Record<string, string | undefined> = {};
+    beforeAll(() => {
+      // Presigning is offline; dummy config exercises the real (non-stub) code path.
+      saved.endpoint = process.env.R2_ENDPOINT;
+      saved.key = process.env.R2_ACCESS_KEY_ID;
+      saved.secret = process.env.R2_SECRET_ACCESS_KEY;
+      saved.bucket = process.env.R2_BUCKET_NAME;
+      process.env.R2_ENDPOINT = 'http://127.0.0.1:9';
+      process.env.R2_ACCESS_KEY_ID = 'test-key';
+      process.env.R2_SECRET_ACCESS_KEY = 'test-secret';
+      process.env.R2_BUCKET_NAME = 'test-bucket';
+    });
+    afterAll(() => {
+      for (const [k, v] of Object.entries({
+        R2_ENDPOINT: saved.endpoint,
+        R2_ACCESS_KEY_ID: saved.key,
+        R2_SECRET_ACCESS_KEY: saved.secret,
+        R2_BUCKET_NAME: saved.bucket,
+      })) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    });
+
     it('issues presigned upload and saves attachment metadata', async () => {
       const up = await t.post('/api/storage/presigned-upload').send({
         courseId: world.courseId,
@@ -411,6 +435,21 @@ describe('Phase 4: teacher endpoints', () => {
       const dl = await s.get(`/api/storage/attachments/${att.body.id}/download`);
       expect(dl.status).toBe(200);
       expect(dl.body.url).toContain(att.body.r2ObjectKey);
+    });
+
+    it('returns 503 instead of a fake URL when storage is unconfigured', async () => {
+      const env = { ...process.env };
+      delete process.env.R2_ENDPOINT;
+      try {
+        const res = await t.post('/api/storage/presigned-upload').send({
+          courseId: world.courseId,
+          lessonId: world.lesson1,
+          fileName: 'x.pdf',
+        });
+        expect(res.status).toBe(503);
+      } finally {
+        Object.assign(process.env, env);
+      }
     });
 
     it('refuses uploads to lessons outside own courses', async () => {
