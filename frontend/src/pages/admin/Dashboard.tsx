@@ -52,6 +52,13 @@ export default function AdminDashboard() {
       api(`/api/admin/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
     onSuccess: invalidateAll,
   });
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => api(`/api/admin/users/${id}`, { method: 'DELETE' }),
+    onSuccess: invalidateAll,
+  });
+  const confirmDelete = (u: { id: string; name: string }) => {
+    if (window.confirm(`${t('delete')} ${u.name}?`)) deleteUser.mutate(u.id);
+  };
 
   return (
     <Page title={t('dashboard')}>
@@ -82,6 +89,8 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {deleteUser.error && <ErrorBox error={deleteUser.error} />}
+
       {tab === 'teachers' && (
         <Card>
           <div className="mb-3">
@@ -95,12 +104,22 @@ export default function AdminDashboard() {
                     <p className="font-semibold">{u.name}</p>
                     <p className="text-sm text-ink-soft" dir="ltr">{u.email}{u.phoneNumber ? ` · ${u.phoneNumber}` : ''}</p>
                   </div>
-                  <button
-                    onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                  >
-                    {u.isActive ? t('activate') : t('suspend')}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                    >
+                      {u.isActive ? t('suspend') : t('activate')}
+                    </button>
+                    <button
+                      aria-label={`${t('delete')} ${u.name}`}
+                      onClick={() => confirmDelete(u)}
+                      className="text-ink-soft hover:text-secondary"
+                      title={t('delete')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </li>
               ))}
               {teachers.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
@@ -117,6 +136,7 @@ export default function AdminDashboard() {
           students={students}
           invalidate={invalidateAll}
           setStatus={setStatus}
+          onDelete={confirmDelete}
           search={search}
           setSearch={setSearch}
         />
@@ -223,12 +243,14 @@ function StudentsTab({
   students,
   invalidate,
   setStatus,
+  onDelete,
   search,
   setSearch,
 }: {
   students: StudentQuery;
   invalidate: () => void;
   setStatus: { mutate: (v: { id: string; isActive: boolean }) => void; error: unknown };
+  onDelete: (u: { id: string; name: string }) => void;
   search: string;
   setSearch: (v: string) => void;
 }) {
@@ -274,7 +296,15 @@ function StudentsTab({
                   onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
                   className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
                 >
-                  {u.isActive ? t('activate') : t('suspend')}
+                  {u.isActive ? t('suspend') : t('activate')}
+                </button>
+                <button
+                  aria-label={`${t('delete')} ${u.name}`}
+                  onClick={() => onDelete(u)}
+                  className="text-ink-soft hover:text-secondary"
+                  title={t('delete')}
+                >
+                  <Trash2 size={14} />
                 </button>
               </div>
             </li>
