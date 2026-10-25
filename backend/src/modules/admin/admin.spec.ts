@@ -167,9 +167,12 @@ describe('Phase 5: admin endpoints', () => {
     expect(initial.status).toBe(200);
     expect(initial.body.emailEnabled).toBe(true);
 
-    const off = await admin.patch('/api/admin/notification-settings').send({ emailEnabled: false });
+    const off = await admin
+      .patch('/api/admin/notification-settings')
+      .send({ emailEnabled: false, adminEnabled: false });
     expect(off.status).toBe(200);
     expect(off.body.emailEnabled).toBe(false);
+    expect(off.body.adminEnabled).toBe(false);
 
     const persisted = await admin.get('/api/admin/notification-settings');
     expect(persisted.body.emailEnabled).toBe(false);
@@ -177,7 +180,13 @@ describe('Phase 5: admin endpoints', () => {
     const empty = await admin.patch('/api/admin/notification-settings').send({});
     expect(empty.status).toBe(400);
 
-    await admin.patch('/api/admin/notification-settings').send({ emailEnabled: true });
+    const log = await admin.get('/api/admin/notifications');
+    expect(log.status).toBe(200);
+    expect(Array.isArray(log.body)).toBe(true);
+
+    await admin
+      .patch('/api/admin/notification-settings')
+      .send({ emailEnabled: true, adminEnabled: true });
   });
 
   describe('taxonomy', () => {

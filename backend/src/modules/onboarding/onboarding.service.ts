@@ -59,6 +59,7 @@ export class OnboardingService {
     await this.notifications.sendWhatsApp(
       student?.phoneNumber ?? '',
       `تم تسجيلك في «${groupRow.name}» بنجاح 🎉`,
+      'TEACHER',
     );
   }
 

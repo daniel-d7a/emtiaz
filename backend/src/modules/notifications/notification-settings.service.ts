@@ -4,11 +4,18 @@ import { db } from '../../db';
 import { notificationSettings } from '../../db/schema';
 
 export type NotificationChannel = 'whatsapp' | 'email' | 'inApp';
+export type NotificationType = 'ADMIN' | 'PARENT' | 'TEACHER' | 'SYSTEM';
 
 const column = {
   whatsapp: 'whatsappEnabled',
   email: 'emailEnabled',
   inApp: 'inAppEnabled',
+} as const;
+
+const typeColumn = {
+  ADMIN: 'adminEnabled',
+  PARENT: 'parentEnabled',
+  TEACHER: 'teacherEnabled',
 } as const;
 
 @Injectable()
@@ -24,7 +31,14 @@ export class NotificationSettingsService {
     return created ?? (await db.select().from(notificationSettings).where(eq(notificationSettings.id, 'global')))[0];
   }
 
-  async update(patch: Partial<Pick<typeof notificationSettings.$inferInsert, 'whatsappEnabled' | 'emailEnabled' | 'inAppEnabled'>>) {
+  async update(
+    patch: Partial<
+      Pick<
+        typeof notificationSettings.$inferInsert,
+        'whatsappEnabled' | 'emailEnabled' | 'inAppEnabled' | 'adminEnabled' | 'parentEnabled' | 'teacherEnabled'
+      >
+    >,
+  ) {
     await this.get();
     const [row] = await db
       .update(notificationSettings)
@@ -34,8 +48,9 @@ export class NotificationSettingsService {
     return row;
   }
 
-  async isEnabled(channel: NotificationChannel): Promise<boolean> {
+  async isEnabled(channel: NotificationChannel, type: NotificationType = 'SYSTEM'): Promise<boolean> {
     const row = await this.get();
-    return row[column[channel]];
+    if (!row[column[channel]]) return false;
+    return type === 'SYSTEM' ? true : row[typeColumn[type]];
   }
 }

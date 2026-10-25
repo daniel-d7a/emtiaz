@@ -14,12 +14,14 @@ import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, Taxon
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller()
 export class AdminController {
   constructor(
     private admin: AdminService,
     private notificationSettings: NotificationSettingsService,
+    private notifications: NotificationsService,
   ) {}
 
   @Get('api/admin/overview')
@@ -103,6 +105,12 @@ export class AdminController {
   @Roles('ADMIN')
   getNotificationSettings() {
     return this.notificationSettings.get();
+  }
+
+  @Get('api/admin/notifications')
+  @Roles('ADMIN')
+  recentNotifications(@Query('limit') limit?: string) {
+    return this.notifications.recent(Number(limit) || 50);
   }
 
   @Patch('api/admin/notification-settings')

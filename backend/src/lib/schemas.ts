@@ -175,6 +175,9 @@ export const NotificationSettingsDto = z
     whatsappEnabled: z.boolean().optional(),
     emailEnabled: z.boolean().optional(),
     inAppEnabled: z.boolean().optional(),
+    adminEnabled: z.boolean().optional(),
+    parentEnabled: z.boolean().optional(),
+    teacherEnabled: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'at least one setting is required');
 

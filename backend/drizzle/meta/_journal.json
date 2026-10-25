@@ -50,6 +50,13 @@
       "when": 1792926986084,
       "tag": "0006_sad_devos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792928743854,
+      "tag": "0007_wealthy_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

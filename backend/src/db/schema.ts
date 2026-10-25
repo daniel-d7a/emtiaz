@@ -350,12 +350,16 @@ export const notificationSettings = pgTable('notification_settings', {
   whatsappEnabled: boolean('whatsapp_enabled').notNull().default(true),
   emailEnabled: boolean('email_enabled').notNull().default(true),
   inAppEnabled: boolean('in_app_enabled').notNull().default(true),
+  adminEnabled: boolean('admin_enabled').notNull().default(true),
+  parentEnabled: boolean('parent_enabled').notNull().default(true),
+  teacherEnabled: boolean('teacher_enabled').notNull().default(true),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const notifications = pgTable('notifications', {
   id: uuid('id').defaultRandom().primaryKey(),
   channel: text('channel').notNull().default('whatsapp'), // single channel today; future: email, sms
+  type: text('type').notNull().default('SYSTEM'), // ADMIN | PARENT | TEACHER | SYSTEM
   recipient: text('recipient').notNull(), // phone number or email
   message: text('message').notNull(),
   status: text('status').notNull().default('SENT_MOCK'), // SENT_MOCK → SENT once a real provider is wired

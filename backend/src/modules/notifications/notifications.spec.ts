@@ -31,6 +31,19 @@ describe('NotificationsService', () => {
 });
 
 describe('channel settings', () => {
+  it('passes the notification type to the settings gate', async () => {
+    const send = jest.fn();
+    const isEnabled = jest.fn().mockResolvedValue(false);
+    const svc = new NotificationsService(
+      { send },
+      { send: jest.fn() },
+      { isEnabled } as unknown as NotificationSettingsService,
+    );
+    await svc.sendWhatsApp('+96890000000', 'hi', 'ADMIN');
+    expect(isEnabled).toHaveBeenCalledWith('whatsapp', 'ADMIN');
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it('skips a disabled channel and sends when settings lookup fails', async () => {
     const send = jest.fn();
     await service({ send }, { send: jest.fn() }, false).sendWhatsApp('+96890000000', 'hi');

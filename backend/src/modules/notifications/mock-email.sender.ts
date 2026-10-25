@@ -7,9 +7,10 @@ import { EmailSender } from './email-sender';
 @Injectable()
 export class MockEmailSender implements EmailSender {
   // ponytail: persists to notifications instead of sending; swap via EMAIL_SENDER when a provider is chosen
-  async send(to: string, subject: string, body: string): Promise<void> {
+  async send(to: string, subject: string, body: string, type = 'SYSTEM'): Promise<void> {
     await db.insert(notifications).values({
       channel: 'email',
+      type,
       recipient: to,
       message: `${subject}\n\n${body}`,
     });

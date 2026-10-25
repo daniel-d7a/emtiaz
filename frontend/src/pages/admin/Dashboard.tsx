@@ -15,7 +15,23 @@ type StudentRow = {
   isActive: boolean; createdAt: string;
   enrollments: Array<{ groupName: string; courseTitle: string; courseId: string }>;
 };
-type NotificationSettings = { whatsappEnabled: boolean; emailEnabled: boolean; inAppEnabled: boolean };
+type NotificationSettings = {
+  whatsappEnabled: boolean;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+  adminEnabled: boolean;
+  parentEnabled: boolean;
+  teacherEnabled: boolean;
+};
+type NotificationRow = {
+  id: string;
+  channel: string;
+  type: string;
+  recipient: string;
+  message: string;
+  status: string;
+  createdAt: string;
+};
 type CourseRow = {
   id: string; title: string; courseType: 'ACADEMIC' | 'GENERAL'; isPublished: boolean;
   teacherName: string;
@@ -44,6 +60,11 @@ export default function AdminDashboard() {
   const settings = useQuery({
     queryKey: ['notification-settings'],
     queryFn: () => api<NotificationSettings>('/api/admin/notification-settings'),
+  });
+  const notifications = useQuery({
+    queryKey: ['admin-notifications'],
+    queryFn: () => api<NotificationRow[]>('/api/admin/notifications'),
+    enabled: tab === 'notifications',
   });
   const qc = useQueryClient();
   const invalidateAll = () => {
@@ -144,6 +165,7 @@ export default function AdminDashboard() {
           <h2 className="mb-3 text-lg font-bold">{t('notifications')}</h2>
           {settings.isLoading ? <Loading /> : settings.error ? <ErrorBox error={settings.error} /> : settings.data && (
             <div className="flex flex-col gap-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Channels</p>
               {([
                 ['whatsappEnabled', 'whatsapp'],
                 ['emailEnabled', 'email'],
@@ -159,8 +181,44 @@ export default function AdminDashboard() {
                   {t(label)}
                 </label>
               ))}
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-soft">Types</p>
+              {([
+                ['adminEnabled', 'admin'],
+                ['parentEnabled', 'parent'],
+                ['teacherEnabled', 'teacher'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-3 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-primary"
+                    checked={settings.data[key]}
+                    onChange={(e) => updateSettings.mutate({ [key]: e.target.checked })}
+                  />
+                  {t(label)}
+                </label>
+              ))}
               {updateSettings.error && <ErrorBox error={updateSettings.error} />}
             </div>
+          )}
+
+          <h3 className="mb-2 mt-6 text-sm font-bold uppercase tracking-wide text-ink-soft">{t('recentNotifications')}</h3>
+          {notifications.isLoading ? <Loading /> : notifications.error ? <ErrorBox error={notifications.error} /> : (
+            notifications.data?.length ? (
+              <ul className="flex flex-col divide-y divide-line text-sm">
+                {notifications.data.map((n) => (
+                  <li key={n.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
+                    <div>
+                      <p className="font-semibold">
+                        {n.type === 'SYSTEM' ? t('system') : t(n.type.toLowerCase() as 'admin' | 'parent' | 'teacher')} · {n.channel}
+                      </p>
+                      <p className="text-ink-soft" dir="ltr">{n.recipient}</p>
+                      <p className="line-clamp-2 text-xs text-ink-soft">{n.message}</p>
+                    </div>
+                    <span className="text-xs text-ink-soft">{new Date(n.createdAt).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-ink-soft">{t('noNotifications')}</p>
           )}
         </Card>
       )}
@@ -231,10 +289,6 @@ function TaxonomyTabs() {
 
 function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
   const { t } = useLang();
-  const settings = useQuery({
-    queryKey: ['notification-settings'],
-    queryFn: () => api<NotificationSettings>('/api/admin/notification-settings'),
-  });
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const list = useQuery({

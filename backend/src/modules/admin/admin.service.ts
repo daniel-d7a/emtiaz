@@ -252,6 +252,7 @@ export class AdminService {
       await this.notifications.sendWhatsApp(
         user.phoneNumber ?? '',
         `تم تسجيلك في «${group.name}» بنجاح 🎉`,
+        'ADMIN',
       );
     }
     return { ok: true };
