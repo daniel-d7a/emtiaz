@@ -26,6 +26,7 @@ function TopBar() {
           <Link to="/admin/dashboard" className="rounded-lg px-3 py-2 hover:bg-line/60">{t('admin')}</Link>
         )}
         <button
+          aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
           onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
           className="rounded-lg border border-line px-3 py-2 font-semibold"
         >
@@ -56,11 +57,22 @@ function TopBar() {
   );
 }
 
-export const rootRoute = createRootRoute({
-  component: () => (
+function RootLayout() {
+  const { lang } = useLang();
+  return (
     <div className="min-h-screen">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-white"
+      >
+        {lang === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}
+      </a>
       <TopBar />
-      <Outlet />
+      <main id="main">
+        <Outlet />
+      </main>
     </div>
-  ),
-});
+  );
+}
+
+export const rootRoute = createRootRoute({ component: RootLayout });

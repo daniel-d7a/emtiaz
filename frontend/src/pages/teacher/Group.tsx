@@ -32,7 +32,7 @@ export default function TeacherGroup() {
     <Page title={t('pacing')}>
       <div className="mb-5 flex flex-wrap gap-2">
         {(['pacing', 'gradebook', 'roster'] as const).map((k) => (
-          <button key={k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
+          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
             {k === 'pacing' ? t('pacing') : k === 'gradebook' ? t('gradebook') : t('roster')}
           </button>
         ))}
@@ -151,7 +151,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
               {data.manualColumns.map((c) => (
                 <th key={c.id} className="py-2 pe-2 text-start text-ink-soft">
                   {c.title}
-                  <button onClick={() => delCol.mutate(c.id)} className="ms-1 text-ink-soft hover:text-secondary">
+                  <button aria-label={`${t('delete')} ${c.title}`} onClick={() => delCol.mutate(c.id)} className="ms-1 text-ink-soft hover:text-secondary">
                     <Trash2 size={12} />
                   </button>
                 </th>
@@ -293,7 +293,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
                     ))}
                   </select>
                 )}
-                <button onClick={() => remove.mutate(s.studentId)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+                <button aria-label={`${t('delete')} ${s.name}`} onClick={() => remove.mutate(s.studentId)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
                   <Trash2 size={14} />
                 </button>
               </span>

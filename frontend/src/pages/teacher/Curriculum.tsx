@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoute, useLocation, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, FileUp, Plus, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileUp, Plus, Save, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
@@ -116,16 +116,16 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
         <div className="flex grow items-center gap-2">
           {(canUp || canDown) && (
             <span className="flex flex-col gap-0">
-              <button disabled={!canUp} onClick={() => onMoveModule?.(-1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▲</button>
-              <button disabled={!canDown} onClick={() => onMoveModule?.(1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▼</button>
+              <button aria-label={t('moveUp')} disabled={!canUp} onClick={() => onMoveModule?.(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button aria-label={t('moveDown')} disabled={!canDown} onClick={() => onMoveModule?.(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
             </span>
           )}
-          <button className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
+          <button aria-expanded={open} aria-label={open ? t('collapse') : t('expand')} className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
             <ChevronDown className={`transition ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
             {mod.title}
           </button>
         </div>
-        <button onClick={() => delModule.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+        <button aria-label={t('delete')} onClick={() => delModule.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={16} />
         </button>
       </div>
@@ -189,13 +189,13 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
         <div className="flex grow items-center gap-1">
           {(canUp || canDown) && (
             <span className="flex flex-col gap-0">
-              <button disabled={!canUp} onClick={() => onMove(-1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▲</button>
-              <button disabled={!canDown} onClick={() => onMove(1)} className="text-xs text-ink-soft hover:text-primary disabled:opacity-30">▼</button>
+              <button aria-label={t('moveUp')} disabled={!canUp} onClick={() => onMove(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button aria-label={t('moveDown')} disabled={!canDown} onClick={() => onMove(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
             </span>
           )}
-          <button className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
+          <button aria-expanded={open} className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
         </div>
-        <button onClick={() => del.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+        <button aria-label={t('delete')} onClick={() => del.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={14} />
         </button>
       </div>
