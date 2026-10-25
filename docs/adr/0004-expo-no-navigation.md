@@ -2,6 +2,8 @@
 
 Date: 2026-10-23
 
+> Superseded by [ADR-0013](./0013-mobile-react-navigation.md) on 2026-10-25.
+
 ## Decision
 `mobile/` is a blank-type Expo app with state-based screens (Login, Courses,
 Group, Lesson, Quiz, Profile, and teacher screens: TeacherHome, TeacherGroup)

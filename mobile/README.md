@@ -1,11 +1,11 @@
 # Emtiaz mobile (Expo / React Native)
 
-Student and teacher companion app. Screens are switched by state in `App.tsx`
-(no navigation library — see `docs/adr/0004-expo-no-navigation.md`).
+Student, teacher, and parent companion app. `App.tsx` mounts role-specific
+React Navigation native stacks (see `docs/adr/0013-mobile-react-navigation.md`).
 
 Layout:
 
-- `src/screens/` — one file per screen
+- `src/screens/` — one file per screen; `App.tsx` wires them into per-role stacks
 - `src/ui/` — shared primitives (`Btn`, `Card`, `Field`, feedback) + theme
 - `src/query.ts` — shared TanStack Query client; screens use `useQuery` /
   `useMutation` and invalidate by query key after writes
