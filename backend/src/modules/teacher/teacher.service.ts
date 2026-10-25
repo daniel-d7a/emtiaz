@@ -645,11 +645,12 @@ export class TeacherService {
           .where(inArray(parentStudents.studentId, studentIds))
       : [];
     const text = `📣 ${group.name}: ${message}`;
+    const parentIds = [...new Set(parents.map((p) => p.id))];
     await Promise.all([
       ...studentIds.map((id) => this.notifications.sendInApp(id, text, 'TEACHER')),
-      ...parents.map((p) => this.notifications.sendInApp(p.id, text, 'PARENT')),
+      ...parentIds.map((id) => this.notifications.sendInApp(id, text, 'PARENT')),
     ]);
-    return { sent: studentIds.length + new Set(parents.map((p) => p.id)).size };
+    return { sent: studentIds.length + parentIds.length };
   }
 
   async bulkAddStudents(
