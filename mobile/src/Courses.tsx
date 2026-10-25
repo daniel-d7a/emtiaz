@@ -9,7 +9,7 @@ type Group = {
   progressPercent: number;
 };
 
-export default function Courses({ onOpen }: { onOpen: (groupId: string) => void }) {
+export default function Courses({ onOpen, onProfile }: { onOpen: (groupId: string) => void; onProfile: () => void }) {
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [joinCode, setJoin] = useState('');
@@ -35,7 +35,10 @@ export default function Courses({ onOpen }: { onOpen: (groupId: string) => void 
 
   return (
     <ScrollView style={s.page}>
-      <Text style={s.h1}>مقرراتي</Text>
+      <View style={s.row}>
+        <Text style={s.h1}>مقرراتي</Text>
+        <Btn label="حسابي" onPress={onProfile} variant="ghost" />
+      </View>
       <Card>
         <View style={s.row}>
           <View style={{ flex: 1, marginRight: 8 }}>

@@ -65,6 +65,12 @@ export class OnboardingController {
     return { user: data.response.user, status: 'ok' };
   }
 
+  @Get('api/me')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  meGet(@Req() req: Request) {
+    return this.onboarding.me(req.user!.id);
+  }
+
   @Patch('api/me')
   @Roles('TEACHER', 'STUDENT', 'ADMIN')
   me(

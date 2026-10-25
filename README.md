@@ -8,7 +8,7 @@ freelance skill instructors (GENERAL). Arabic-first (RTL) with an English switch
 - **API** `backend/` — NestJS + Drizzle ORM + PostgreSQL + Better Auth (cookie sessions), S3-compatible object storage (RustFS in dev, Cloudflare R2 in prod)
 - **App** `frontend/` — React 18 + Vite + Tailwind v4 + TanStack Query
 - **Landing** `landing/` — one static bilingual page (no build step)
-- **Mobile** `mobile/` — Expo / React Native (login, my courses, group curriculum)
+- **Mobile** `mobile/` — Expo / React Native (login, my courses, group curriculum, profile + avatar)
 - **Docs** `docs/adr/` — architecture decision records
 
 ## Local development
@@ -37,6 +37,9 @@ cd backend && npm test    # uses emtiaz-pg-test on port 5434 (see backend/.env)
 cd frontend && npm test
 
 # 4. mobile (Expo Go on a phone on the same LAN)
+#    - install Expo Go, run the app, scan the QR printed by the terminal
+#    - the API URL is derived from Metro's host, so keep the phone and the
+#      machine running the backend on the same Wi-Fi and leave the API on :3000
 cd mobile && npm install && npx expo start
 ```
 

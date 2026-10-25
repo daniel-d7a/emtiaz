@@ -5,11 +5,13 @@ import Courses from './src/Courses';
 import Group from './src/Group';
 import LessonView from './src/Lesson';
 import Login from './src/Login';
+import Profile from './src/Profile';
 import Quiz from './src/Quiz';
 import { Loading, s } from './src/ui';
 
 type Screen =
   | { name: 'courses' }
+  | { name: 'profile' }
   | { name: 'group'; groupId: string }
   | { name: 'lesson'; lessonId: string; groupId: string }
   | { name: 'quiz'; lessonId: string; groupId: string };
@@ -38,6 +40,13 @@ export default function App() {
   }
 
   switch (screen.name) {
+    case 'profile':
+      return (
+        <Profile
+          onBack={() => setScreen({ name: 'courses' })}
+          onLogout={() => setSession(null)}
+        />
+      );
     case 'quiz':
       return <Quiz lessonId={screen.lessonId} groupId={screen.groupId} onBack={(refresh) => setScreen({ name: 'lesson', lessonId: screen.lessonId, groupId: screen.groupId })} />;
     case 'lesson':
@@ -58,6 +67,11 @@ export default function App() {
         />
       );
     default:
-      return <Courses onOpen={(groupId) => setScreen({ name: 'group', groupId })} />;
+      return (
+        <Courses
+          onOpen={(groupId) => setScreen({ name: 'group', groupId })}
+          onProfile={() => setScreen({ name: 'profile' })}
+        />
+      );
   }
 }

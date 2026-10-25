@@ -115,6 +115,12 @@ export class OnboardingService {
     return updated;
   }
 
+  async me(userId: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new NotFoundException('User not found');
+    return { user, avatarUrl: await this.avatarUrl(userId) };
+  }
+
   /** Signed URL for the caller's avatar, or null when unset/unconfigured. */
   async avatarUrl(userId: string): Promise<string | null> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
