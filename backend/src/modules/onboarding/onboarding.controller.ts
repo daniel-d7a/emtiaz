@@ -22,6 +22,7 @@ export class OnboardingController {
   ) {}
 
   /** Authenticated students join a group by code (past signup). */
+  @Roles('STUDENT')
   @Post('api/onboarding/join/:joinCode')
   async join(@Param('joinCode') joinCode: string, @Req() req: Request) {
     // @ts-expect-error user attached by guard
