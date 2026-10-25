@@ -515,6 +515,13 @@ describe('Phase 4: teacher endpoints', () => {
       const denied = await outsider.get(`/api/storage/attachments/${att.body.id}/download`);
       expect(denied.status).toBe(403);
 
+      await testPool.query(
+        `INSERT INTO group_lesson_access (group_id, lesson_id, is_unlocked) VALUES ($1,$2,false),($3,$2,false)`,
+        [world.group1, world.lesson1, world.group2],
+      );
+      const locked = await s.get(`/api/storage/attachments/${att.body.id}/download`);
+      expect(locked.status).toBe(403);
+
       const up2 = await t.post('/api/storage/presigned-upload').send({
         courseId: world.courseId,
         lessonId: world.lesson2,
