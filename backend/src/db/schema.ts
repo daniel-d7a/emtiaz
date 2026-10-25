@@ -370,6 +370,24 @@ export const notificationSettings = pgTable('notification_settings', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const inboxNotifications = pgTable(
+  'inbox_notifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').notNull().default('SYSTEM'),
+    message: text('message').notNull(),
+    readAt: timestamp('read_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('inbox_user_created_idx').on(t.userId, t.createdAt),
+    index('inbox_user_read_idx').on(t.userId, t.readAt),
+  ],
+);
+
 export const notifications = pgTable('notifications', {
   id: uuid('id').defaultRandom().primaryKey(),
   channel: text('channel').notNull().default('whatsapp'), // single channel today; future: email, sms

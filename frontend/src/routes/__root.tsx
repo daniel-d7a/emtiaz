@@ -2,6 +2,7 @@ import { createRootRoute, Link, Outlet, useNavigate } from '@tanstack/react-rout
 import { useQueryClient } from '@tanstack/react-query';
 import { GraduationCap, LogOut } from 'lucide-react';
 import { authApi } from '../lib/api';
+import { NotificationBell } from '../components/NotificationBell';
 import { useLang } from '../lib/i18n';
 import { useSession } from '../lib/session';
 
@@ -28,6 +29,7 @@ function TopBar() {
         {data?.user?.role === 'PARENT' && (
           <Link to="/parent/dashboard" className="rounded-lg px-3 py-2 hover:bg-line/60">{t('myChildren')}</Link>
         )}
+        {data?.user && <NotificationBell />}
         <button
           aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
           onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}

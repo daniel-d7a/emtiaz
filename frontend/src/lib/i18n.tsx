@@ -15,6 +15,7 @@ const dict = {
   name: { ar: 'الاسم الكامل', en: 'Full name' },
   phone: { ar: 'رقم الهاتف', en: 'Phone number' },
   notifications: { ar: 'الإشعارات', en: 'Notifications' },
+  markAllRead: { ar: 'تحديد الكل كمقروء', en: 'Mark all read' },
   whatsapp: { ar: 'واتساب', en: 'WhatsApp' },
   inApp: { ar: 'داخل التطبيق', en: 'In-app' },
   system: { ar: 'النظام', en: 'System' },

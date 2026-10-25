@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { and, asc, eq, ilike } from 'drizzle-orm';
 import { db } from '../../db';
-import { categories, courses, groupStudents, groups, users } from '../../db/schema';
+import { categories, courses, groupStudents, groups, parentStudents, users } from '../../db/schema';
 import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
@@ -56,11 +56,20 @@ export class OnboardingService {
   /** One welcome note per new enrollment; failure never blocks the join. */
   private async notifyEnrolled(studentId: string, groupRow: typeof groups.$inferSelect) {
     const [student] = await db.select().from(users).where(eq(users.id, studentId));
-    await this.notifications.sendWhatsApp(
-      student?.phoneNumber ?? '',
-      `تم تسجيلك في «${groupRow.name}» بنجاح 🎉`,
-      'TEACHER',
-    );
+    const message = `تم تسجيلك في «${groupRow.name}» بنجاح 🎉`;
+    await this.notifications.sendWhatsApp(student?.phoneNumber ?? '', message, 'TEACHER');
+    await this.notifications.sendInApp(studentId, message, 'TEACHER');
+    if (student) {
+      const parents = await db
+        .select({ id: parentStudents.parentId })
+        .from(parentStudents)
+        .where(eq(parentStudents.studentId, studentId));
+      await Promise.all(
+        parents.map((p) =>
+          this.notifications.sendInApp(p.id, `تم تسجيل ${student.name} في «${groupRow.name}»`, 'PARENT'),
+        ),
+      );
+    }
   }
 
   /** Free-text subject from signup/profile forms normalizes into the shared taxonomy (case-insensitive ensure). */

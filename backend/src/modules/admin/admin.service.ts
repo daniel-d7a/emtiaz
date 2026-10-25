@@ -292,10 +292,17 @@ export class AdminService {
       .onConflictDoNothing()
       .returning({ id: groupStudents.id });
     if (added.length) {
-      await this.notifications.sendWhatsApp(
-        user.phoneNumber ?? '',
-        `تم تسجيلك في «${group.name}» بنجاح 🎉`,
-        'ADMIN',
+      const message = `تم تسجيلك في «${group.name}» بنجاح 🎉`;
+      await this.notifications.sendWhatsApp(user.phoneNumber ?? '', message, 'ADMIN');
+      await this.notifications.sendInApp(studentId, message, 'ADMIN');
+      const parents = await db
+        .select({ id: parentStudents.parentId })
+        .from(parentStudents)
+        .where(eq(parentStudents.studentId, studentId));
+      await Promise.all(
+        parents.map((p) =>
+          this.notifications.sendInApp(p.id, `تم تسجيل ${user.name} في «${group.name}»`, 'PARENT'),
+        ),
       );
     }
     return { ok: true };

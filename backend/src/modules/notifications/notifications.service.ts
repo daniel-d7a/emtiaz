@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../../db';
-import { notifications } from '../../db/schema';
+import { inboxNotifications, notifications } from '../../db/schema';
 import { logger } from '../../lib/logger';
 import { WHATSAPP_SENDER, WhatsAppSender } from './whatsapp-sender';
 import { EMAIL_SENDER, EmailSender } from './email-sender';
@@ -36,11 +36,54 @@ export class NotificationsService {
     }
   }
 
+  async sendInApp(userId: string, message: string, type: NotificationType = 'SYSTEM') {
+    if (!userId) return;
+    if (!(await this.enabled('inApp', type))) return;
+    try {
+      await db.insert(inboxNotifications).values({ userId, message, type });
+    } catch (e) {
+      logger.error({ err: e }, 'in-app notification failed');
+    }
+  }
+
+  inbox(userId: string, limit = 30) {
+    return db
+      .select()
+      .from(inboxNotifications)
+      .where(eq(inboxNotifications.userId, userId))
+      .orderBy(desc(inboxNotifications.createdAt))
+      .limit(Math.min(limit, 100));
+  }
+
+  async unreadCount(userId: string) {
+    const [row] = await db
+      .select({ c: count() })
+      .from(inboxNotifications)
+      .where(and(eq(inboxNotifications.userId, userId), isNull(inboxNotifications.readAt)));
+    return { unread: Number(row.c) };
+  }
+
+  async markRead(userId: string, id: string) {
+    await db
+      .update(inboxNotifications)
+      .set({ readAt: new Date() })
+      .where(and(eq(inboxNotifications.id, id), eq(inboxNotifications.userId, userId)));
+    return { ok: true };
+  }
+
+  async markAllRead(userId: string) {
+    await db
+      .update(inboxNotifications)
+      .set({ readAt: new Date() })
+      .where(and(eq(inboxNotifications.userId, userId), isNull(inboxNotifications.readAt)));
+    return { ok: true };
+  }
+
   recent(limit = 50) {
     return db.select().from(notifications).orderBy(desc(notifications.createdAt)).limit(Math.min(limit, 200));
   }
 
-  private async enabled(channel: 'whatsapp' | 'email', type: NotificationType) {
+  private async enabled(channel: 'whatsapp' | 'email' | 'inApp', type: NotificationType) {
     try {
       return await this.settings.isEnabled(channel, type);
     } catch (e) {
