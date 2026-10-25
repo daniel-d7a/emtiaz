@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
@@ -14,6 +14,8 @@ type Roster = {
 export default function TeacherGroup({ groupId, onBack }: { groupId: string; onBack: () => void }) {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const [announceMsg, setAnnounceMsg] = useState('');
   const pacing = useQuery({
     queryKey: ['teacher-pacing', groupId],
     queryFn: () => api<Pacing>(`/api/teacher/groups/${groupId}/pacing`),
@@ -35,7 +37,18 @@ export default function TeacherGroup({ groupId, onBack }: { groupId: string; onB
     },
   });
 
-  const error = pacing.error ?? roster.error ?? toggle.error;
+  const announce = useMutation({
+    mutationFn: () =>
+      api<{ sent: number }>(`/api/teacher/groups/${groupId}/announce`, {
+        method: 'POST',
+        body: { message: announcement },
+      }),
+    onSuccess: (res) => {
+      setAnnouncement('');
+      setAnnounceMsg(`تم إرسال الإعلان إلى ${res.sent}`);
+    },
+  });
+  const error = pacing.error ?? roster.error ?? toggle.error ?? announce.error;
   if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع" onPress={onBack} variant="ghost" /></View>;
   if (!pacing.data) return <Loading />;
 
@@ -43,6 +56,18 @@ export default function TeacherGroup({ groupId, onBack }: { groupId: string; onB
     <ScrollView style={s.page}>
       <Text style={s.h1}>{pacing.data.group.name}</Text>
       <Text style={{ color: '#78716C', marginBottom: 12 }}>رمز المجموعة: {pacing.data.group.joinCode}</Text>
+      <Card>
+        <Text style={s.h2}>إعلان للمجموعة</Text>
+        <TextInput
+          value={announcement}
+          onChangeText={(v) => { setAnnouncement(v); setAnnounceMsg(''); }}
+          placeholder="اكتب رسالة للطلاب..."
+          multiline
+          style={{ borderWidth: 1, borderColor: '#E7E5E4', borderRadius: 8, padding: 10, marginTop: 8, minHeight: 72 }}
+        />
+        {announceMsg ? <Text style={{ color: '#0F766E', marginTop: 6 }}>{announceMsg}</Text> : null}
+        <Btn label="إرسال" onPress={() => announce.mutate()} variant="ghost" />
+      </Card>
       <Card>
         <Text style={s.h2}>فتح الدروس</Text>
         {pacing.data.lessons.length === 0 && <Empty text="لا توجد دروس بعد" />}
