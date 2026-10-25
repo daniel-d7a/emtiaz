@@ -27,7 +27,7 @@ export default function TeacherLanding() {
       <Card>
         <div className="flex items-center gap-4">
           {data.teacher.avatar ? (
-            <img src={data.teacher.avatar} alt="" className="h-20 w-20 rounded-full border border-line object-cover" />
+            <img src={`/api/public/teachers/${slug}/avatar`} alt="" className="h-20 w-20 rounded-full border border-line object-cover" />
           ) : (
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
               {data.teacher.name.slice(0, 1)}

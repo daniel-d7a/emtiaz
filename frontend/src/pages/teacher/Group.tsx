@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Lock, MessageCircle, Plus, Trash2, Unlock } from 'lucide-react';
+import { Copy, Download, Lock, MessageCircle, Plus, Trash2, Unlock } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
+import { toCsv } from '../../lib/csv';
 
 type Pacing = {
   group: { id: string; name: string; joinCode: string; unlockAllByDefault: boolean };
@@ -112,6 +113,32 @@ export function GradebookTab({ groupId }: { groupId: string }) {
     queryFn: () => api<Gradebook>(`/api/teacher/groups/${groupId}/gradebook`),
   });
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['gradebook', groupId] });
+  const exportCsv = () => {
+    if (!data) return;
+    const cell = (studentId: string, columnId: string, quiz: boolean) =>
+      quiz
+        ? data.quizCells[`${studentId}:${columnId}`] ?? ''
+        : data.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? '';
+    const rows: unknown[][] = [
+      [
+        'Student',
+        ...data.quizColumns.map((c) => `${c.lessonTitle} (/${c.maxScore})`),
+        ...data.manualColumns.map((c) => `${c.title}${c.maxScore ? ` (/${c.maxScore})` : ''}`),
+      ],
+      ...data.students.map((s) => [
+        s.name,
+        ...data.quizColumns.map((c) => cell(s.id, c.quizId, true)),
+        ...data.manualColumns.map((c) => cell(s.id, c.id, false)),
+      ]),
+    ];
+    const blob = new Blob([`\uFEFF${toCsv(rows)}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gradebook-${data.group.name}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const [colTitle, setColTitle] = useState('');
   const addCol = useMutation({
     mutationFn: () => api(`/api/teacher/groups/${groupId}/gradebook/columns`, { body: { title: colTitle } }),
@@ -192,6 +219,9 @@ export function GradebookTab({ groupId }: { groupId: string }) {
           </div>
           <Button onClick={() => addCol.mutate()} disabled={!colTitle}>
             <Plus className="inline" size={16} /> {t('add')}
+          </Button>
+          <Button variant="ghost" onClick={exportCsv}>
+            <Download className="inline" size={16} /> {t('exportCsv')}
           </Button>
         </div>
         {addCol.error && <ErrorBox error={addCol.error} />}

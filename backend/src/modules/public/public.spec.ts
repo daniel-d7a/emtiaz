@@ -33,6 +33,8 @@ describe('public teacher landing', () => {
     expect(page.body.teacher.email).toBeUndefined();
     expect(page.body.courses.map((c: any) => c.title)).toContain('Physics 10');
 
+    expect((await request(server).get('/api/public/teachers/salim-physics/avatar')).status).toBe(404);
+
     const hidden = await teacher.patch('/api/me').send({ landingPublished: false });
     expect(hidden.status).toBe(200);
     expect((await request(server).get('/api/public/teachers/salim-physics')).status).toBe(404);

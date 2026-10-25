@@ -67,6 +67,7 @@ const dict = {
   quiz: { ar: 'اختبار قصير', en: 'Quiz' },
   submit: { ar: 'إرسال', en: 'Submit' },
   retry: { ar: 'إعادة المحاولة', en: 'Retry' },
+  exportCsv: { ar: 'تصدير CSV', en: 'Export CSV' },
   yourScore: { ar: 'نتيجتك', en: 'Your score' },
   markComplete: { ar: 'إتمام الدرس', en: 'Mark as complete' },
   completed: { ar: 'تم', en: 'Completed' },
