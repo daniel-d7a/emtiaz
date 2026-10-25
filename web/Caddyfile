@@ -1,8 +1,18 @@
 :80 {
 	encode gzip zstd
 
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
 	handle /api/* {
-		reverse_proxy api:3000
+		reverse_proxy api:3000 {
+			# Preserve an upstream request id; the API mints one when empty.
+			header_up X-Request-Id {http.request.header.X-Request-Id}
+		}
 	}
 
 	handle {
