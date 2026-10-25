@@ -10,7 +10,7 @@ type Me = {
   avatarUrl: string | null;
 };
 
-export default function Profile({ onBack, onLogout }: { onBack: () => void; onLogout: () => void }) {
+export default function Profile({ onBack, onLogout, onNotifications }: { onBack: () => void; onLogout: () => void; onNotifications?: () => void }) {
   const qc = useQueryClient();
   const [version, setVersion] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -100,6 +100,7 @@ export default function Profile({ onBack, onLogout }: { onBack: () => void; onLo
         {saved && <Text style={{ color: c.primary, marginBottom: 8 }}>تم الحفظ ✓</Text>}
         {error && <ErrorBox error={error} />}
         <Btn label={save.isPending ? '…' : 'حفظ'} onPress={() => save.mutate()} disabled={busy || !name.trim()} />
+        {onNotifications && <Btn label="الإشعارات" onPress={onNotifications} variant="ghost" />}
         <Btn label="رجوع" onPress={onBack} variant="ghost" />
         <Btn label="تسجيل الخروج" onPress={async () => { await authApi.logout(); qc.clear(); onLogout(); }} variant="ghost" />
       </Card>

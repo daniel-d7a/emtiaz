@@ -20,7 +20,7 @@ type Grades = {
   manual: Array<{ columnId: string; title: string; maxScore: number; score: number | null; note: string | null }>;
 };
 
-export default function ParentHome({ onLogout }: { onLogout: () => void }) {
+export default function ParentHome({ onLogout, onNotifications }: { onLogout: () => void; onNotifications: () => void }) {
   const qc = useQueryClient();
   const [code, setCode] = useState('');
   const [open, setOpen] = useState<string | null>(null);
@@ -45,15 +45,18 @@ export default function ParentHome({ onLogout }: { onLogout: () => void }) {
     <ScrollView style={s.page}>
       <View style={s.row}>
         <Text style={s.h1}>أبنائي</Text>
-        <Btn
-          label="خروج"
-          variant="ghost"
-          onPress={async () => {
-            await authApi.logout();
-            qc.clear();
-            onLogout();
-          }}
-        />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Btn label="الإشعارات" variant="ghost" onPress={onNotifications} />
+          <Btn
+            label="خروج"
+            variant="ghost"
+            onPress={async () => {
+              await authApi.logout();
+              qc.clear();
+              onLogout();
+            }}
+          />
+        </View>
       </View>
       <Card>
         <Field label="رمز الطالب" value={code} onChange={setCode} />

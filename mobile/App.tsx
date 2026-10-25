@@ -5,6 +5,7 @@ import { authApi } from './src/api';
 import Courses from './src/screens/Courses';
 import Group from './src/screens/Group';
 import LessonView from './src/screens/Lesson';
+import Notifications from './src/screens/Notifications';
 import Login from './src/screens/Login';
 import ParentHome from './src/screens/ParentHome';
 import Profile from './src/screens/Profile';
@@ -17,6 +18,7 @@ import { queryClient } from './src/query';
 type Screen =
   | { name: 'courses' }
   | { name: 'profile' }
+  | { name: 'notifications' }
   | { name: 'teacher-group'; groupId: string }
   | { name: 'group'; groupId: string }
   | { name: 'lesson'; lessonId: string; groupId: string }
@@ -45,13 +47,28 @@ function Root() {
     );
   }
 
+  if (screen.name === 'notifications') {
+    return <Notifications onBack={() => setScreen({ name: 'courses' })} />;
+  }
+
   if (session.user.role === 'PARENT') {
-    return <ParentHome onLogout={() => setSession(null)} />;
+    return (
+      <ParentHome
+        onLogout={() => setSession(null)}
+        onNotifications={() => setScreen({ name: 'notifications' })}
+      />
+    );
   }
 
   if (session.user.role === 'TEACHER') {
     if (screen.name === 'profile') {
-      return <Profile onBack={() => setScreen({ name: 'courses' })} onLogout={() => setSession(null)} />;
+      return (
+        <Profile
+          onBack={() => setScreen({ name: 'courses' })}
+          onLogout={() => setSession(null)}
+          onNotifications={() => setScreen({ name: 'notifications' })}
+        />
+      );
     }
     if (screen.name === 'teacher-group') {
       return (
@@ -72,6 +89,7 @@ function Root() {
         <Profile
           onBack={() => setScreen({ name: 'courses' })}
           onLogout={() => setSession(null)}
+          onNotifications={() => setScreen({ name: 'notifications' })}
         />
       );
     case 'quiz':
