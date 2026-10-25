@@ -31,6 +31,16 @@ describe('Phase 2: auth & onboarding', () => {
     expect(res.body.ok).toBe(true);
   });
 
+  it('serves the OpenAPI contract outside production', async () => {
+    const res = await request(server).get('/api/docs-json');
+    expect(res.status).toBe(200);
+    expect(res.body.info.title).toBe('Emtiaz LMS API');
+    expect(Object.keys(res.body.paths).length).toBeGreaterThan(10);
+    const ui = await request(server).get('/api/docs');
+    expect(ui.status).toBe(200);
+    expect(ui.headers['content-type']).toContain('text/html');
+  });
+
   it('blocks protected endpoints without session', async () => {
     const res = await request(server).post('/api/onboarding/join/OM999999');
     expect(res.status).toBe(403);

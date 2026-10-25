@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger, requestId } from './lib/logger';
 import { LoginLockout, loginLockoutMiddleware } from './auth/login-lockout';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 export async function createApp(): Promise<INestApplication> {
   const app = await NestFactory.create(
@@ -18,7 +19,16 @@ export async function createApp(): Promise<INestApplication> {
   );
   app.getHttpAdapter().getInstance().set('trust proxy', 1); // correct client IPs behind Caddy/nginx
   app.use(pinoHttp({ logger, genReqId: requestId }));
-  app.use(helmet());
+  const docsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === '1';
+  app.use(
+    docsEnabled
+      ? helmet({
+          contentSecurityPolicy: {
+            directives: { 'script-src': ["'self'", "'unsafe-inline'"], 'style-src': ["'self'", "'unsafe-inline'"] },
+          },
+        })
+      : helmet(),
+  );
   app.enableCors({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
     credentials: true,
@@ -26,6 +36,15 @@ export async function createApp(): Promise<INestApplication> {
   app.use(json({ limit: '2mb' }), urlencoded({ extended: true }));
   app.enableShutdownHooks();
   app.use('/api/auth', toNodeHandler(auth.handler));
+  if (docsEnabled) {
+    const config = new DocumentBuilder()
+      .setTitle('Emtiaz LMS API')
+      .setDescription('Contract for the web and mobile clients')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
+  }
   await app.init();
   return app;
 }

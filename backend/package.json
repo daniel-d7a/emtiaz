@@ -20,6 +20,7 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/swagger": "^11.4.7",
     "@nestjs/throttler": "^6.7.1",
     "better-auth": "^1.2.12",
     "dotenv": "^17.2.0",

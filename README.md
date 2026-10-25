@@ -32,6 +32,8 @@ cd backend && npm install && npm run db:migrate && npm run db:seed && npm run st
 cd frontend && npm install && npm run dev
 # → http://localhost:5173
 
+# API docs (Swagger UI) are served at /api/docs outside production; set ENABLE_API_DOCS=1 to expose in production
+
 # tests
 cd backend && npm test    # uses emtiaz-pg-test on port 5434 (see backend/.env)
 cd frontend && npm test
