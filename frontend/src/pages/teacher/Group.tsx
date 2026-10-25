@@ -286,6 +286,19 @@ export function RosterTab({ groupId }: { groupId: string }) {
   const inviteUrl = `https://wa.me/?text=${encodeURIComponent(
     'Join my class on Emtiaz! Code: ' + data.group.joinCode + '\n' + window.location.origin + '/join/' + data.group.joinCode,
   )}`;
+  const exportRoster = () => {
+    const rows = [
+      ['Student', 'Phone', 'Joined'],
+      ...data.students.map((s) => [s.name, s.phoneNumber ?? '', s.joinedAt.slice(0, 10)]),
+    ];
+    const blob = new Blob([`\uFEFF${toCsv(rows)}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `roster-${data.group.name}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -298,6 +311,9 @@ export function RosterTab({ groupId }: { groupId: string }) {
             <a href={inviteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-semibold text-primary" onClick={(e) => e.stopPropagation()}>
               <MessageCircle size={14} /> WhatsApp
             </a>
+            <button onClick={exportRoster} className="flex items-center gap-1 font-semibold text-primary" aria-label={t('download')}>
+              <Download size={14} /> CSV
+            </button>
           </div>
         </div>
         <p className="mt-2 text-sm text-ink-soft">{t('oneStepJoin')}</p>
