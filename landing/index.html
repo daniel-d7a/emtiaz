@@ -4,165 +4,336 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>امتياز — منصة تعلّم بسيطة للمعلمين والطلبة في سلطنة عُمان</title>
-  <meta name="description" content="امتياز: منصة إدارة تعلّم بسيطة للمجموعات — مدرسة سلطنة عُمانية ومهارات عامة. صفحة مقرر، دروس مقفلة/مفتوحة، اختبارات قصيرة، وسجل درجات." />
+  <meta name="description" content="امتياز: منصة إدارة تعلّم بسيطة للمجموعات — مقررات، دروس مقفلة/مفتوحة، اختبارات تُصحّح آليًا، وسجل درجات. مصممة للمعلمين في سلطنة عُمان." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --primary: #0F766E; --primary-light: #CCFBF1; --primary-dark: #134E4A;
-      --secondary: #EA580C; --secondary-light: #FFEDD5;
-      --background: #FAF8F5; --card: #FFFFFF; --line: #E7E5E4;
-      --ink: #1C1917; --ink-soft: #78716C;
-    }
-    * { box-sizing: border-box; margin: 0; }
-    body {
-      font-family: 'Cairo', 'DM Sans', sans-serif;
-      background: var(--background); color: var(--ink); line-height: 1.6;
-    }
-    html[lang="en"] { direction: ltr; font-family: 'DM Sans', 'Cairo', sans-serif; }
-    a { color: var(--primary); text-decoration: none; }
-    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
-    .logo { font-weight: 700; font-size: 22px; color: var(--primary-dark); }
-    .logo span { color: var(--secondary); }
-    .langbtn, .btn {
-      font-family: inherit; cursor: pointer; border: 1px solid var(--line);
-      background: var(--card); color: var(--ink); border-radius: 12px; padding: 10px 18px;
-      font-weight: 600; font-size: 15px;
-    }
-    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-dark); }
-    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
-    .hero { padding: 72px 0 56px; text-align: center; }
-    .hero h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; max-width: 720px; margin: 0 auto 16px; }
-    .hero h1 em { font-style: normal; color: var(--primary); }
-    .hero p { color: var(--ink-soft); font-size: 18px; max-width: 620px; margin: 0 auto 28px; }
-    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; padding: 32px 0 64px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
-    .card h3 { font-size: 17px; margin-bottom: 6px; }
-    .card h3 b { color: var(--primary); }
-    .card p { color: var(--ink-soft); font-size: 14.5px; }
-    .join { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 40px 24px; text-align: center; margin-bottom: 72px; }
-    .steps { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
-    .step { background: var(--background); border-radius: 12px; padding: 14px 18px; font-size: 15px; font-weight: 600; }
-    .step .n { color: var(--secondary); font-weight: 700; }
-    footer { border-top: 1px solid var(--line); padding: 28px 0 64px; text-align: center; color: var(--ink-soft); font-size: 14px; }
-  </style>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <nav class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="./" data-t="logo">امتياز<span>.</span></a>
+      <div class="nav-links">
+        <a class="navlink" href="#features" data-t="nav_features">المزايا</a>
+        <a class="navlink" href="#reviews" data-t="nav_reviews">آراء</a>
+        <a class="navlink" href="#parents" data-t="nav_parents">لأولياء الأمور</a>
+        <a class="navlink" href="#pricing" data-t="nav_pricing">الأسعار</a>
+        <a class="navlink" href="./teachers" data-t="nav_teachers">للمعلمين</a>
+        <button class="btn langbtn" id="lang" onclick="toggleLang()">English</button>
+        <a class="btn btn-outline" id="cta-login" data-t="cta_login">تسجيل الدخول</a>
+        <a class="btn btn-primary" id="cta-register" data-t="cta_register">ابدأ مجانًا</a>
+      </div>
+    </div>
+  </nav>
+
   <div class="wrap">
-    <header>
-      <div class="logo" data-t="logo">امتياز<span>.</span></div>
-      <button class="langbtn" id="lang" onclick="toggleLang()" data-t2="en">English</button>
-    </header>
-
     <section class="hero">
-      <h1 data-t="h1">
-        منصة تعلّم بسيطة <em>للمعلمين</em> وطلبة سلطنة عُمان
-      </h1>
-      <p data-t="hero_p">
-        أنشئ مجموعة دراسية، شارك رمزها عبر واتساب، وتحكّم فيما يفتحه طلابك — دروس، ملفات، واختبارات قصيرة تُصحّح آليًا، وسجل درجات جاهز.
-      </p>
-      <div class="cta">
-        <a class="btn btn-primary" id="cta-login" data-t="cta_login">تسجيل الدخول</a>
-        <a class="btn btn-outline" id="cta-register" data-t="cta_register">إنشاء حساب مجانًا</a>
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow" data-t="hero_badge">منصة تعلّم عُمانية · سلطنة عُمان</span>
+          <h1 data-t="h1">علّم مجموعاتك. <em>صحّح آليًا.</em> استعد وقتك.</h1>
+          <p class="lead" data-t="hero_p">
+            أنشئ مجموعة، شارك رمزها على واتساب، وتحكّم فيما يفتحه طلابك — دروس وملفات واختبارات تُصحّح لحظيًا، وسجل درجات جاهز. بلا تعقيد.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary btn-lg" id="cta-hero" data-t="cta_hero">ابدأ مجانًا الآن</a>
+            <a class="btn btn-outline btn-lg" href="#how" data-t="cta_how">شاهد كيف تعمل</a>
+          </div>
+          <p class="cta-note" data-t="hero_note">مجاني خلال فترة الإطلاق · لا تحتاج بطاقة بنكية</p>
+          <div class="stats">
+            <div class="stat"><b data-t="stat1_b">3</b><span data-t="stat1">خطوات للانضمام</span></div>
+            <div class="stat"><b data-t="stat2_b">فوري</b><span data-t="stat2">تصحيح الاختبارات</span></div>
+            <div class="stat"><b data-t="stat3_b">عربي</b><span data-t="stat3">واجهة RTL كاملة</span></div>
+          </div>
+        </div>
+        <div class="mock reveal" aria-hidden="true">
+          <div class="mock-head">
+            <span class="mock-title" data-t="mock_title">الفيزياء — الصف العاشر</span>
+            <span class="pill" data-t="mock_pill">المجموعة أ</span>
+          </div>
+          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="mock_l1">مقدمة في الحركة</span><span class="meta">✓</span></div>
+          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="mock_l2">قوانين نيوتن</span><span class="meta" data-t="mock_quiz">اختبار</span></div>
+          <div class="lesson-row"><i class="dot locked"></i><span class="grow" data-t="mock_l3">الشغل والطاقة</span><span class="meta">🔒</span></div>
+          <div class="lesson-row"><i class="dot locked"></i><span class="grow" data-t="mock_l4">الزخم</span><span class="meta">🔒</span></div>
+          <p class="meta" style="margin-top:14px" data-t="mock_progress">تقدّم المجموعة · 42%</p>
+          <div class="bar"><i style="width:42%"></i></div>
+        </div>
       </div>
     </section>
 
-    <section class="features" id="feat"></section>
+    <section id="features">
+      <div class="center">
+        <span class="eyebrow" data-t="feat_badge">كل ما تحتاجه في مكان واحد</span>
+        <h2 data-t="feat_h">مبنية حول طريقة تدريسك، لا العكس</h2>
+        <p class="lead" data-t="feat_p">أدوات صغيرة ومترابطة تُنجز العمل اليومي — من فتح الدرس إلى تصحيح الاختبار وتسجيل الدرجة.</p>
+      </div>
+      <div class="grid grid-3" id="features-grid" style="margin-top:38px"></div>
+    </section>
 
-    <section class="join">
-      <h2 data-t="join_h">طريقة الدخول بمجموعتك في 3 خطوات</h2>
+    <section id="how">
+      <div class="center">
+        <span class="eyebrow" data-t="how_badge">بسيطة من أول يوم</span>
+        <h2 data-t="how_h">مجموعتك جاهزة في 3 خطوات</h2>
+      </div>
       <div class="steps">
-        <div class="step"><span class="n">1 — </span><span data-t="step1">تسجل المعلم ويُنشئ المجموعة</span></div>
-        <div class="step"><span class="n">2 — </span><span data-t="step2">يرسل رمز الدعوة واتساب</span></div>
-        <div class="step"><span class="n">3 — </span><span data-t="step3">الطالب ينضم خطوة واحدة</span></div>
+        <div class="step reveal"><span class="n">1</span><h3 data-t="step1_h">أنشئ المجموعة</h3><p data-t="step1_p">اختر المقرر والصف أو المهارة، واحصل على رمز دعوة تلقائي.</p></div>
+        <div class="step reveal"><span class="n">2</span><h3 data-t="step2_h">شارك الرمز</h3><p data-t="step2_p">أرسله على واتساب — الطالب ينضم في خطوة واحدة دون تنزيل تطبيق.</p></div>
+        <div class="step reveal"><span class="n">3</span><h3 data-t="step3_h">افتح الدرس وابدأ</h3><p data-t="step3_p">تحكّم في الإيقاع، أرفق الملفات، وأطلق الاختبارات القصيرة.</p></div>
       </div>
     </section>
 
-    <footer>
-      <div data-t="footer">امتياز — مبني ببساطة للمعلمين في سلطنة عُمان.</div>
-    </footer>
+    <section class="reviews" id="reviews">
+      <div class="center">
+        <span class="eyebrow" data-t="rev_badge">آراء تجريبية</span>
+        <h2 data-t="rev_h">ماذا يقول الطلاب والمعلمون؟</h2>
+        <p class="lead" data-t="rev_p">نماذج توضيحية لآراء مستخدمين — قصص حقيقية ستأتي مع الإطلاق.</p>
+      </div>
+      <div class="grid grid-3" id="reviews-grid" style="margin-top:38px"></div>
+    </section>
+
+    <section id="parents">
+      <div class="parents-grid">
+        <div>
+          <span class="eyebrow" data-t="par_badge">لأولياء الأمور</span>
+          <h2 data-t="par_h">اطمئن على تقدّم ابنك دون مطاردة</h2>
+          <p class="lead" data-t="par_p">المعلومة نفسها التي يراها المعلم — شفافية كاملة بدل “ما عندي واجب”.</p>
+          <ul class="parents-list">
+            <li><span class="check">✓</span><span data-t="par_1">تقدّم كل مجموعة: كم درسًا أُنجز وكم تبقّى</span></li>
+            <li><span class="check">✓</span><span data-t="par_2">أفضل درجة لكل اختبار، مع المحاولات السابقة</span></li>
+            <li><span class="check">✓</span><span data-t="par_3">درجات المشاركة والواجبات التي يسجلها المعلم</span></li>
+            <li><span class="check">✓</span><span data-t="par_4">ملفات ودروس متاحة في أي وقت — دون مجموعات واتساب فوضوية</span></li>
+          </ul>
+        </div>
+        <div class="phone reveal">
+          <p class="phone-head" data-t="phone_head">متابعة الطالب · أحمد</p>
+          <div class="phone-row"><span data-t="phone_1">الفيزياء · المجموعة أ</span><b>42%</b></div>
+          <div class="phone-row"><span data-t="phone_2">آخر اختبار: الحركة</span><b>8 / 10</b></div>
+          <div class="phone-row"><span data-t="phone_3">الواجب العملي</span><b>7 / 10</b></div>
+          <div class="phone-row"><span data-t="phone_4">الدروس المفتوحة</span><b>2 / 9</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+      <div class="wrap" style="padding:0">
+        <div class="center">
+          <span class="eyebrow" data-t="pri_badge">أسعار واضحة</span>
+          <h2 style="color:#fff" data-t="pri_h">خطط بسيطة، بلا مفاجآت</h2>
+          <p class="lead" data-t="pri_p">أسعار الإطلاق — مجانية اليوم، والدفع يبدأ لاحقًا. الأسعار بالريال العُماني شهريًا.</p>
+        </div>
+        <div class="plans" id="plans"></div>
+        <div class="bundle">
+          <p><b data-t="bundle_h">عرض الأشقاء:</b> <span data-t="bundle_p">أضف أخًا أو أختًا إلى أي خطة طالب مقابل 1 ر.ع فقط شهريًا لكل طالب إضافي (حتى 4 طلاب).</span></p>
+          <a class="btn btn-secondary" id="cta-bundle" data-t="bundle_cta">سجّل اهتمامك</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="card">
+        <h2 data-t="final_h">جاهز تبدأ مجموعتك الأولى؟</h2>
+        <p class="lead" style="margin:0 auto 22px" data-t="final_p">سجّل في دقيقة، أنشئ المجموعة، وشارك الرمز. الباقي علينا.</p>
+        <div class="cta" style="justify-content:center">
+          <a class="btn btn-primary btn-lg" id="cta-final" data-t="final_cta">أنشئ حساب المعلم</a>
+          <a class="btn btn-outline btn-lg" href="./teachers" data-t="final_teachers">صفحة المعلمين</a>
+        </div>
+      </div>
+    </section>
   </div>
 
+  <footer>
+    <div class="wrap footer-inner">
+      <div data-t="footer">امتياز — مبني ببساطة للمعلمين في سلطنة عُمان.</div>
+      <div class="footer-links">
+        <a href="#features" data-t="nav_features">المزايا</a>
+        <a href="#pricing" data-t="nav_pricing">الأسعار</a>
+        <a href="./teachers" data-t="nav_teachers">للمعلمين</a>
+        <a id="cta-foot" data-t="cta_login">تسجيل الدخول</a>
+      </div>
+    </div>
+  </footer>
+
   <script>
-    const APP_URL = 'http://localhost:5173'; // change to https://app.emtiaz.om in prod
+    const APP_URL = 'http://localhost:5173'; // prod: https://app.emtiaz.om
+    for (const id of ['cta-login', 'cta-foot']) document.getElementById(id).href = APP_URL + '/login';
+    for (const id of ['cta-hero', 'cta-final']) document.getElementById(id).href = APP_URL + '/register/teacher';
+    document.getElementById('cta-register').href = APP_URL + '/register/teacher';
+    document.getElementById('cta-bundle').href = APP_URL + '/register/student';
 
-    document.getElementById('cta-login').href = APP_URL + '/login';
-    document.getElementById('cta-register').href = APP_URL + '/register';
-
-    const dict = {
-      logo: { ar: 'امتياز<span>.</span>', en: 'Emtiaz<span>.</span>' },
-      h1: {
-        ar: 'منصة تعلّم بسيطة <em>للمعلمين</em> وطلبة سلطنة عُمان',
-        en: 'A simple LMS <em>for teachers</em> and students in the Sultanate of Oman',
-      },
-      hero_p: {
-        ar: 'أنشئ مجموعة دراسية، شارك رمزها عبر واتساب، وتحكّم فيما يفتحه طلابك — دروس، ملفات، واختبارات قصيرة تُصحّح آليًا، وسجل درجات جاهز.',
-        en: 'Create a study group, share its code on WhatsApp, and control exactly what your students unlock — lessons, files, auto-graded quizzes, and a ready gradebook.',
-      },
-      cta_login: { ar: 'تسجيل الدخول', en: 'Log in' },
-      cta_register: { ar: 'إنشاء حساب مجانًا', en: 'Create free account' },
-      join_h: { ar: 'طريقة الدخول بمجموعتك في 3 خطوات', en: 'Join your group in 3 steps' },
-      step1: { ar: 'تسجل المعلم ويُنشئ المجموعة', en: 'Teacher signs up and creates a group' },
-      step2: { ar: 'يرسل رمز الدعوة واتساب', en: 'Teacher shares the invite code on WhatsApp' },
-      step3: { ar: 'الطالب ينضم خطوة واحدة', en: 'Student joins in one step' },
-      footer: { ar: 'امتياز — مبني ببساطة للمعلمين في سلطنة عُمان.', en: 'Emtiaz — built simply for teachers in the Sultanate of Oman.' },
-      langbtn: { ar: 'العربية / English', en: 'العربية / English' },
+    const icons = {
+      book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+      unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+      grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+      file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      whatsapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.8 7.4L3 21l2.1-5.2A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 9.5c.5 2.5 2.5 4.5 5 5l1.5-1.5 2 1.5"/></svg>',
+      globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>',
+      eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     };
 
-    const feats = [
-      {
-        h: { ar: 'مقررات مدرسية أو مهارات', en: 'School curriculum or skills' },
-        p: { ar: 'صنّف مقررك: منهج مدرسي للصف أو مهارة عامة — النظام يرتب الدروس والوحدات.', en: 'Tag your course: a school-curriculum grade or a general skill — lessons and modules stay organized.' },
-      },
-      {
-        h: { ar: 'فتح الدروس بضغطة', en: 'Unlock lessons with one tap' },
-        p: { ar: 'افتح درسًا واحدًا أو الكل، لكل مجموعة على حدة — إيقاع يناسبك ويناسبهم.', en: 'Unlock one lesson or all, per group — a pacing rhythm that suits you and them.' },
-      },
-      {
-        h: { ar: 'اختبارات تُصحّح نفسها', en: 'Quizzes that grade themselves' },
-        p: { ar: 'اختبارات اختيار متعدد / صح-خطأ / إجابة قصيرة تُصحّح لحظيًا مع تغذية راجعة.', en: 'MCQ, true/false, and short-answer quizzes graded instantly with feedback.' },
-      },
-      {
-        h: { ar: 'سجل درجات جاهز', en: 'A ready gradebook' },
-        p: { ar: 'أفضل محاولة لكل اختبار تلقائيًا، وأعمدة درجات يدوية كما تحتاج.', en: 'Best attempt per quiz automatically, plus manual grade columns as needed.' },
-      },
-      {
-        h: { ar: 'ملفات ومرفقات', en: 'Files and attachments' },
-        p: { ar: 'ارفع PDF أو صور أو ملفات إلى أي درس — وتنزيل بضغطة للطلاب.', en: 'Upload PDFs, images, or files to any lesson — one-tap download for students.' },
-      },
-      {
-        h: { ar: 'مصمم بالعربية أولًا', en: 'Arabic-first by design' },
-        p: { ar: 'واجهة RTL كاملة بخطوط عربية، وتبديل إنجليزي بنقرة واحدة.', en: 'Full RTL interface in Arabic fonts, with one-tap English switch.' },
-      },
+    const dir = { ar: 'rtl', en: 'ltr' };
+    const dict = {
+      logo: { ar: 'امتياز<span>.</span>', en: 'Emtiaz<span>.</span>' },
+      nav_features: { ar: 'المزايا', en: 'Features' },
+      nav_reviews: { ar: 'آراء', en: 'Reviews' },
+      nav_parents: { ar: 'لأولياء الأمور', en: 'For parents' },
+      nav_pricing: { ar: 'الأسعار', en: 'Pricing' },
+      nav_teachers: { ar: 'للمعلمين', en: 'For teachers' },
+      cta_login: { ar: 'تسجيل الدخول', en: 'Log in' },
+      cta_register: { ar: 'ابدأ مجانًا', en: 'Start free' },
+      hero_badge: { ar: 'منصة تعلّم عُمانية · سلطنة عُمان', en: 'Omani learning platform · Sultanate of Oman' },
+      h1: { ar: 'علّم مجموعاتك. <em>صحّح آليًا.</em> استعد وقتك.', en: 'Teach your groups. <em>Grade automatically.</em> Reclaim your time.' },
+      hero_p: { ar: 'أنشئ مجموعة، شارك رمزها على واتساب، وتحكّم فيما يفتحه طلابك — دروس وملفات واختبارات تُصحّح لحظيًا، وسجل درجات جاهز. بلا تعقيد.', en: 'Create a group, share its code on WhatsApp, and control what your students unlock — lessons, files, instantly graded quizzes, and a ready gradebook. No complexity.' },
+      cta_hero: { ar: 'ابدأ مجانًا الآن', en: 'Start free today' },
+      cta_how: { ar: 'شاهد كيف تعمل', en: 'See how it works' },
+      hero_note: { ar: 'مجاني خلال فترة الإطلاق · لا تحتاج بطاقة بنكية', en: 'Free during launch · no card required' },
+      stat1_b: { ar: '3', en: '3' },
+      stat1: { ar: 'خطوات للانضمام', en: 'steps to join' },
+      stat2_b: { ar: 'فوري', en: 'Instant' },
+      stat2: { ar: 'تصحيح الاختبارات', en: 'quiz grading' },
+      stat3_b: { ar: 'عربي', en: 'Arabic' },
+      stat3: { ar: 'واجهة RTL كاملة', en: 'full RTL interface' },
+      mock_title: { ar: 'الفيزياء — الصف العاشر', en: 'Physics — Grade 10' },
+      mock_pill: { ar: 'المجموعة أ', en: 'Group A' },
+      mock_l1: { ar: 'مقدمة في الحركة', en: 'Introduction to motion' },
+      mock_l2: { ar: 'قوانين نيوتن', en: "Newton's laws" },
+      mock_l3: { ar: 'الشغل والطاقة', en: 'Work and energy' },
+      mock_l4: { ar: 'الزخم', en: 'Momentum' },
+      mock_quiz: { ar: 'اختبار', en: 'quiz' },
+      mock_progress: { ar: 'تقدّم المجموعة · 42%', en: 'Group progress · 42%' },
+      feat_badge: { ar: 'كل ما تحتاجه في مكان واحد', en: 'Everything in one place' },
+      feat_h: { ar: 'مبنية حول طريقة تدريسك، لا العكس', en: 'Built around how you teach, not the other way round' },
+      feat_p: { ar: 'أدوات صغيرة ومترابطة تُنجز العمل اليومي — من فتح الدرس إلى تصحيح الاختبار وتسجيل الدرجة.', en: 'Small, connected tools that finish the daily work — from unlocking a lesson to grading and recording the mark.' },
+      how_badge: { ar: 'بسيطة من أول يوم', en: 'Simple from day one' },
+      how_h: { ar: 'مجموعتك جاهزة في 3 خطوات', en: 'Your group is ready in 3 steps' },
+      step1_h: { ar: 'أنشئ المجموعة', en: 'Create the group' },
+      step1_p: { ar: 'اختر المقرر والصف أو المهارة، واحصل على رمز دعوة تلقائي.', en: 'Pick the course and grade or skill, and get an automatic invite code.' },
+      step2_h: { ar: 'شارك الرمز', en: 'Share the code' },
+      step2_p: { ar: 'أرسله على واتساب — الطالب ينضم في خطوة واحدة دون تنزيل تطبيق.', en: 'Send it on WhatsApp — the student joins in one step, no app to install.' },
+      step3_h: { ar: 'افتح الدرس وابدأ', en: 'Unlock and teach' },
+      step3_p: { ar: 'تحكّم في الإيقاع، أرفق الملفات، وأطلق الاختبارات القصيرة.', en: 'Control the pace, attach files, and launch short quizzes.' },
+      rev_badge: { ar: 'آراء تجريبية', en: 'Demo reviews' },
+      rev_h: { ar: 'ماذا يقول الطلاب والمعلمون؟', en: 'What students and teachers say' },
+      rev_p: { ar: 'نماذج توضيحية لآراء مستخدمين — قصص حقيقية ستأتي مع الإطلاق.', en: 'Illustrative sample reviews — real stories will follow at launch.' },
+      par_badge: { ar: 'لأولياء الأمور', en: 'For parents' },
+      par_h: { ar: 'اطمئن على تقدّم ابنك دون مطاردة', en: "Follow your child's progress without chasing them" },
+      par_p: { ar: 'المعلومة نفسها التي يراها المعلم — شفافية كاملة بدل “ما عندي واجب”.', en: 'The same information the teacher sees — full transparency instead of “I have no homework”.' },
+      par_1: { ar: 'تقدّم كل مجموعة: كم درسًا أُنجز وكم تبقّى', en: 'Per-group progress: lessons done and remaining' },
+      par_2: { ar: 'أفضل درجة لكل اختبار، مع المحاولات السابقة', en: 'Best score per quiz, with earlier attempts' },
+      par_3: { ar: 'درجات المشاركة والواجبات التي يسجلها المعلم', en: 'Participation and assignment marks entered by the teacher' },
+      par_4: { ar: 'ملفات ودروس متاحة في أي وقت — دون مجموعات واتساب فوضوية', en: 'Files and lessons available anytime — no chaotic WhatsApp groups' },
+      phone_head: { ar: 'متابعة الطالب · أحمد', en: 'Student overview · Ahmed' },
+      phone_1: { ar: 'الفيزياء · المجموعة أ', en: 'Physics · Group A' },
+      phone_2: { ar: 'آخر اختبار: الحركة', en: 'Latest quiz: Motion' },
+      phone_3: { ar: 'الواجب العملي', en: 'Practical assignment' },
+      phone_4: { ar: 'الدروس المفتوحة', en: 'Unlocked lessons' },
+      pri_badge: { ar: 'أسعار واضحة', en: 'Honest pricing' },
+      pri_h: { ar: 'خطط بسيطة، بلا مفاجآت', en: 'Simple plans, no surprises' },
+      pri_p: { ar: 'أسعار الإطلاق — مجانية اليوم، والدفع يبدأ لاحقًا. الأسعار بالريال العُماني شهريًا.', en: 'Launch pricing — free today, billing begins later. Prices in Omani Rial per month.' },
+      bundle_h: { ar: 'عرض الأشقاء:', en: 'Sibling bundle:' },
+      bundle_p: { ar: 'أضف أخًا أو أختًا إلى أي خطة طالب مقابل 1 ر.ع فقط شهريًا لكل طالب إضافي (حتى 4 طلاب).', en: 'Add a sibling to any student plan for just 1 OMR/month per extra student (up to 4 students).' },
+      bundle_cta: { ar: 'سجّل اهتمامك', en: 'Register interest' },
+      final_h: { ar: 'جاهز تبدأ مجموعتك الأولى؟', en: 'Ready to start your first group?' },
+      final_p: { ar: 'سجّل في دقيقة، أنشئ المجموعة، وشارك الرمز. الباقي علينا.', en: 'Sign up in a minute, create the group, share the code. We handle the rest.' },
+      final_cta: { ar: 'أنشئ حساب المعلم', en: 'Create teacher account' },
+      final_teachers: { ar: 'صفحة المعلمين', en: 'Teacher page' },
+      footer: { ar: 'امتياز — مبني ببساطة للمعلمين في سلطنة عُمان.', en: 'Emtiaz — built simply for teachers in the Sultanate of Oman.' },
+    };
+
+    const features = [
+      { icon: 'book', h: { ar: 'مقررات مدرسية أو مهارات', en: 'School curriculum or skills' }, p: { ar: 'صنّف مقررك: منهج مدرسي للصف أو مهارة عامة — النظام يرتب الدروس والوحدات.', en: 'Tag your course: a school-curriculum grade or a general skill — lessons and modules stay organized.' } },
+      { icon: 'unlock', h: { ar: 'فتح الدروس بضغطة', en: 'Unlock lessons with one tap' }, p: { ar: 'افتح درسًا واحدًا أو الكل، لكل مجموعة على حدة — إيقاع يناسبك ويناسبهم.', en: 'Unlock one lesson or all, per group — a pacing rhythm that suits you and them.' } },
+      { icon: 'check', h: { ar: 'اختبارات تُصحّح نفسها', en: 'Quizzes that grade themselves' }, p: { ar: 'اختيار متعدد / صح-خطأ / إجابة قصيرة تُصحّح لحظيًا مع تغذية راجعة، وأفضل محاولة تلقائيًا.', en: 'MCQ, true/false, and short-answer quizzes graded instantly with feedback, best attempt kept automatically.' } },
+      { icon: 'grid', h: { ar: 'سجل درجات جاهز', en: 'A ready gradebook' }, p: { ar: 'أعمدة الاختبارات تُملأ وحدها، وأضف أعمدة يدوية للمشاركة والواجبات.', en: 'Quiz columns fill themselves; add manual columns for participation and assignments.' } },
+      { icon: 'file', h: { ar: 'ملفات ومرفقات', en: 'Files and attachments' }, p: { ar: 'ارفع PDF أو صورًا أو صوتًا إلى أي درس — وتنزيل بضغطة للطلاب.', en: 'Upload PDFs, images, or audio to any lesson — one-tap download for students.' } },
+      { icon: 'whatsapp', h: { ar: 'دعوة عبر واتساب', en: 'Invite by WhatsApp' }, p: { ar: 'رمز واحد ينضم به الطالب فورًا، وتصله رسالة تأكيد — بلا روابط معقدة.', en: 'One code and the student is in, with a confirmation message — no fiddly links.' } },
+      { icon: 'globe', h: { ar: 'مصمم بالعربية أولًا', en: 'Arabic-first by design' }, p: { ar: 'واجهة RTL كاملة بخطوط عربية، وتبديل إنجليزي بنقرة واحدة.', en: 'Full RTL interface in Arabic fonts, with a one-tap English switch.' } },
+      { icon: 'eye', h: { ar: 'وضوح لأولياء الأمور', en: 'Clarity for parents' }, p: { ar: 'تقدّم، درجات، ودروس مفتوحة — نفس ما يراه المعلم، دون مطاردة.', en: 'Progress, marks, and unlocked lessons — the same view the teacher has, no chasing.' } },
     ];
 
-    function featsRender(lang) {
-      document.getElementById('feat').innerHTML = feats
-        .map((f) => `<div class="card"><h3>${f.h[lang]}</h3><p>${f.p[lang]}</p></div>`)
-        .join('');
-    }
+    const reviews = [
+      { who: { ar: 'مريم الهنائية', en: 'Maryam Al Hinai' }, role: { ar: 'طالبة · الصف العاشر', en: 'Student · Grade 10' }, text: { ar: 'أول مرة أعرف واجباتي بدون ما أسأل في المجموعة. أفتح الدرس، أشوف الفيديو، وأحل الاختبار — ودرجتي تظهر فورًا.', en: 'For the first time I know my homework without asking in the group chat. Open the lesson, watch, take the quiz — my mark shows instantly.' } },
+      { who: { ar: 'سالم البلوشي', en: 'Salim Al Balushi' }, role: { ar: 'معلم فيزياء', en: 'Physics teacher' }, text: { ar: 'أرسل رمز المجموعة في واتساب، وفي دقائق الكل داخل. وفّرت ساعات كنت أصحح فيها الاختبارات على الورق.', en: 'I send the group code on WhatsApp and everyone is in within minutes. I saved hours of paper grading.' } },
+      { who: { ar: 'فاطمة الرواحية', en: 'Fatma Al Rawahi' }, role: { ar: 'معلمة إنجليزي', en: 'English teacher' }, text: { ar: 'الفتح التدريجي للدروس غيّر طريقة إدارتي للمجموعات. كل مجموعة تتقدم بإيقاعها، وأنا أرى كل شيء من شاشة واحدة.', en: 'Paced unlocking changed how I run my groups. Each group moves at its own pace, and I see everything on one screen.' } },
+      { who: { ar: 'أحمد الغافري', en: 'Ahmed Al Ghafri' }, role: { ar: 'ولي أمر', en: 'Parent' }, text: { ar: 'كنت أسأل ابني كل يوم عن الواجب. الآن أشوف التقدّم والدرجات بنفسي، وأعرف وين يحتاج مساعدة.', en: 'I used to ask my son about homework daily. Now I see progress and marks myself, and I know where he needs help.' } },
+      { who: { ar: 'شيخة الحارثية', en: 'Shaikha Al Harthi' }, role: { ar: 'طالبة · الصف السابع', en: 'Student · Grade 7' }, text: { ar: 'الاختبارات القصيرة تساعدني أفهم غلطي بسرعة، لأن الشرح يظهر مع الإجابة.', en: 'Short quizzes help me understand my mistakes fast, because the explanation appears with the answer.' } },
+      { who: { ar: 'خالد المعمري', en: 'Khalid Al Maamari' }, role: { ar: 'معلم رياضيات', en: 'Maths teacher' }, text: { ar: 'سجل الدرجات جاهز من أول يوم — أعمدة الاختبارات تتعبأ وحدها، وأضيف المشاركة يدويًا. بسيط مثل ما أحتاج.', en: 'The gradebook is ready from day one — quiz columns fill themselves, and I add participation by hand. As simple as I need.' } },
+    ];
+
+    const plans = [
+      { tag: null, name: { ar: 'الطالب', en: 'Student' }, price: { ar: '3', en: '3' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
+        { ar: 'انضم لجميع مجموعاتك', en: 'Join all your groups' },
+        { ar: 'دروس وملفات واختبارات', en: 'Lessons, files, and quizzes' },
+        { ar: 'درجاتك وتقدّمك في مكان واحد', en: 'Your marks and progress in one place' },
+      ], cta: { ar: 'أنشئ حساب طالب', en: 'Create student account' }, href: '/register/student' },
+      { tag: { ar: 'الأكثر اختيارًا', en: 'Most popular' }, name: { ar: 'المعلم', en: 'Teacher' }, price: { ar: '15', en: '15' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
+        { ar: 'حتى 5 مجموعات', en: 'Up to 5 groups' },
+        { ar: 'مقررات ووحدات ودروس غير محدودة', en: 'Unlimited courses, modules, lessons' },
+        { ar: 'اختبارات تُصحّح آليًا + سجل درجات', en: 'Auto-graded quizzes + gradebook' },
+        { ar: 'دعوات واتساب وتذكيرات', en: 'WhatsApp invites and reminders' },
+      ], cta: { ar: 'أنشئ حساب معلم', en: 'Create teacher account' }, href: '/register/teacher' },
+      { tag: null, name: { ar: 'المعلم بلس', en: 'Teacher Plus' }, price: { ar: '25', en: '25' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
+        { ar: 'مجموعات وطلاب بلا حدود', en: 'Unlimited groups and students' },
+        { ar: 'كل مزايا خطة المعلم', en: 'Everything in Teacher' },
+        { ar: 'أولوية الوصول للمزايا الجديدة', en: 'Priority access to new features' },
+        { ar: 'دعم مباشر عبر واتساب', en: 'Direct WhatsApp support' },
+      ], cta: { ar: 'ابدأ بلس', en: 'Start Plus' }, href: '/register/teacher' },
+    ];
 
     let lang = 'ar';
-    function t(lang) {
+    const pick = (obj) => obj[lang];
+
+    function render() {
+      document.getElementById('features-grid').innerHTML = features.map((f) => `
+        <div class="card reveal"><div class="icon">${icons[f.icon]}</div><h3>${pick(f.h)}</h3><p>${pick(f.p)}</p></div>`).join('');
+
+      document.getElementById('reviews-grid').innerHTML = reviews.map((r, i) => `
+        <div class="review reveal">
+          <div class="stars">★★★★★</div>
+          <p>${pick(r.text)}</p>
+          <div class="reviewer"><span class="avatar ${i % 2 ? 'alt' : ''}">${pick(r.who).slice(0, 1)}</span><div><b>${pick(r.who)}</b><span>${pick(r.role)}</span></div></div>
+        </div>`).join('');
+
+      document.getElementById('plans').innerHTML = plans.map((p) => `
+        <div class="plan ${p.tag ? 'featured' : ''}">
+          ${p.tag ? `<span class="tag">${pick(p.tag)}</span>` : ''}
+          <h3>${pick(p.name)}</h3>
+          <div class="price">${pick(p.price)} <span>${pick(p.per)}</span></div>
+          <ul>${p.items.map((it) => `<li>${pick(it)}</li>`).join('')}</ul>
+          <a class="btn ${p.tag ? 'btn-primary' : 'btn-outline'}" href="${APP_URL}${p.href}">${pick(p.cta)}</a>
+        </div>`).join('');
+
       document.querySelectorAll('[data-t]').forEach((el) => {
-        const key = el.getAttribute('data-t');
-        const v = dict[key]?.[lang];
+        const v = dict[el.getAttribute('data-t')]?.[lang];
         if (v) el.innerHTML = v;
       });
-      featsRender(lang);
+
       document.documentElement.lang = lang;
-      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.dir = dir[lang];
       document.getElementById('lang').textContent = lang === 'ar' ? 'English' : 'العربية';
+      observeReveals();
     }
+
     function toggleLang() {
       lang = lang === 'ar' ? 'en' : 'ar';
-      t(lang);
+      render();
     }
-    t('ar');
+
+    let observer;
+    function observeReveals() {
+      observer?.disconnect();
+      observer = new IntersectionObserver((entries) => {
+        for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); observer.unobserve(e.target); }
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.reveal:not(.in)').forEach((el) => observer.observe(el));
+    }
+
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 8);
+    }, { passive: true });
+
+    render();
   </script>
 </body>
 </html>

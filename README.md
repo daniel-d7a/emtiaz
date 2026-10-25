@@ -53,7 +53,7 @@ That brings up:
 
 | Service | Port | What it does |
 |---|---|---|
-| `web` (Caddy) | 8088 | serves the built React app at `/`, landing page at `/landing/`, proxies `/api/` → the API |
+| `web` (Caddy) | 8088 | serves the built React app at `/`, landing pages at `/landing/` and `/landing/teachers` (with pricing), proxies `/api/` → the API |
 | `api` (Nest) | 3100 | applies migrations, seeds the admin user, then serves on container port 3000 |
 | `db` (Postgres) | — | data volume `pgdata`, no host port |
 

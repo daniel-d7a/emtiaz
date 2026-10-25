@@ -16,3 +16,13 @@ container and can be opened from disk during development.
   `data-t` keys.
 - Revisit if the marketing site grows to multiple pages or needs blog/content
   routing — Astro is the first candidate then.
+
+## Update (2026-10-25)
+- The landing grew into a full marketing page (hero, features, demo reviews,
+  parent section, pricing + sibling bundle) plus a teacher-focused page at
+  `/landing/teachers`.
+- Shared styling lives in `landing/styles.css`; both pages keep the inline
+  bilingual `data-t` dictionary so they stay build-free.
+- Caddy resolves extensionless page URLs (`{path}, {path}.html,
+  {path}/index.html, /index.html`) so `/landing/teachers` works without a
+  trailing `.html`.
