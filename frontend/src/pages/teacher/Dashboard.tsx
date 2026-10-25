@@ -13,7 +13,7 @@ type Course = {
   courseType: 'ACADEMIC' | 'GENERAL';
   semester: string | null;
   isPublished: boolean;
-  groups: Array<{ id: string; name: string; joinCode: string }>;
+  groups: Array<{ id: string; name: string; joinCode: string; studentCount: number }>;
 };
 
 export default function TeacherDashboard() {
@@ -121,6 +121,7 @@ export default function TeacherDashboard() {
                 {c.groups.map((g) => (
                   <Link key={g.id} to="/teacher/groups/$groupId" params={{ groupId: g.id }} className="flex items-center gap-2 text-primary">
                     <Users size={16} /> {g.name}
+                    <span className="text-xs text-ink-soft">({g.studentCount})</span>
                     <span className="rounded bg-background px-1.5 py-0.5 text-xs font-bold" dir="ltr">{g.joinCode}</span>
                   </Link>
                 ))}

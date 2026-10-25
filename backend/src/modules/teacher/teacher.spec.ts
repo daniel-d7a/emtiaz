@@ -41,6 +41,7 @@ describe('Phase 4: teacher endpoints', () => {
       expect(res.status).toBe(200);
       const mine = res.body.find((c: any) => c.id === world.courseId);
       expect(mine.groups).toHaveLength(2);
+      expect(mine.groups[0].studentCount).toBeGreaterThanOrEqual(1);
     });
 
     it('rejects malformed write payloads with 400', async () => {

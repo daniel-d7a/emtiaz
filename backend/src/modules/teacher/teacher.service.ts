@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   courses,
@@ -70,9 +70,22 @@ export class TeacherService {
     const groupsList = courseIds.length
       ? await db.select().from(groups).where(inArray(groups.courseId, courseIds))
       : [];
+    const groupIds = groupsList.map((g) => g.id);
+    const counts = groupIds.length
+      ? await db
+          .select({ groupId: groupStudents.groupId, c: count() })
+          .from(groupStudents)
+          .where(inArray(groupStudents.groupId, groupIds))
+          .groupBy(groupStudents.groupId)
+      : [];
     return coursesList.map((c) => ({
       ...c,
-      groups: groupsList.filter((g) => g.courseId === c.id),
+      groups: groupsList
+        .filter((g) => g.courseId === c.id)
+        .map((g) => ({
+          ...g,
+          studentCount: Number(counts.find((x) => x.groupId === g.id)?.c ?? 0),
+        })),
     }));
   }
 
