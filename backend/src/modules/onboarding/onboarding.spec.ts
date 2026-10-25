@@ -28,7 +28,7 @@ describe('Phase 2: auth & onboarding', () => {
   it('health endpoint is public', async () => {
     const res = await request(server).get('/api/health');
     expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
+    expect(res.body).toEqual({ ok: true, db: 'up' });
   });
 
   it('serves the OpenAPI contract outside production', async () => {

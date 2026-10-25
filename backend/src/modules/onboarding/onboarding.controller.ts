@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Req, Res, ServiceUnavailableException } from '@nestjs/common';
 import type { Response } from 'express';
 import type { Request } from 'express';
 import { auth } from '../../auth/auth';
@@ -7,6 +7,8 @@ import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
 import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto } from '../../lib/schemas';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
+import { db } from '../../db';
 import { ParentService } from '../parent/parent.service';
 
 const syntheticPhoneEmail = (phone: string) =>
@@ -126,7 +128,12 @@ export class OnboardingController {
 
   @Public()
   @Get('api/health')
-  health() {
-    return { ok: true };
+  async health() {
+    try {
+      await db.execute(sql`select 1`);
+      return { ok: true, db: 'up' };
+    } catch {
+      throw new ServiceUnavailableException({ ok: false, db: 'down' });
+    }
   }
 }
