@@ -6,12 +6,15 @@ import Group from './src/Group';
 import LessonView from './src/Lesson';
 import Login from './src/Login';
 import Profile from './src/Profile';
+import TeacherHome from './src/TeacherHome';
+import TeacherGroup from './src/TeacherGroup';
 import Quiz from './src/Quiz';
 import { Loading, s } from './src/ui';
 
 type Screen =
   | { name: 'courses' }
   | { name: 'profile' }
+  | { name: 'teacher-group'; groupId: string }
   | { name: 'group'; groupId: string }
   | { name: 'lesson'; lessonId: string; groupId: string }
   | { name: 'quiz'; lessonId: string; groupId: string };
@@ -30,12 +33,29 @@ export default function App() {
 
   if (!loaded) return <Loading />;
   if (!session) return <Login onIn={setSession} />;
-  if (session.user.role !== 'STUDENT') {
+  if (session.user.role === 'ADMIN') {
     return (
       <View style={s.page}>
         <Text style={s.h1}>{session.user.name}</Text>
-        <Text style={{ color: '#78716C' }}>للمعلم/الإدارة استخدم الموقع.</Text>
+        <Text style={{ color: '#78716C' }}>لوحة الإدارة متاحة على الموقع.</Text>
       </View>
+    );
+  }
+
+  if (session.user.role === 'TEACHER') {
+    if (screen.name === 'profile') {
+      return <Profile onBack={() => setScreen({ name: 'courses' })} onLogout={() => setSession(null)} />;
+    }
+    if (screen.name === 'teacher-group') {
+      return (
+        <TeacherGroup groupId={screen.groupId} onBack={() => setScreen({ name: 'courses' })} />
+      );
+    }
+    return (
+      <TeacherHome
+        onOpenGroup={(groupId) => setScreen({ name: 'teacher-group', groupId })}
+        onProfile={() => setScreen({ name: 'profile' })}
+      />
     );
   }
 
