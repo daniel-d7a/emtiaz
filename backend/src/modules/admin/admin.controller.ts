@@ -126,8 +126,12 @@ export class AdminController {
 
   @Get('api/admin/audit')
   @Roles('ADMIN')
-  auditLog(@Query('limit') limit?: string) {
-    return this.admin.listAudit(Number(limit) || 100);
+  auditLog(
+    @Query('limit') limit?: string,
+    @Query('action') action?: string,
+    @Query('actorId') actorId?: string,
+  ) {
+    return this.admin.listAudit(Number(limit) || 100, { action, actorId });
   }
 
   @Get('api/admin/notification-settings')

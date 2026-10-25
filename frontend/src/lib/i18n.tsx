@@ -18,6 +18,7 @@ const dict = {
   markAllRead: { ar: 'تحديد الكل كمقروء', en: 'Mark all read' },
   sendMonthlySummary: { ar: 'إرسال الملخص الشهري', en: 'Send monthly summary' },
   auditLog: { ar: 'سجل الإدارة', en: 'Audit log' },
+  filterAction: { ar: 'تصفية حسب الإجراء', en: 'Filter by action' },
   whatsapp: { ar: 'واتساب', en: 'WhatsApp' },
   inApp: { ar: 'داخل التطبيق', en: 'In-app' },
   system: { ar: 'النظام', en: 'System' },

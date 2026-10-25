@@ -52,6 +52,7 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<'teachers' | 'students' | 'parents' | 'courses' | 'notifications' | 'taxonomy' | 'audit'>('teachers');
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(20);
+  const [auditAction, setAuditAction] = useState('');
   const changeSearch = (v: string) => { setSearch(v); setLimit(20); };
 
   const overview = useQuery(adminOverviewQuery);
@@ -78,8 +79,9 @@ export default function AdminDashboard() {
     queryFn: () => api<NotificationSettings>('/api/admin/notification-settings'),
   });
   const audit = useQuery({
-    queryKey: ['admin-audit'],
-    queryFn: () => api<AuditRow[]>('/api/admin/audit?limit=100'),
+    queryKey: ['admin-audit', auditAction],
+    queryFn: () =>
+      api<AuditRow[]>(`/api/admin/audit?limit=100&action=${encodeURIComponent(auditAction)}`),
     enabled: tab === 'audit',
   });
   const notifications = useQuery({
@@ -262,6 +264,9 @@ export default function AdminDashboard() {
       {tab === 'audit' && (
         <Card>
           <h2 className="mb-3 text-lg font-bold">{t('auditLog')}</h2>
+          <div className="mb-3">
+            <Input label={t('filterAction')} value={auditAction} onChange={(e) => setAuditAction(e.target.value)} placeholder="user.status" />
+          </div>
           {audit.isLoading ? <Loading /> : audit.error ? <ErrorBox error={audit.error} /> : (
             <ul className="flex flex-col divide-y divide-line text-sm">
               {audit.data?.map((r) => (

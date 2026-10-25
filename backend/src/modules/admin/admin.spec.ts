@@ -87,6 +87,10 @@ describe('Phase 5: admin endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.some((r: any) => r.action === 'user.status')).toBe(true);
     expect(res.body[0].actorName).toBeDefined();
+    const filtered = await admin.get('/api/admin/audit?action=user.status');
+    expect(filtered.body.length).toBeGreaterThanOrEqual(1);
+    expect(filtered.body.every((r: any) => r.action === 'user.status')).toBe(true);
+    expect((await admin.get('/api/admin/audit?action=nope')).body).toHaveLength(0);
   });
 
   it('soft-deletes users: row stays, sessions and memberships go, listings hide it', async () => {

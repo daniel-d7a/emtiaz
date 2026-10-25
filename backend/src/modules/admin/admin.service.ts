@@ -111,7 +111,13 @@ export class AdminService {
     });
   }
 
-  async listAudit(limit = 100) {
+  async listAudit(
+    limit = 100,
+    filters: { action?: string; actorId?: string } = {},
+  ) {
+    const conditions = [];
+    if (filters.action) conditions.push(eq(auditLogs.action, filters.action));
+    if (filters.actorId) conditions.push(eq(auditLogs.actorId, filters.actorId));
     const rows = await db
       .select({
         id: auditLogs.id,
@@ -124,6 +130,7 @@ export class AdminService {
       })
       .from(auditLogs)
       .innerJoin(users, eq(auditLogs.actorId, users.id))
+      .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(auditLogs.createdAt))
       .limit(Math.min(Math.max(limit, 1), 200));
     return rows;
