@@ -63,8 +63,8 @@ describe('Phase 3: student endpoints', () => {
 
   it('locks lessons with a groupLessonAccess row', async () => {
     await testPool.query(
-      `INSERT INTO group_lesson_access (group_id, lesson_id, is_unlocked) VALUES ($1,$2,false)`,
-      [world.group1, world.lesson2],
+      `INSERT INTO group_lesson_access (group_id, lesson_id, is_unlocked) VALUES ($1,$2,false),($3,$2,false)`,
+      [world.group1, world.lesson2, world.group2],
     );
     const res = await s1.get(`/api/student/groups/${world.group1}/curriculum`);
     const lessons = res.body.modules[0].lessons;
@@ -83,6 +83,8 @@ describe('Phase 3: student endpoints', () => {
   });
 
   it('marks a lesson complete and shows progress', async () => {
+    const locked = await s1.post(`/api/student/lessons/${world.lesson2}/complete`);
+    expect(locked.status).toBe(403);
     const res = await s1.post(`/api/student/lessons/${world.lesson1}/complete`);
     expect(res.status).toBe(201);
     const res2 = await s1.get(`/api/student/groups/${world.group1}/curriculum`);
@@ -125,6 +127,8 @@ describe('Phase 3: student endpoints', () => {
       .post(`/api/student/quizzes/${quizRows[0].id}/submit`)
       .send({ groupId: world.group1, answers: { nope: 'x' } });
     expect(res.status).toBe(403);
+    const direct = await s1.get(`/api/student/quizzes/${quizRows[0].id}`);
+    expect(direct.status).toBe(403);
   });
 
   it('grades a quiz correctly and records the attempt', async () => {
