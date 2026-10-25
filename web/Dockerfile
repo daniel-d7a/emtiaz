@@ -5,6 +5,7 @@ WORKDIR /fe
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --legacy-peer-deps
 COPY frontend/vite.config.ts frontend/index.html frontend/tsconfig.json ./
+COPY frontend/public ./public
 COPY frontend/src ./src
 RUN npx vite build
 
