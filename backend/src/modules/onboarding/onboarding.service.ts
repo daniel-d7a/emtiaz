@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { categories, courses, groupStudents, groups, users } from '../../db/schema';
 import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { R2StorageService } from '../storage/r2.service';
 
 const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`.slice(0, 6);
@@ -12,7 +13,10 @@ export { genJoinCode };
 
 @Injectable()
 export class OnboardingService {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly r2: R2StorageService,
+  ) {}
 
   /** Adds the given student to a group identified by its join code. */
   async joinByCode(studentId: string, joinCode: string) {
@@ -78,13 +82,25 @@ export class OnboardingService {
 
   async updateMe(
     userId: string,
-    dto: Partial<{ name: string; phoneNumber: string; subject: string }>,
+    dto: Partial<{
+      name: string;
+      phoneNumber: string;
+      subject: string;
+      image: string | null;
+    }>,
   ) {
     const allowed: Partial<typeof schema.users.$inferInsert> = {};
     if (dto.name !== undefined && dto.name.trim()) allowed.name = dto.name.trim();
     if (dto.phoneNumber !== undefined) allowed.phoneNumber = dto.phoneNumber.trim() || null;
     if (dto.subject !== undefined) {
       allowed.subjectCategoryId = (await this.ensureCategory(dto.subject)).id;
+    }
+    if (dto.image !== undefined) {
+      const image = dto.image?.trim() || null;
+      if (image && !image.startsWith(`avatars/${userId}/`)) {
+        throw new BadRequestException('image must be your own uploaded avatar');
+      }
+      allowed.image = image;
     }
     if (!Object.keys(allowed).length) {
       const [user] = await db.select().from(users).where(eq(users.id, userId));
@@ -97,5 +113,16 @@ export class OnboardingService {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  /** Signed URL for the caller's avatar, or null when unset/unconfigured. */
+  async avatarUrl(userId: string): Promise<string | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user?.image) return null;
+    try {
+      return await this.r2.presignedGet(user.image);
+    } catch {
+      return null;
+    }
   }
 }

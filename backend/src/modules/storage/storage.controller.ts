@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Injectable, Module, Param, Post, Req } from '@nestjs/common';
-import { ZodBodyPipe, PresignedUploadDto, AttachDto } from '../../lib/schemas';
+import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request } from 'express';
 import { eq } from 'drizzle-orm';
@@ -42,6 +42,17 @@ export class StorageController {
       method: 'PUT',
       maxBytes: 100 * 1024 * 1024,
     };
+  }
+
+  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Post('api/storage/avatar')
+  async avatarUpload(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(AvatarUploadDto))
+    dto: z.infer<typeof AvatarUploadDto>,
+  ) {
+    const objectKey = R2StorageService.buildAvatarKey(req.user!.id, dto.fileName);
+    return { objectKey, uploadUrl: await this.r2.presignedPut(objectKey) };
   }
 
   @Roles('TEACHER')

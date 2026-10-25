@@ -53,6 +53,7 @@ export const UpdateMeDto = z
       })
       .optional(),
     subject: optText(60),
+    image: z.string().trim().max(512).nullable().optional(),
   });
 
 // ---------- courses / curriculum ----------
@@ -120,6 +121,11 @@ export const BulkStudentsDto = z
 export const ToGroupDto = z.object({ toGroupId: uuid });
 
 // ---------- storage ----------
+export const AvatarUploadDto = z.object({
+  fileName: safeText(200),
+  mimeType: z.string().regex(/^image\//, 'must be an image'),
+  fileSizeBytes: z.number().int().min(1).max(2 * 1024 * 1024),
+});
 export const PresignedUploadDto = z
   .object({
     courseId: uuid,

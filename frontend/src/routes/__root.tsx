@@ -44,7 +44,10 @@ function TopBar() {
           </button>
         )}
         {data?.user && data.user.role !== 'ADMIN' && (
-          <Link to="/profile" className="rounded-lg px-2 py-2 font-semibold hover:bg-line/60" title={t('name')}>
+          <Link to="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 font-semibold hover:bg-line/60" title={t('name')}>
+            {data.user.image ? (
+              <img src="/api/me/avatar" alt="" className="h-7 w-7 rounded-full border border-line object-cover" />
+            ) : null}
             {data.user.name.split(' ')[0]}
           </Link>
         )}

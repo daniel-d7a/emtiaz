@@ -89,6 +89,60 @@ describe('Phase 2: auth & onboarding', () => {
     expect(res3.body.name).toBe('Salim B'); // no-op still returns profile
   });
 
+  it('avatar: presigns images, rejects non-images/foreign keys, serves a signed redirect', async () => {
+    const { rows } = await pool.query(
+      `SELECT id FROM "user" WHERE email='salim@teacher.om'`,
+    );
+    const userId = rows[0].id;
+    const s = request.agent(server);
+    await s.post('/api/auth/sign-in/email').send({ email: 'salim@teacher.om', password: 'Passw0rd!123' });
+
+    const nonImage = await s
+      .post('/api/storage/avatar')
+      .send({ fileName: 'cv.pdf', mimeType: 'application/pdf', fileSizeBytes: 100 });
+    expect(nonImage.status).toBe(400);
+    const saved = { ...process.env };
+    process.env.R2_ENDPOINT = 'http://127.0.0.1:9';
+    process.env.R2_ACCESS_KEY_ID = 'test-key';
+    process.env.R2_SECRET_ACCESS_KEY = 'test-secret';
+    process.env.R2_BUCKET_NAME = 'test-bucket';
+    try {
+      const up = await s
+        .post('/api/storage/avatar')
+        .send({ fileName: 'me.png', mimeType: 'image/png', fileSizeBytes: 100 });
+      expect(up.status).toBe(201);
+      expect(up.body.objectKey).toMatch(new RegExp(`^avatars/${userId}/`));
+      expect(up.body.uploadUrl).toContain(up.body.objectKey);
+
+      const foreign = await s
+        .patch('/api/me')
+        .send({ image: 'avatars/someone-else/pic.png' });
+      expect(foreign.status).toBe(400);
+
+      const own = await s.patch('/api/me').send({ image: up.body.objectKey });
+      expect(own.status).toBe(200);
+      expect(own.body.image).toBe(up.body.objectKey);
+
+      const av = await s.get('/api/me/avatar');
+      expect(av.status).toBe(302);
+      expect(av.headers.location).toContain(up.body.objectKey);
+
+      const cleared = await s.patch('/api/me').send({ image: null });
+      expect(cleared.body.image).toBeNull();
+      const none = await s.get('/api/me/avatar');
+      expect(none.status).toBe(404);
+    } finally {
+      process.env.R2_ENDPOINT = saved.R2_ENDPOINT;
+      process.env.R2_ACCESS_KEY_ID = saved.R2_ACCESS_KEY_ID;
+      process.env.R2_SECRET_ACCESS_KEY = saved.R2_SECRET_ACCESS_KEY;
+      process.env.R2_BUCKET_NAME = saved.R2_BUCKET_NAME;
+      if (saved.R2_ENDPOINT === undefined) delete process.env.R2_ENDPOINT;
+      if (saved.R2_ACCESS_KEY_ID === undefined) delete process.env.R2_ACCESS_KEY_ID;
+      if (saved.R2_SECRET_ACCESS_KEY === undefined) delete process.env.R2_SECRET_ACCESS_KEY;
+      if (saved.R2_BUCKET_NAME === undefined) delete process.env.R2_BUCKET_NAME;
+    }
+  });
+
   it('blocks /api/me for anonymous users', async () => {
     const res = await request(server).patch('/api/me').send({ name: 'X' });
     expect(res.status).toBe(403);

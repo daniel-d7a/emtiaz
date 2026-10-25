@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import type { Request } from 'express';
 import { auth } from '../../auth/auth';
 import { Public } from '../../auth/public.decorator';
@@ -71,6 +72,15 @@ export class OnboardingController {
     @Body(new ZodBodyPipe(UpdateMeDto)) dto: z.infer<typeof UpdateMeDto>,
   ) {
     return this.onboarding.updateMe(req.user!.id, dto);
+  }
+
+  /** Redirects to a fresh signed URL for the caller's avatar. */
+  @Get('api/me/avatar')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  async avatar(@Req() req: Request, @Res() res: Response) {
+    const url = await this.onboarding.avatarUrl(req.user!.id);
+    if (!url) throw new NotFoundException('No avatar');
+    res.redirect(302, url);
   }
 
   /** Public subject list for signup dropdowns & grouping filters. */

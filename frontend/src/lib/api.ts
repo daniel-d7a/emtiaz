@@ -28,6 +28,7 @@ export type SessionUser = {
   subjectCategoryId?: string | null;
   phoneNumber?: string | null;
   gradeId?: string | null;
+  image?: string | null;
 };
 
 export const authApi = {

@@ -15,6 +15,9 @@ export default function Profile() {
     queryFn: () => api('/api/categories'),
     enabled: user?.role === 'TEACHER',
   });
+  const [version, setVersion] = useState(0);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarErr, setAvatarErr] = useState<Error | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
@@ -25,6 +28,29 @@ export default function Profile() {
     setSubject('');
     setInit(true);
   }
+
+  const uploadAvatar = async (file: File) => {
+    setAvatarBusy(true);
+    setAvatarErr(null);
+    try {
+      const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/avatar', {
+        body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
+      });
+      const put = await fetch(up.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+      await api('/api/me', { method: 'PATCH', body: { image: up.objectKey } });
+      await qc.invalidateQueries({ queryKey: ['session'] });
+      setVersion(Date.now());
+    } catch (e) {
+      setAvatarErr(e as Error);
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
 
   const save = useMutation({
     mutationFn: () =>
@@ -39,6 +65,35 @@ export default function Profile() {
   return (
     <Page title={t('register')}>
       <Card className="max-w-md">
+        <div className="mb-4 flex items-center gap-4">
+          {user.image ? (
+            <img
+              src={`/api/me/avatar?v=${version}`}
+              alt={user.name}
+              className="h-16 w-16 rounded-full border border-line object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+              {user.name.slice(0, 1)}
+            </div>
+          )}
+          <div>
+            <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
+              {avatarBusy ? '…' : t('uploadFile')}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadAvatar(f);
+                }}
+              />
+            </label>
+            <p className="text-xs text-ink-soft">PNG/JPG · ≤ 2 MB</p>
+          </div>
+        </div>
+        {avatarErr && <div className="mb-3"><ErrorBox error={avatarErr} /></div>}
         <p className="mb-4 text-sm text-ink-soft" dir="ltr">{user.email || user.phoneNumber}</p>
         <div className="flex flex-col gap-3">
           <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
