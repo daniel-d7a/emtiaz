@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 import { authApi } from './src/api';
 import Courses from './src/screens/Courses';
@@ -10,6 +11,7 @@ import TeacherHome from './src/screens/TeacherHome';
 import TeacherGroup from './src/screens/TeacherGroup';
 import Quiz from './src/screens/Quiz';
 import { Loading, s } from './src/ui';
+import { queryClient } from './src/query';
 
 type Screen =
   | { name: 'courses' }
@@ -19,7 +21,7 @@ type Screen =
   | { name: 'lesson'; lessonId: string; groupId: string }
   | { name: 'quiz'; lessonId: string; groupId: string };
 
-export default function App() {
+function Root() {
   const [session, setSession] = useState<any | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [screen, setScreen] = useState<Screen>({ name: 'courses' });
@@ -94,4 +96,12 @@ export default function App() {
         />
       );
   }
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Root />
+    </QueryClientProvider>
+  );
 }

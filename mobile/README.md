@@ -3,6 +3,14 @@
 Student and teacher companion app. Screens are switched by state in `App.tsx`
 (no navigation library — see `docs/adr/0004-expo-no-navigation.md`).
 
+Layout:
+
+- `src/screens/` — one file per screen
+- `src/ui/` — shared primitives (`Btn`, `Card`, `Field`, feedback) + theme
+- `src/query.ts` — shared TanStack Query client; screens use `useQuery` /
+  `useMutation` and invalidate by query key after writes
+- `src/api.ts` — fetch wrapper and auth calls
+
 ## Run it
 
 1. Install **Expo Go** on your phone (App Store / Play Store), or have an

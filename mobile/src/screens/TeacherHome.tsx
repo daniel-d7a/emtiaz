@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
@@ -13,15 +13,13 @@ export default function TeacherHome({
   onOpenGroup: (groupId: string) => void;
   onProfile: () => void;
 }) {
-  const [courses, setCourses] = useState<Course[] | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const courses = useQuery({
+    queryKey: ['teacher-courses'],
+    queryFn: () => api<Course[]>('/api/teacher/courses'),
+  });
 
-  useEffect(() => {
-    api('/api/teacher/courses').then(setCourses).catch(setError);
-  }, []);
-
-  if (error) return <View style={s.page}><ErrorBox error={error} /></View>;
-  if (!courses) return <Loading />;
+  if (courses.error) return <View style={s.page}><ErrorBox error={courses.error} /></View>;
+  if (!courses.data) return <Loading />;
 
   return (
     <ScrollView style={s.page}>
@@ -29,8 +27,8 @@ export default function TeacherHome({
         <Text style={s.h1}>مجموعاتي</Text>
         <Btn label="حسابي" onPress={onProfile} variant="ghost" />
       </View>
-      {courses.length === 0 && <Empty text="لا توجد مقررات بعد" />}
-      {courses.map((course) => (
+      {courses.data.length === 0 && <Empty text="لا توجد مقررات بعد" />}
+      {courses.data.map((course) => (
         <Card key={course.id}>
           <Text style={s.h2}>{course.title}</Text>
           {course.groups.length === 0 && <Text style={{ color: '#78716C' }}>لا توجد مجموعات</Text>}

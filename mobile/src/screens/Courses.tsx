@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
@@ -10,28 +11,22 @@ type Group = {
 };
 
 export default function Courses({ onOpen, onProfile }: { onOpen: (groupId: string) => void; onProfile: () => void }) {
-  const [groups, setGroups] = useState<Group[] | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const qc = useQueryClient();
   const [joinCode, setJoin] = useState('');
-  const [joinBusy, setJoinBusy] = useState(false);
-  const [joinError, setJoinError] = useState<Error | null>(null);
+  const groups = useQuery({
+    queryKey: ['student-groups'],
+    queryFn: () => api<Group[]>('/api/student/groups'),
+  });
+  const join = useMutation({
+    mutationFn: (code: string) => api('/api/student/groups/join', { body: { joinCode: code } }),
+    onSuccess: () => {
+      setJoin('');
+      void qc.invalidateQueries({ queryKey: ['student-groups'] });
+    },
+  });
 
-  const join = () => {
-    if (!joinCode.trim()) return;
-    setJoinBusy(true);
-    setJoinError(null);
-    api('/api/student/groups/join', { body: { joinCode } })
-      .then(() => api(`${''}/api/student/groups`))
-      .then((g) => { setGroups(g as Group[]); setJoin(''); })
-      .catch((e) => setJoinError(e as Error))
-      .finally(() => setJoinBusy(false));
-  };
-  useEffect(() => {
-    api('/api/student/groups').then(setGroups).catch(setError);
-  }, []);
-
-  if (error) return <View style={s.page}><ErrorBox error={error} /></View>;
-  if (!groups) return <Loading />;
+  if (groups.error) return <View style={s.page}><ErrorBox error={groups.error} /></View>;
+  if (!groups.data) return <Loading />;
 
   return (
     <ScrollView style={s.page}>
@@ -45,13 +40,17 @@ export default function Courses({ onOpen, onProfile }: { onOpen: (groupId: strin
             <Text style={s.h2}>رمز مجموعة</Text>
             <Text style={{ color: '#78716C' }}>مثال OM123456</Text>
           </View>
-          <Btn label={joinBusy ? '…' : 'انضم'} onPress={join} />
+          <Btn
+            label={join.isPending ? '…' : 'انضم'}
+            onPress={() => joinCode.trim() && join.mutate(joinCode)}
+            disabled={join.isPending}
+          />
         </View>
         <TextInput style={s.input} value={joinCode} onChangeText={setJoin} placeholder="OM… " autoCapitalize="characters" />
-        {joinError && <ErrorBox error={joinError} />}
+        {join.error && <ErrorBox error={join.error} />}
       </Card>
-      {groups.length === 0 && <Empty text="لا توجد مجموعات بعد" />}
-      {groups.map((g) => (
+      {groups.data.length === 0 && <Empty text="لا توجد مجموعات بعد" />}
+      {groups.data.map((g) => (
         <Card key={g.group.id}>
           <Text style={s.h2}>{g.course.title}</Text>
           <Text style={{ color: '#78716C' }}>{g.group.name}</Text>

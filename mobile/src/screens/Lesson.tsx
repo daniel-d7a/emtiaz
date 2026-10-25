@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
@@ -11,14 +12,30 @@ type Lesson = {
 };
 
 export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId: string; onBack: (refresh?: boolean) => void; onOpenQuiz?: () => void }) {
-  const [data, setData] = useState<Lesson | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const qc = useQueryClient();
+  const [downloadError, setDownloadError] = useState<Error | null>(null);
+  const lesson = useQuery({
+    queryKey: ['lesson', lessonId],
+    queryFn: () => api<Lesson>(`/api/student/lessons/${lessonId}/view`),
+  });
+  const complete = useMutation({
+    mutationFn: () => api(`/api/student/lessons/${lessonId}/complete`, { method: 'POST', body: {} }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['lesson', lessonId] });
+      void qc.invalidateQueries({ queryKey: ['curriculum'] });
+    },
+  });
 
-  const load = () => api<Lesson>(`/api/student/lessons/${lessonId}/view`).then(setData).catch((e) => setError(e as Error));
-  useEffect(() => { load(); }, [lessonId]);
-
-  if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع" variant="ghost" onPress={() => onBack()} /></View>;
-  if (!data) return <Loading />;
+  if (lesson.error) {
+    return (
+      <View style={s.page}>
+        <ErrorBox error={lesson.error} />
+        <Btn label="رجوع" variant="ghost" onPress={() => onBack()} />
+      </View>
+    );
+  }
+  if (!lesson.data) return <Loading />;
+  const data = lesson.data;
 
   return (
     <ScrollView style={s.page}>
@@ -41,7 +58,7 @@ export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId:
                 onPress={() =>
                   api<{ url: string }>(`/api/storage/attachments/${a.id}/download`)
                     .then((d) => Linking.openURL(d.url))
-                    .catch((e) => setError(e as Error))
+                    .catch((e) => setDownloadError(e as Error))
                 }
               />
             </View>
@@ -52,12 +69,11 @@ export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId:
       <Btn
         label={data.completed ? 'إتمام ✓ (إلغاء؟)' : 'إتمام الدرس'}
         variant={data.completed ? 'ghost' : 'primary'}
-        onPress={() =>
-          data.completed
-            ? undefined
-            : api(`/api/student/lessons/${lessonId}/complete`, { method: 'POST', body: {} }).then(load)
-        }
+        disabled={complete.isPending}
+        onPress={() => !data.completed && complete.mutate()}
       />
+      {downloadError && <ErrorBox error={downloadError} />}
+      {complete.error && <ErrorBox error={complete.error} />}
     </ScrollView>
   );
 }

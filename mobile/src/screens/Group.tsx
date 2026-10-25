@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
 
@@ -18,14 +18,23 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
   onOpenLesson: (lessonId: string) => void;
   onOpenQuiz: (lessonId: string) => void;
 }) {
-  const [data, setData] = useState<Curriculum | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const qc = useQueryClient();
+  const curriculum = useQuery({
+    queryKey: ['curriculum', groupId],
+    queryFn: () => api<Curriculum>(`/api/student/groups/${groupId}/curriculum`),
+  });
+  const complete = useMutation({
+    mutationFn: (lessonId: string) =>
+      api(`/api/student/lessons/${lessonId}/complete`, { method: 'POST', body: {} }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['curriculum', groupId] });
+      void qc.invalidateQueries({ queryKey: ['student-groups'] });
+    },
+  });
 
-  const load = () => api<Curriculum>(`/api/student/groups/${groupId}/curriculum`).then(setData).catch(setError);
-  useEffect(() => { load(); }, [groupId]);
-
-  if (error) return <View style={s.page}><ErrorBox error={error} /></View>;
-  if (!data) return <Loading />;
+  if (curriculum.error) return <View style={s.page}><ErrorBox error={curriculum.error} /></View>;
+  if (!curriculum.data) return <Loading />;
+  const data = curriculum.data;
 
   return (
     <ScrollView style={s.page}>
@@ -47,11 +56,8 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
                     <Btn
                       label={l.completed ? 'أُتم ✓' : 'إتمام'}
                       variant={l.completed ? 'ghost' : 'primary'}
-                      onPress={() =>
-                        l.completed
-                          ? undefined
-                          : api(`/api/student/lessons/${l.id}/complete`, { method: 'POST', body: {} }).then(load)
-                      }
+                      disabled={complete.isPending}
+                      onPress={() => !l.completed && complete.mutate(l.id)}
                     />
                   </View>
                 ) : (
@@ -63,6 +69,7 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz }: {
         </View>
       ))}
       {data.modules.length === 0 && <Empty text="لا دروس بعد" />}
+      {complete.error && <ErrorBox error={complete.error} />}
     </ScrollView>
   );
 }

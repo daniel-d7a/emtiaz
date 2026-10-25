@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableHighlight, View } from 'react-native';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
 
@@ -15,32 +16,26 @@ type QuizPayload = {
 };
 
 export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; groupId: string; onBack: (refresh: boolean) => void }) {
-  const [data, setData] = useState<QuizPayload | null>(null);
-  const [error, setError] = useState<Error | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const quiz = useQuery({
+    queryKey: ['quiz', lessonId],
+    queryFn: () => api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`),
+  });
+  const submit = useMutation({
+    mutationFn: (vars: { quizId: string; answers: Record<string, string> }) =>
+      api(`/api/student/quizzes/${vars.quizId}/submit`, { body: { groupId, answers: vars.answers } }),
+    onSuccess: (res) => setResult(res),
+  });
 
   useEffect(() => {
-    api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`)
-      .then((d) => (d.quiz ? setData(d) : onBack(false)))
-      .catch((e) => setError(e as Error));
-  }, [lessonId]);
+    if (quiz.data && !quiz.data.quiz) onBack(false);
+  }, [quiz.data, onBack]);
 
+  const error = quiz.error ?? submit.error;
   if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع" variant="ghost" onPress={() => onBack(false)} /></View>;
-  if (!data) return <Loading />;
-
-  const submit = async () => {
-    setBusy(true);
-    try {
-      const res = await api(`/api/student/quizzes/${data!.quiz.id}/submit`, { body: { groupId, answers } });
-      setResult(res);
-    } catch (e) {
-      setError(e as Error);
-    } finally {
-      setBusy(false);
-    }
-  };
+  if (!quiz.data) return <Loading />;
+  const data = quiz.data;
 
   return (
     <ScrollView style={s.page}>
@@ -54,7 +49,7 @@ export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; 
               <Text style={{ color: c.inkSoft }}>الجواب الصحيح: {r.expected}{r.explanation ? ` — ${r.explanation}` : ''}</Text>
             </Card>
           ))}
-          <Btn label="إعادة المحاولة" variant="ghost" onPress={() => { setResult(null); setAnswers({}); setError(null); }} />
+          <Btn label="إعادة المحاولة" variant="ghost" onPress={() => { setResult(null); setAnswers({}); submit.reset(); }} />
         </>
       ) : (
         <>
@@ -98,8 +93,11 @@ export default function Quiz({ lessonId, groupId, onBack }: { lessonId: string; 
               )}
             </Card>
           ))}
-          <Btn label={busy ? '…' : 'إرسال'} onPress={submit} />
-          {error && <ErrorBox error={error} />}
+          <Btn
+            label={submit.isPending ? '…' : 'إرسال'}
+            disabled={submit.isPending}
+            onPress={() => submit.mutate({ quizId: data.quiz.id, answers })}
+          />
         </>
       )}
     </ScrollView>

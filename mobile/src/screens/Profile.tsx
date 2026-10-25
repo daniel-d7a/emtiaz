@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, authApi } from '../api';
 import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
 
@@ -10,32 +11,29 @@ type Me = {
 };
 
 export default function Profile({ onBack, onLogout }: { onBack: () => void; onLogout: () => void }) {
-  const [me, setMe] = useState<Me | null>(null);
+  const qc = useQueryClient();
   const [version, setVersion] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [saved, setSaved] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [saved, setSaved] = useState(false);
-
-  const load = () => {
-    api<Me>('/api/me').then((data) => {
-      setMe(data);
-      setName(data.user.name);
-      setPhone(data.user.phoneNumber ?? '');
-    }).catch(setError);
-  };
+  const me = useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/api/me') });
 
   useEffect(() => {
-    load();
-  }, []);
+    if (!me.data) return;
+    setName(me.data.user.name);
+    setPhone(me.data.user.phoneNumber ?? '');
+  }, [me.data]);
 
-  if (!me) return <Loading />;
+  const save = useMutation({
+    mutationFn: () => api('/api/me', { method: 'PATCH', body: { name, phoneNumber: phone } }),
+    onSuccess: () => {
+      setSaved(true);
+      void qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
 
-  const pickAvatar = async () => {
-    setBusy(true);
-    setError(null);
-    try {
+  const pickAvatar = useMutation({
+    mutationFn: async () => {
       const picked = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -60,60 +58,50 @@ export default function Profile({ onBack, onLogout }: { onBack: () => void; onLo
       });
       if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
       await api('/api/me', { method: 'PATCH', body: { image: up.objectKey } });
-      const fresh = await api<Me>('/api/me');
-      setMe(fresh);
+    },
+    onSuccess: () => {
       setVersion(Date.now());
-    } catch (e) {
-      setError(e as Error);
-    } finally {
-      setBusy(false);
-    }
-  };
+      void qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
 
-  const save = async () => {
-    setBusy(true);
-    setError(null);
-    setSaved(false);
-    try {
-      await api('/api/me', { method: 'PATCH', body: { name, phoneNumber: phone } });
-      setSaved(true);
-    } catch (e) {
-      setError(e as Error);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const busy = save.isPending || pickAvatar.isPending;
+  const error = me.error ?? save.error ?? pickAvatar.error;
+
+  if (me.error) return <View style={s.page}><ErrorBox error={me.error} /><Btn label="رجوع" onPress={onBack} variant="ghost" /></View>;
+  if (!me.data) return <Loading />;
+  const data = me.data;
 
   return (
     <ScrollView style={s.page}>
       <Text style={s.h1}>حسابي</Text>
       <Card>
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
-          {me.avatarUrl ? (
+          {data.avatarUrl ? (
             <Image
-              source={{ uri: `${me.avatarUrl}&v=${version}` }}
+              source={{ uri: `${data.avatarUrl}&v=${version}` }}
               style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 10, borderWidth: 1, borderColor: c.line }}
             />
           ) : (
             <View style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primaryLight }}>
-              <Text style={{ fontSize: 34, fontWeight: '700', color: c.primary }}>{me.user.name.slice(0, 1)}</Text>
+              <Text style={{ fontSize: 34, fontWeight: '700', color: c.primary }}>{data.user.name.slice(0, 1)}</Text>
             </View>
           )}
-          <Pressable onPress={pickAvatar} disabled={busy}>
-            <Text style={{ color: c.primary, fontWeight: '700' }}>{busy ? '…' : 'تغيير الصورة'}</Text>
+          <Pressable accessibilityRole="button" onPress={() => pickAvatar.mutate()} disabled={busy}>
+            <Text style={{ color: c.primary, fontWeight: '700' }}>{pickAvatar.isPending ? '…' : 'تغيير الصورة'}</Text>
           </Pressable>
           <Text style={{ color: c.inkSoft, fontSize: 12, marginTop: 4 }}>PNG/JPG · حتى 2 ميجابايت</Text>
         </View>
-        <Text style={{ color: c.inkSoft, marginBottom: 12, textAlign: 'center' }}>{me.user.email || me.user.phoneNumber}</Text>
+        <Text style={{ color: c.inkSoft, marginBottom: 12, textAlign: 'center' }}>{data.user.email || data.user.phoneNumber}</Text>
         <Text style={s.label}>الاسم</Text>
         <TextInput style={s.input} value={name} onChangeText={setName} />
         <Text style={s.label}>الهاتف</Text>
         <TextInput style={s.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         {saved && <Text style={{ color: c.primary, marginBottom: 8 }}>تم الحفظ ✓</Text>}
         {error && <ErrorBox error={error} />}
-        <Btn label={busy ? '…' : 'حفظ'} onPress={save} disabled={busy || !name.trim()} />
+        <Btn label={save.isPending ? '…' : 'حفظ'} onPress={() => save.mutate()} disabled={busy || !name.trim()} />
         <Btn label="رجوع" onPress={onBack} variant="ghost" />
-        <Btn label="تسجيل الخروج" onPress={async () => { await authApi.logout(); onLogout(); }} variant="ghost" />
+        <Btn label="تسجيل الخروج" onPress={async () => { await authApi.logout(); qc.clear(); onLogout(); }} variant="ghost" />
       </Card>
     </ScrollView>
   );
