@@ -67,8 +67,8 @@ export class TeacherController {
 
   @Get('api/teacher/courses/:courseId/curriculum')
   @Roles('TEACHER')
-  curriculum(@Param('courseId') courseId: string) {
-    return this.teachers.getCourseCurriculum(courseId);
+  curriculum(@Req() req: Request, @Param('courseId') courseId: string) {
+    return this.teachers.getCourseCurriculumFor(req.user!, courseId);
   }
 
   @Post('api/teacher/courses/:courseId/modules')

@@ -46,6 +46,19 @@ describe('Phase 4: teacher endpoints', () => {
       expect(mine.analytics.lessons).toBeGreaterThanOrEqual(1);
     });
 
+    it('refuses to read another teacher course curriculum', async () => {
+      await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          ...TEACHER,
+          email: 'curriculum-stranger@teacher.om',
+          phoneNumber: '+96890000011',
+        });
+      const stranger = (await login(server, 'curriculum-stranger@teacher.om', TEACHER.password)).session;
+      const res = await stranger.get(`/api/teacher/courses/${world.courseId}/curriculum`);
+      expect(res.status).toBe(403);
+    });
+
     it('rejects malformed write payloads with 400', async () => {
       const badType = await t
         .post('/api/teacher/courses')

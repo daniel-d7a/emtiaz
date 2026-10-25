@@ -287,6 +287,14 @@ export class TeacherService {
     return this.getCourseCurriculum(mod.courseId);
   }
 
+  async getCourseCurriculumFor(
+    user: { id: string; role: string },
+    courseId: string,
+  ) {
+    await this.assertCourseAccess(user, courseId);
+    return this.getCourseCurriculum(courseId);
+  }
+
   async getCourseCurriculum(courseId: string) {
     const mods = await db
       .select()
