@@ -3,13 +3,7 @@ import { ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
-
-type Lesson = { id: string; title: string; unlocked: boolean; overridden: boolean };
-type Pacing = { group: { id: string; name: string; joinCode: string }; lessons: Lesson[] };
-type Roster = {
-  group: { id: string; name: string; joinCode: string };
-  students: Array<{ studentId: string; name: string; phoneNumber: string | null; progress: number; completedLessons: number; totalLessons: number }>;
-};
+import type { TeacherPacing as Pacing, TeacherRoster as Roster } from '../../../shared/api';
 
 export default function TeacherGroup({ groupId, onBack }: { groupId: string; onBack: () => void }) {
   const qc = useQueryClient();

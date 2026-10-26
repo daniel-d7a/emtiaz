@@ -5,18 +5,7 @@ import { GraduationCap, Link2, Unlink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
-
-type Group = {
-  group: { id: string; name: string };
-  course: { title: string };
-  teacher: { name: string };
-  progress: number;
-};
-type Child = { id: string; name: string; email: string; phoneNumber: string | null; groups: Group[] };
-type Grades = {
-  quizzes: Array<{ quizId: string; title: string; lessonTitle: string; score: number; maxScore: number }>;
-  manual: Array<{ columnId: string; title: string; maxScore: number; score: number | null; note: string | null }>;
-};
+import type { ParentChild as Child, StudentGrades as Grades } from '../../../../shared/api';
 
 export default function ParentDashboard() {
   const { t } = useLang();

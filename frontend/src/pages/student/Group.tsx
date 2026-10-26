@@ -5,36 +5,12 @@ import { ArrowRight, CheckCircle2, Download, FileDown, Lock, NotebookPen, Rotate
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
-
-type QuizRef = { id: string; title: string; bestAttempt: { score: number; maxScore: number } | null } | null;
-type Curriculum = {
-  course: { title: string };
-  group: { name: string; joinCode: string };
-  quiz: QuizRef;
-  modules: Array<{
-    title: string;
-    quiz: QuizRef;
-    lessons: Array<{
-      id: string;
-      title: string;
-      content: string | null;
-      unlocked: boolean;
-      completed: boolean;
-      hasQuiz: boolean;
-      attachments: Array<{ id: string; title: string; fileType: string }>;
-    }>;
-  }>;
-};
-
-type Quiz = {
-  quiz: { id: string; title: string };
-  questions: Array<{ id: string; questionType: string; prompt: string; options: string[] | null; points: number }>;
-};
-
-type Grades = {
-  quizzes: Array<{ quizId: string; title: string; lessonTitle: string; score: number; maxScore: number }>;
-  manual: Array<{ columnId: string; title: string; maxScore: number; score: number | null; note: string | null }>;
-};
+import type {
+  QuizPayload,
+  QuizSubmission,
+  StudentCurriculum as Curriculum,
+  StudentGrades as Grades,
+} from '../../../../shared/api';
 
 export default function StudentGroup() {
   const { groupId } = useParams({ from: '/student/groups/$groupId' });
@@ -186,38 +162,39 @@ function AttachmentRow({ id, title }: { id: string; title: string }) {
 export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; quizId?: string; groupId: string }) {
   const { t } = useLang();
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<unknown>(null);
+  const [result, setResult] = useState<QuizSubmission | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const { data: quiz, isLoading } = useQuery({
     queryKey: ['quiz', quizId ?? lessonId],
     queryFn: () =>
       quizId
-        ? api<any>(`/api/student/groups/${groupId}/quizzes/${quizId}`)
-        : api<any>(`/api/student/lessons/${lessonId}/quiz`),
+        ? api<QuizPayload>(`/api/student/groups/${groupId}/quizzes/${quizId}`)
+        : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`),
     enabled: !!(quizId || lessonId),
   });
 
   if (!quiz?.quiz?.id) return null;
+  const quizData = quiz.quiz;
 
   const submit = async () => {
     setError(null);
     try {
-      const res = await api(`/api/student/quizzes/${quiz.quiz.id}/submit`, {
+      const res = await api<QuizSubmission>(`/api/student/quizzes/${quizData.id}/submit`, {
         body: { groupId, answers },
       });
       setResult(res);
     } catch (e) {
-      setError(e);
+      setError(e as Error);
     }
   };
 
   return (
     <Card className="border-primary/30 bg-primary-light/30">
-      <h3 className="mb-3 font-bold">{t('quiz')}: {quiz.quiz.title}</h3>
+      <h3 className="mb-3 font-bold">{t('quiz')}: {quizData.title}</h3>
       {isLoading && <Loading />}
       {!result && (
         <div className="flex flex-col gap-4">
-          {quiz.questions?.map((q: any, i: number) => (
+          {quiz.questions.map((q, i) => (
             <div key={q.id}>
               <p className="mb-2 text-sm font-semibold">
                 {i + 1}. {q.prompt} <span className="text-ink-soft">({q.points})</span>
@@ -268,7 +245,7 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
           <p className="text-lg font-bold text-primary">
             {t('yourScore')}: {result.score}/{result.maxScore}
           </p>
-          {result.result.map((r: any, i: number) => (
+          {result.result.map((r, i) => (
             <div key={r.questionId}>
               <span className={r.correct ? 'font-semibold text-primary' : 'font-semibold text-secondary'}>
                 {r.correct ? '✓' : '✗'} {i + 1}

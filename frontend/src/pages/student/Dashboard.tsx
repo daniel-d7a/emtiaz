@@ -5,13 +5,7 @@ import { BookOpen, Plus } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
-
-type Enrolled = {
-  group: { id: string; name: string; joinCode: string };
-  course: { id: string; title: string; description: string | null };
-  teacher: { name: string; subject: string | null };
-  progress: number;
-};
+import type { StudentGroup as Enrolled } from '../../../../shared/api';
 
 export default function StudentDashboard() {
   const { t, lang } = useLang();

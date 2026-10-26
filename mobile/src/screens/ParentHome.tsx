@@ -3,22 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, authApi } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, c, s } from '../ui';
-
-type Child = {
-  id: string;
-  name: string;
-  email: string;
-  groups: Array<{
-    group: { id: string; name: string };
-    course: { title: string };
-    teacher: { name: string };
-    progress: number;
-  }>;
-};
-type Grades = {
-  quizzes: Array<{ quizId: string; title: string; lessonTitle: string; score: number; maxScore: number }>;
-  manual: Array<{ columnId: string; title: string; maxScore: number; score: number | null; note: string | null }>;
-};
+import type { ParentChild as Child, StudentGrades as Grades } from '../../../shared/api';
 
 export default function ParentHome({ onLogout, onNotifications }: { onLogout: () => void; onNotifications: () => void }) {
   const qc = useQueryClient();

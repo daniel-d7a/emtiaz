@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import type { Session } from '../../shared/api';
 
 /** API base: in Expo Go the app runs on the same LAN host as Metro, so derive the API
  *  port from the manifest hostUri. Override by setting EMelia note below for prod.
@@ -30,7 +31,7 @@ export async function api<T = any>(
 }
 
 export const authApi = {
-  session: () => fetch(`${API}/api/auth/get-session`, { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)),
+  session: (): Promise<Session> => fetch(`${API}/api/auth/get-session`, { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)),
   login: (email: string, password: string) => api('/api/auth/sign-in/email', { body: { email, password } }),
   logout: () => api('/api/auth/sign-out', { body: {} }),
 };

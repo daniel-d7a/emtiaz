@@ -4,11 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, authApi } from '../api';
 import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
-
-type Me = {
-  user: { id: string; name: string; email: string; phoneNumber?: string | null; image?: string | null };
-  avatarUrl: string | null;
-};
+import type { MeResponse as Me, PresignedUpload } from '../../../shared/api';
 
 export default function Profile({ onBack, onLogout, onNotifications }: { onBack: () => void; onLogout: () => void; onNotifications?: () => void }) {
   const qc = useQueryClient();
@@ -44,7 +40,7 @@ export default function Profile({ onBack, onLogout, onNotifications }: { onBack:
       const asset = picked.assets[0];
       const mime = asset.mimeType ?? 'image/jpeg';
       const blob = await (await fetch(asset.uri)).blob();
-      const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/avatar', {
+      const up = await api<PresignedUpload>('/api/storage/avatar', {
         body: {
           fileName: asset.fileName ?? 'avatar.jpg',
           mimeType: mime,

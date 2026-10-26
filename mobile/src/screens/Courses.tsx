@@ -3,12 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
-
-type Group = {
-  group: { id: string; name: string; joinCode: string };
-  course: { title: string };
-  progressPercent: number;
-};
+import type { StudentGroup as Group } from '../../../shared/api';
 
 export default function Courses({ onOpen, onProfile }: { onOpen: (groupId: string) => void; onProfile: () => void }) {
   const qc = useQueryClient();
@@ -55,7 +50,7 @@ export default function Courses({ onOpen, onProfile }: { onOpen: (groupId: strin
           <Text style={s.h2}>{g.course.title}</Text>
           <Text style={{ color: '#78716C' }}>{g.group.name}</Text>
           <View style={s.progress}>
-            <View style={[s.progressFill, { width: `${Math.round(g.progressPercent)}%` as any }]} />
+            <View style={[s.progressFill, { width: `${Math.round(g.progress)}%` as any }]} />
           </View>
           <Btn label="افتح" onPress={() => onOpen(g.group.id)} />
         </Card>

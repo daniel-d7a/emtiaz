@@ -2,14 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, c, s } from '../ui';
-
-type Item = {
-  id: string;
-  type: string;
-  message: string;
-  readAt: string | null;
-  createdAt: string;
-};
+import type { InboxItem as Item } from '../../../shared/api';
 
 export default function Notifications({ onBack }: { onBack: () => void }) {
   const qc = useQueryClient();

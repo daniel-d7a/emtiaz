@@ -2,18 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
-
-type QuizRef = { id: string; title: string } | null;
-type Curriculum = {
-  group: { name: string; joinCode: string };
-  course: { title: string };
-  quiz: QuizRef;
-  modules: Array<{
-    title: string;
-    quiz: QuizRef;
-    lessons: Array<{ id: string; title: string; unlocked: boolean; completed: boolean; hasQuiz: boolean }>;
-  }>;
-};
+import type { StudentCurriculum as Curriculum } from '../../../shared/api';
 
 export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz, onOpenQuizById }: {
   groupId: string;

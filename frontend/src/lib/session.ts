@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
-import { authApi, type SessionUser } from './api';
+import { authApi } from './api';
 import { queryClient } from './queryClient';
+import type { Session } from '../../../shared/api';
 
-export type Session = { user: SessionUser } | null;
+export type { Session } from '../../../shared/api';
 
 export const sessionQuery = {
   queryKey: ['session'] as const,
-  queryFn: authApi.session as unknown as () => Promise<Session>,
+  queryFn: authApi.session,
   staleTime: 15_000,
 };
 

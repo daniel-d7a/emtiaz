@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type SessionUser } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../components/ui';
+import type { MeResponse, PresignedUpload } from '../../../shared/api';
 
 export default function Profile() {
   const { t } = useLang();
@@ -11,15 +12,7 @@ export default function Profile() {
   const { data, isLoading } = useQuery(sessionQuery);
   const { data: me } = useQuery({
     queryKey: ['me'],
-    queryFn: () =>
-      api<{
-        user: {
-          parentInviteCode: string;
-          landingSlug: string | null;
-          landingBio: string | null;
-          landingPublished: boolean;
-        };
-      }>('/api/me'),
+    queryFn: () => api<MeResponse>('/api/me'),
   });
   const user: SessionUser | null = data?.user ?? null;
   const { data: subjects = [] } = useQuery<{ id: string; name: string }[]>({
@@ -55,7 +48,7 @@ export default function Profile() {
     setAvatarBusy(true);
     setAvatarErr(null);
     try {
-      const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/avatar', {
+      const up = await api<PresignedUpload>('/api/storage/avatar', {
         body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
       });
       const put = await fetch(up.uploadUrl, {

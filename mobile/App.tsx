@@ -17,6 +17,7 @@ import TeacherGroup from './src/screens/TeacherGroup';
 import Quiz from './src/screens/Quiz';
 import { Loading, s } from './src/ui';
 import { queryClient } from './src/query';
+import type { Session } from '../shared/api';
 
 type RootStackParamList = {
   Courses: undefined;
@@ -164,7 +165,7 @@ function ParentStack({ onLogout }: { onLogout: () => void }) {
 }
 
 function Root() {
-  const [session, setSession] = useState<any | null>(null);
+  const [session, setSession] = useState<Session>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

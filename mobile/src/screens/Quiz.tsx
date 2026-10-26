@@ -3,21 +3,11 @@ import { ScrollView, Text, TextInput, TouchableHighlight, View } from 'react-nat
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
-
-type QuizPayload = {
-  quiz: { id: string; title: string };
-  questions: Array<{
-    id: string;
-    questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
-    prompt: string;
-    options: string[] | null;
-    points: number;
-  }>;
-};
+import type { QuizPayload, QuizSubmission } from '../../../shared/api';
 
 export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?: string; quizId?: string; groupId: string; onBack: (refresh: boolean) => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<QuizSubmission | null>(null);
   const quiz = useQuery({
     queryKey: ['quiz', quizId ?? lessonId],
     queryFn: () =>
@@ -28,7 +18,7 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
   });
   const submit = useMutation({
     mutationFn: (vars: { quizId: string; answers: Record<string, string> }) =>
-      api(`/api/student/quizzes/${vars.quizId}/submit`, { body: { groupId, answers: vars.answers } }),
+      api<QuizSubmission>(`/api/student/quizzes/${vars.quizId}/submit`, { body: { groupId, answers: vars.answers } }),
     onSuccess: (res) => setResult(res),
   });
 
@@ -40,6 +30,8 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
   if (error) return <View style={s.page}><ErrorBox error={error} /><Btn label="رجوع" variant="ghost" onPress={() => onBack(false)} /></View>;
   if (!quiz.data) return <Loading />;
   const data = quiz.data;
+  const quizData = data.quiz;
+  if (!quizData) return <Loading />;
 
   return (
     <ScrollView style={s.page}>
@@ -47,7 +39,7 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
       {result ? (
         <>
           <Text style={s.h1}>{result.score} / {result.maxScore}</Text>
-          {result.result.map((r: any, i: number) => (
+          {result.result.map((r, i) => (
             <Card key={r.questionId}>
               <Text style={{ fontWeight: '700' }}>{r.correct ? '✓ صحيح' : '✗ خطأ'} — سؤال {i + 1}</Text>
               <Text style={{ color: c.inkSoft }}>الجواب الصحيح: {r.expected}{r.explanation ? ` — ${r.explanation}` : ''}</Text>
@@ -57,7 +49,7 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
         </>
       ) : (
         <>
-          <Text style={s.h1}>{data.quiz.title}</Text>
+          <Text style={s.h1}>{quizData.title}</Text>
           {data.questions.map((q, i) => (
             <Card key={q.id}>
               <Text style={{ fontWeight: '700', marginBottom: 8 }}>{i + 1}. {q.prompt} ({q.points})</Text>
@@ -100,7 +92,7 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
           <Btn
             label={submit.isPending ? '…' : 'إرسال'}
             disabled={submit.isPending}
-            onPress={() => submit.mutate({ quizId: data.quiz.id, answers })}
+            onPress={() => submit.mutate({ quizId: quizData.id, answers })}
           />
         </>
       )}

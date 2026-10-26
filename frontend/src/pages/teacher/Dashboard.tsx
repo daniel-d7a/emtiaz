@@ -5,17 +5,7 @@ import { Eye, EyeOff, FileUp, ListTree, Plus, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
-
-type Course = {
-  id: string;
-  title: string;
-  description: string | null;
-  courseType: 'ACADEMIC' | 'GENERAL';
-  semester: string | null;
-  isPublished: boolean;
-  groups: Array<{ id: string; name: string; joinCode: string; studentCount: number }>;
-  analytics: { students: number; groups: number; lessons: number; avgProgress: number };
-};
+import type { TeacherCourse as Course } from '../../../../shared/api';
 
 export default function TeacherDashboard() {
   const { t } = useLang();

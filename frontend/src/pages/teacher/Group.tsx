@@ -6,23 +6,11 @@ import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
-
-type Pacing = {
-  group: { id: string; name: string; joinCode: string; unlockAllByDefault: boolean };
-  lessons: Array<{ id: string; title: string; unlocked: boolean; overridden: boolean }>;
-};
-type Gradebook = {
-  group: { id: string; name: string; joinCode: string };
-  students: Array<{ id: string; name: string; phoneNumber: string | null }>;
-  quizColumns: Array<{ quizId: string; lessonTitle: string; maxScore: number }>;
-  quizCells: Record<string, number>;
-  manualColumns: Array<{ id: string; title: string; maxScore: number | null }>;
-  manualCells: Array<{ columnId: string; studentId: string; score: number | null; note: string | null }>;
-};
-type Roster = {
-  group: { id: string; name: string; joinCode: string };
-  students: Array<{ studentId: string; name: string; phoneNumber: string | null; joinedAt: string; completedLessons: number; totalLessons: number; progress: number }>;
-};
+import type {
+  TeacherGradebook as Gradebook,
+  TeacherPacing as Pacing,
+  TeacherRoster as Roster,
+} from '../../../../shared/api';
 
 export default function TeacherGroup() {
   const { groupId } = useParams({ from: '/teacher/groups/$groupId' });
@@ -235,7 +223,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['roster', groupId],
-    queryFn: () => api<Roster & { group: Roster['group'] & { courseId: string } }>(`/api/teacher/groups/${groupId}/roster`),
+    queryFn: () => api<Roster>(`/api/teacher/groups/${groupId}/roster`),
   });
   const { data: allCourses } = useQuery({
     queryKey: ['teacher-courses'],

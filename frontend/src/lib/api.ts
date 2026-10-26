@@ -1,3 +1,7 @@
+import type { Session } from '../../../shared/api';
+
+export type { Session, SessionUser } from '../../../shared/api';
+
 /** Minimal fetch client: same-origin API, cookie sessions included. */
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -20,19 +24,8 @@ export async function api<T = any>(
   return data as T;
 }
 
-export type SessionUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  subjectCategoryId?: string | null;
-  phoneNumber?: string | null;
-  gradeId?: string | null;
-  image?: string | null;
-};
-
 export const authApi = {
-  session: () => fetch(`${BASE}/api/auth/get-session`, { credentials: 'include' })
+  session: (): Promise<Session> => fetch(`${BASE}/api/auth/get-session`, { credentials: 'include' })
     .then((r) => (r.ok ? r.json() : null)),
   login: (email: string, password: string) =>
     api('/api/auth/sign-in/email', { body: { email, password } }),

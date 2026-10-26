@@ -3,14 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell } from 'lucide-react';
 import { api } from '../lib/api';
 import { useLang } from '../lib/i18n';
-
-type InboxItem = {
-  id: string;
-  type: string;
-  message: string;
-  readAt: string | null;
-  createdAt: string;
-};
+import type { InboxItem, UnreadCount } from '../../../shared/api';
 
 export function NotificationBell() {
   const { t } = useLang();
@@ -23,7 +16,7 @@ export function NotificationBell() {
   });
   const unread = useQuery({
     queryKey: ['inbox-unread'],
-    queryFn: () => api<{ unread: number }>('/api/notifications/unread-count'),
+    queryFn: () => api<UnreadCount>('/api/notifications/unread-count'),
     refetchInterval: 30000,
   });
   const refresh = () => {

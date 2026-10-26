@@ -3,13 +3,7 @@ import { Linking, ScrollView, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
-
-type Lesson = {
-  title: string;
-  content: string | null;
-  completed: boolean;
-  attachments: Array<{ id: string; title: string }>;
-};
+import type { StudentLessonView as Lesson } from '../../../shared/api';
 
 export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId: string; onBack: (refresh?: boolean) => void; onOpenQuiz?: () => void }) {
   const qc = useQueryClient();

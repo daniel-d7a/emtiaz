@@ -2,14 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, s } from '../ui';
-
-type Group = { id: string; name: string; joinCode: string; studentCount: number };
-type Course = {
-  id: string;
-  title: string;
-  groups: Group[];
-  analytics: { students: number; groups: number; lessons: number; avgProgress: number };
-};
+import type { TeacherCourse as Course } from '../../../shared/api';
 
 export default function TeacherHome({
   onOpenGroup,
