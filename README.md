@@ -5,11 +5,11 @@ freelance skill instructors (GENERAL). Arabic-first (RTL) with an English switch
 
 ## Stack
 
-- **API** `backend/` — NestJS + Drizzle ORM + PostgreSQL + Better Auth (cookie sessions), S3-compatible object storage (RustFS in dev, Cloudflare R2 in prod)
-- **App** `frontend/` — React 18 + Vite + Tailwind v4 + TanStack Query
-- **Landing** `landing/` — one static bilingual page (no build step)
-- **Mobile** `mobile/` — Expo / React Native (login, my courses, group curriculum, profile + avatar)
-- **Docs** `docs/adr/` — architecture decision records
+- **API** `backend/` — NestJS + Drizzle ORM + PostgreSQL + Better Auth (cookie sessions), Redis (optional shared throttling/lockout), S3-compatible object storage (RustFS in dev, Cloudflare R2 in prod)
+- **App** `frontend/` — React 18 + Vite + Tailwind v4 + TanStack Router + TanStack Query
+- **Landing** `landing/` — static bilingual marketing pages (`/landing/`, `/landing/teachers`), no build step
+- **Mobile** `mobile/` — Expo / React Native with role-specific React Navigation stacks (student, teacher, parent)
+- **Docs** `docs/` — current architecture, security model, runbooks, and ADRs ([index](docs/README.md))
 
 ## Local development
 
@@ -66,6 +66,8 @@ That brings up:
 | `web` (Caddy) | 8088 | serves the built React app at `/`, landing pages at `/landing/` and `/landing/teachers` (with pricing), proxies `/api/` → the API |
 | `api` (Nest) | 3100 | applies migrations, seeds the admin user, then serves on container port 3000 |
 | `db` (Postgres) | — | data volume `pgdata`, no host port |
+| `redis` | — | shared throttle counters, sign-in lockout, monthly-summary lock; ephemeral |
+| `rustfs` | 9200 | local S3-compatible object store; bucket created by `rustfs-init` |
 
 First-run override (recommended in production):
 
@@ -89,7 +91,18 @@ gradebook, files) is managed through the app itself; log in as the admin at
    `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL` in the api environment.
    Compose includes Redis and sets `REDIS_URL`; keep it for shared rate
    limits and sign-in lockout when running more than one API replica.
-3. Landing page: serve `landing/index.html` from the real domain and change
-   `APP_URL` inside it to your app URL.
+3. Landing pages: serve `landing/` from the real domain, change `APP_URL` in
+   `index.html` / `teachers.html` to your app URL, and confirm `/t/<slug>` and
+   `sitemap.xml` resolve to the app/API.
 4. Mobile: hardcode the production API URL in `mobile/src/api.ts` before
    release builds.
+5. Backups: schedule [`scripts/backup.sh`](scripts/backup.sh) and follow
+   [`docs/runbook-backups.md`](docs/runbook-backups.md). Redis is ephemeral and
+   is not part of the backup.
+
+## Docs
+
+- [`docs/architecture.md`](docs/architecture.md) — current system design
+- [`docs/security.md`](docs/security.md) — auth, role matrix, access rules
+- [`docs/README.md`](docs/README.md) — full docs and ADR index
+- [`master_plan.md`](master_plan.md) — original product brief (historical)

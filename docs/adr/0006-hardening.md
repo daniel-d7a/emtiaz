@@ -1,6 +1,7 @@
 # ADR-0006: Baseline HTTP hardening (Helmet, IP throttling, auth rate limits)
 
 Date: 2026-10-25
+Updated: 2026-10-26
 
 ## Decision
 - `helmet()` on all responses (API only, default headers).
@@ -22,9 +23,12 @@ Date: 2026-10-25
   comes from the proxy container and one user could throttle everyone.
 
 ## Consequences
-- Rate-limit state is in-memory per API instance: fine for one container,
-  needs Redis (`@nestjs/throttler` storage) before horizontal scaling.
-- Lockout state is also in-memory per API instance, so it has the same Redis
-  requirement before horizontal scaling. A successful sign-in clears the
-  counter; failures outside the window are forgotten.
+- With `REDIS_URL` unset, rate-limit and lockout state are in-memory per API
+  instance: fine for one container, but each replica has its own counters.
+  With `REDIS_URL` set, both use Redis and limits hold across replicas
+  ([ADR-0014](./0014-redis-shared-state.md)).
+- A successful sign-in clears the lockout counter; failures outside the window
+  are forgotten.
 - 300/min is a starting value; revisit after real usage data.
+- Lockout is per email, not per IP. A distributed password-spray across many
+  emails is still covered by the IP throttle.

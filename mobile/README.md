@@ -33,10 +33,14 @@ automatically. For a release build, hardcode the production API URL there.
 ## What each role sees
 
 - **Student**: login, my groups, join by code, curriculum, lesson viewer
-  (marks lesson as viewed), quizzes with retry, and profile (avatar upload,
-  name/phone, logout).
-- **Teacher**: login, course/group list, per-group pacing with lesson unlock
-  toggles, roster, and profile.
+  (marks lesson as viewed), quizzes with retry, notifications, and profile
+  (avatar upload, name/phone, logout). Parent-code display/rotation stays on
+  the web profile.
+- **Teacher**: login, course/group list with student/group/lesson/progress
+  summaries, per-group pacing with lesson unlock toggles, roster with progress,
+  group announcements, notifications, and profile.
+- **Parent**: login, link/unlink a child with the student's parent code, see
+  each child's groups and progress, open quiz/manual grades, and notifications.
 - **Admin**: web only.
 
 ## Troubleshooting

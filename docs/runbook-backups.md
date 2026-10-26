@@ -3,6 +3,10 @@
 Two things need backing up: Postgres (`db` service) and the RustFS object
 store (`s3data` volume). `scripts/backup.sh` captures both.
 
+Redis (`redis` service) is **not** backed up. It only holds expiring throttle
+counters, sign-in lockout keys, and the monthly-summary lock; losing it resets
+those ephemeral values. See [ADR-0014](./adr/0014-redis-shared-state.md).
+
 ## Take a backup
 
 ```bash

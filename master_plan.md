@@ -1,5 +1,12 @@
 # Master Product & Technical Specification: Hybrid Cohort-Based LMS
 
+> **Historical document.** This is the original product brief, not the current
+> implementation. It contains repeated drafts and obsolete details (for example
+> React Router, Zustand, and a schema without the `PARENT` role). For the
+> deployed system use [`docs/architecture.md`](docs/architecture.md), the
+> [`docs/security.md`](docs/security.md) model, and the
+> [ADRs](docs/README.md). Where this file and the code differ, the code wins.
+
 ## 1. Project Overview & Core Philosophy
 
 A lightweight, mobile-first Learning Management System (LMS) tailored for school curriculum teachers (specifically targeting the Oman academic demographic) and freelance instructors teaching general skill-based courses (e.g., English speaking, grammar).

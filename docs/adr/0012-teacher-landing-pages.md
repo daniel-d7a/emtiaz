@@ -1,6 +1,7 @@
 # ADR-0012: Teacher landing pages use a slug on the main domain
 
 Date: 2026-10-25
+Updated: 2026-10-26
 
 ## Decision
 - Teachers set `landingSlug`, `landingBio`, and `landingPublished` on
@@ -21,7 +22,9 @@ Date: 2026-10-25
 ## Consequences
 - The slug lives in `user`, so changing it breaks old links; there is no
   redirect table yet.
-- Avatars are stored as object keys. The public page currently receives the key,
-  not a signed URL, so it only shows initials until a public avatar route is
-  added. (The web app's `/api/me/avatar` is session-scoped.)
+- Avatars are stored as object keys. `GET /api/public/teachers/:slug/avatar`
+  redirects to a fresh presigned GET, but only for a published, active teacher;
+  the web app's `/api/me/avatar` remains session-scoped.
+- `sitemap.xml` lists the app root plus every published teacher slug;
+  `robots.txt` disallows `/api/`.
 - No per-teacher theming or custom domains yet.
