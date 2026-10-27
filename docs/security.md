@@ -90,15 +90,18 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
 - Presigned PUT for uploads (15 min) and presigned GET for downloads (1 hour);
   the API stores object keys, not durable URLs.
-- Avatars: images only, max 2 MB. Lesson attachments: max 100 MB. Uploads are
-  typed from the declared MIME type; URL materials are classified as a YouTube
-  video or an external link.
+- Avatars: images only, max 2 MB. Lesson attachments: max 100 MB. Quiz question
+  images: images only, max 5 MB. Uploads are typed from the declared MIME type;
+  URL materials are classified as a YouTube video or an external link.
 - Replaced/cleared avatars, banners, and course covers are deleted best-effort. Objects uploaded but never
   attached still need a bucket lifecycle rule.
 - Public teacher avatars and banners are served through a published-teacher
   check, not a public bucket listing. Public catalogue and course detail
   resolve only published courses of a published, active teacher and expose no
   storage keys or lesson content.
+- Quiz question images are signed only on quiz payloads after the same
+  enrollment/unlock checks; teachers may use only keys under their course's
+  `quiz/` prefix.
 - Lesson materials are readable only through the attachment download/file
   endpoints, which repeat the teacher ownership and student enrollment/unlock
   checks. The file endpoint 302s to a short-lived signed URL so inline previews

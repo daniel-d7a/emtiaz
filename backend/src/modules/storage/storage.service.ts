@@ -67,6 +67,11 @@ export class StorageService {
     return `courses/${courseId}/cover/${randomUUID()}-${safeName}`;
   }
 
+  static buildQuizImageKey(courseId: string, fileName: string) {
+    const safeName = fileName.replace(/[^\w.\-]/g, '_');
+    return `courses/${courseId}/quiz/${randomUUID()}-${safeName}`;
+  }
+
   static isVideoLink(url: string): boolean {
     try {
       const host = new URL(url).hostname.replace(/^www\./, '');

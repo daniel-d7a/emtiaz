@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createRoute, useLocation, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, FileUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileUp, ImagePlus, NotebookPen, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { attachmentIcon, attachmentUrl } from '../../lib/attachment';
@@ -10,14 +10,17 @@ import { useLang } from '../../lib/i18n';
 import { Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select, StatCard } from '../../components/ui';
 import type { Attachment } from '../../../../shared/api';
 
-type Question = {
+type QuizQuestionData = {
+  id: string;
   questionType: 'MCQ' | 'TRUE_FALSE';
   prompt: string;
-  options: string[];
+  imageKey: string | null;
+  imageUrl: string | null;
+  options: string[] | null;
   correctAnswer: string;
   points: number;
 };
-type QuizData = { id: string; title: string; questions: unknown[] } | null;
+type QuizData = { id: string; title: string; displayOrder: number; questions: QuizQuestionData[] } | null;
 type Curriculum = {
   quiz: QuizData;
   modules: Array<{
@@ -28,6 +31,7 @@ type Curriculum = {
       id: string;
       title: string;
       content: string | null;
+      displayOrder: number;
       quiz: QuizData;
       attachments: Attachment[];
     }>;
@@ -85,7 +89,15 @@ export default function TeacherCurriculum() {
             <StatCard label={t('lessons')} value={lessonCount} />
             <StatCard label={t('quizzes')} value={quizCount} />
           </div>
-          {data && <QuizBuilder endpoint={`/api/teacher/courses/${courseId}/quiz`} existing={data.quiz} />}
+          {data && (
+            <Card className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="font-bold">{t('finalQuiz')}</span>
+                <p className="text-sm text-ink-soft">{data.quiz?.title ?? t('noQuiz')}</p>
+              </div>
+              <QuizBuilder courseId={courseId} endpoint={`/api/teacher/courses/${courseId}/quiz`} existing={data.quiz} />
+            </Card>
+          )}
           {modules.map((mod, mi) => (
             <ModuleCard
               key={mod.id}
@@ -155,9 +167,9 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
     },
     onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
-  const reorderLessons = useMutation({
-    mutationFn: (lessonIds: string[]) =>
-      api(`/api/teacher/modules/${mod.id}/lessons/reorder`, { method: 'PUT', body: { lessonIds } }),
+  const reorderItems = useMutation({
+    mutationFn: (items: Array<{ id: string; type: 'lesson' | 'quiz' }>) =>
+      api(`/api/teacher/modules/${mod.id}/items/reorder`, { method: 'PUT', body: { items } }),
     onSuccess: () => {
       toast.success(t('saved'));
       invalidate();
@@ -182,6 +194,10 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
     onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
   const unitQuizCount = [mod.quiz, ...mod.lessons.map((lesson) => lesson.quiz)].filter(Boolean).length;
+  const unitItems = [
+    ...mod.lessons.map((lesson) => ({ id: lesson.id, type: 'lesson' as const, order: lesson.displayOrder, lesson })),
+    ...(mod.quiz ? [{ id: mod.quiz.id, type: 'quiz' as const, order: mod.quiz.displayOrder, quiz: mod.quiz }] : []),
+  ].sort((a, b) => a.order - b.order);
 
   return (
     <Card>
@@ -217,24 +233,50 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
             </>
           )}
         </div>
-        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="shrink-0 text-ink-soft hover:text-secondary" title={t('delete')}>
-          <Trash2 size={16} />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <QuizBuilder
+            courseId={courseId}
+            endpoint={`/api/teacher/modules/${mod.id}/quiz`}
+            existing={mod.quiz}
+          />
+          <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="shrink-0 text-ink-soft hover:text-secondary" title={t('delete')}>
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
       <Collapse open={open}>
         <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
-          {mod.lessons.map((l, li) => (
-            <LessonEditor
-              key={l.id}
-              lesson={l}
-              courseId={courseId}
-              autoFocus={l.id === focusLessonId}
-              canUp={li > 0}
-              canDown={li < mod.lessons.length - 1}
-              moving={reorderLessons.isPending}
-              onMove={(dir) => reorderLessons.mutate(swap(mod.lessons.map((x) => x.id), li, dir))}
-            />
-          ))}
+          {unitItems.map((item, ii) => {
+            const onMove = (dir: -1 | 1) =>
+              reorderItems.mutate(
+                swap(unitItems, ii, dir).map(({ id, type }) => ({ id, type })),
+              );
+            if (item.type === 'quiz') {
+              return (
+                <div key={item.id} className="flex min-h-11 items-center gap-2 rounded-xl border border-primary/30 bg-primary-light/20 px-3">
+                  <span className="flex shrink-0 flex-col gap-0">
+                    <button aria-label={t('moveUp')} title={t('moveUp')} disabled={ii === 0 || reorderItems.isPending} onClick={() => onMove(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+                    <button aria-label={t('moveDown')} title={t('moveDown')} disabled={ii === unitItems.length - 1 || reorderItems.isPending} onClick={() => onMove(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+                  </span>
+                  <NotebookPen size={16} className="shrink-0 text-primary" />
+                  <span className="min-w-0 grow truncate text-sm font-semibold">{item.quiz.title}</span>
+                  <span className="shrink-0 text-xs text-ink-soft">{t('quiz')}</span>
+                </div>
+              );
+            }
+            return (
+              <LessonEditor
+                key={item.id}
+                lesson={item.lesson}
+                courseId={courseId}
+                autoFocus={item.id === focusLessonId}
+                canUp={ii > 0}
+                canDown={ii < unitItems.length - 1}
+                moving={reorderItems.isPending}
+                onMove={onMove}
+              />
+            );
+          })}
           <div className="flex gap-2">
             <Input value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder={t('newLesson')} label={t('newLesson')} />
             <Button onClick={() => addLesson.mutate()} disabled={!lessonTitle || addLesson.isPending} className="self-end">
@@ -242,7 +284,6 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
             </Button>
           </div>
           {addLesson.error && <ErrorBox error={addLesson.error} />}
-          <QuizBuilder endpoint={`/api/teacher/modules/${mod.id}/quiz`} existing={mod.quiz} />
         </div>
       </Collapse>
       <ConfirmDialog
@@ -330,7 +371,13 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
           </div>
           {save.error && <ErrorBox error={save.error} />}
           <LessonMaterials lesson={lesson} courseId={courseId} />
-          <QuizBuilder endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm font-bold">{t('quiz')}</p>
+              <p className="text-xs text-ink-soft">{lesson.quiz?.title ?? t('noQuiz')}</p>
+            </div>
+            <QuizBuilder courseId={courseId} endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
+          </div>
         </div>
       </Collapse>
       <ConfirmDialog
@@ -527,11 +574,64 @@ function LessonMaterials({ lesson, courseId }: { lesson: Curriculum['modules'][0
   );
 }
 
-function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { title: string } | null }) {
+type QuestionForm = {
+  questionType: 'MCQ' | 'TRUE_FALSE';
+  prompt: string;
+  imageKey: string | null;
+  imageUrl: string | null;
+  options: string[];
+  correctIndex: number | null;
+  correctBool: 'true' | 'false' | '';
+};
+
+const blankQuestion = (): QuestionForm => ({
+  questionType: 'MCQ',
+  prompt: '',
+  imageKey: null,
+  imageUrl: null,
+  options: ['', ''],
+  correctIndex: null,
+  correctBool: '',
+});
+
+const formQuestion = (q: QuizQuestionData): QuestionForm => ({
+  questionType: q.questionType,
+  prompt: q.prompt,
+  imageKey: q.imageKey,
+  imageUrl: q.imageUrl,
+  options: q.options?.length ? q.options : ['', ''],
+  correctIndex:
+    q.questionType === 'MCQ' && q.options
+      ? q.options.findIndex((option) => option === q.correctAnswer)
+      : null,
+  correctBool:
+    q.questionType === 'TRUE_FALSE'
+      ? q.correctAnswer.toLowerCase() === 'false'
+        ? 'false'
+        : 'true'
+      : '',
+});
+
+function QuizBuilder({ courseId, endpoint, existing }: {
+  courseId: string;
+  endpoint: string;
+  existing: QuizData;
+}) {
   const { t } = useLang();
-  const [title, setTitle] = useState(existing?.title ?? t('quiz'));
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [err, setErr] = useState<Error | null>(null);
+  const [uploading, setUploading] = useState<number | null>(null);
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+
+  const show = () => {
+    setTitle(existing?.title ?? t('quiz'));
+    setQuestions(existing?.questions.length ? existing.questions.map(formQuestion) : [blankQuestion()]);
+    setErr(null);
+    setOpen(true);
+  };
 
   const upsert = useMutation({
     mutationFn: () =>
@@ -539,15 +639,26 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
         body: {
           title,
           questions: questions.map((q) => ({
-            ...q,
-            options: q.questionType === 'MCQ' ? q.options : undefined,
+            questionType: q.questionType,
+            prompt: q.prompt,
+            imageKey: q.imageKey,
+            options:
+              q.questionType === 'MCQ'
+                ? q.options.map((option) => option.trim())
+                : undefined,
+            correctAnswer:
+              q.questionType === 'MCQ'
+                ? (q.options[q.correctIndex ?? -1] ?? '').trim()
+                : q.correctBool,
+            points: 1,
           })),
         },
       }),
     onSuccess: () => {
-      setQuestions([]);
       setErr(null);
+      setOpen(false);
       toast.success(t('saved'));
+      invalidate();
     },
     onError: (e) => {
       setErr(e);
@@ -555,105 +666,232 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
     },
   });
 
-  const blank = (): Question => ({ questionType: 'MCQ', prompt: '', options: ['', '', '', ''], correctAnswer: '', points: 1 });
+  const save = () => {
+    const valid = questions.length > 0 && questions.every((q) => {
+      if (!q.prompt.trim() && !q.imageKey) return false;
+      if (q.questionType === 'MCQ') {
+        return (
+          q.options.length >= 2 &&
+          q.options.every((option) => option.trim()) &&
+          q.correctIndex !== null &&
+          !!q.options[q.correctIndex]?.trim()
+        );
+      }
+      return q.correctBool === 'true' || q.correctBool === 'false';
+    });
+    if (!title.trim() || !valid) {
+      setErr(new Error(t('quizValidation')));
+      return;
+    }
+    setErr(null);
+    upsert.mutate();
+  };
+
+  const uploadImage = async (qi: number, file: File) => {
+    setUploading(qi);
+    setErr(null);
+    try {
+      if (!file.type.startsWith('image/')) throw new Error(t('requiredField'));
+      if (file.size > 5 * 1024 * 1024) throw new Error(t('imageTooLarge'));
+      const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/quiz-image', {
+        body: {
+          courseId,
+          fileName: file.name,
+          mimeType: file.type,
+          fileSizeBytes: file.size,
+        },
+      });
+      const put = await fetch(up.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+      const preview = URL.createObjectURL(file);
+      setQuestions((current) =>
+        current.map((question, i) =>
+          i === qi ? { ...question, imageKey: up.objectKey, imageUrl: preview } : question,
+        ),
+      );
+    } catch (e) {
+      setErr(e as Error);
+      toast.error((e as Error).message || t('errorOccurred'));
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const update = (qi: number, patch: Partial<QuestionForm>) => {
+    setQuestions((current) => current.map((question, i) => (i === qi ? { ...question, ...patch } : question)));
+  };
 
   return (
-    <Card className="border-line bg-white">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-bold">{t('quiz')}</span>
-        <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => setQuestions([...questions, blank()])}>
-          <Plus className="inline" size={14} /> {t('add')}
-        </Button>
-      </div>
-      <div className="mt-2">
-        <Input label={t('quiz')} value={title} onChange={(e) => setTitle(e.target.value)} />
-      </div>
-      {questions.map((q, qi) => (
-        <div key={qi} className="mt-4 flex flex-col gap-2 rounded-xl border border-line p-3">
-          <div className="flex gap-2">
-            <select
-              className="rounded-lg border border-line px-2 py-2 text-sm"
-              value={q.questionType}
-              onChange={(e) => {
-                const next = [...questions];
-                next[qi] = { ...q, questionType: e.target.value as Question['questionType'] };
-                setQuestions(next);
-              }}
-            >
-              <option value="MCQ">{t('mcq')}</option>
-              <option value="TRUE_FALSE">{t('trueFalse')}</option>
-            </select>
-            <Input
-              value={q.prompt}
-              onChange={(e) => {
-                const next = [...questions];
-                next[qi] = { ...q, prompt: e.target.value };
-                setQuestions(next);
-              }}
-              placeholder="…"
-            />
-            <button
-              aria-label={t('delete')}
-              title={t('delete')}
-              className="text-ink-soft hover:text-secondary"
-              onClick={() => setQuestions(questions.filter((_, i) => i !== qi))}
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-          {q.questionType === 'MCQ' && (
-            <div className="flex flex-wrap gap-2">
-              {q.options.map((opt, oi) => (
-                <Input
-                  key={oi}
-                  value={opt}
-                  onChange={(e) => {
-                    const next = [...questions];
-                    const options = [...q.options];
-                    options[oi] = e.target.value;
-                    next[qi] = { ...q, options };
-                    setQuestions(next);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          {q.questionType === 'TRUE_FALSE' && (
-            <div className="flex gap-2">
-              {['true', 'false'].map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => {
-                    const next = [...questions];
-                    next[qi] = { ...q, correctAnswer: v };
-                    setQuestions(next);
-                  }}
-                  className={`rounded-lg border px-3 py-2 text-sm ${q.correctAnswer === v ? 'border-primary bg-primary-light font-semibold' : 'border-line'}`}
-                >
-                  {v === 'true' ? t('trueLabel') : t('falseLabel')}
-                </button>
-              ))}
-            </div>
-          )}
-          {q.questionType === 'MCQ' && (
-            <Input
-              label={t('correctAnswer')}
-              value={q.correctAnswer}
-              onChange={(e) => {
-                const next = [...questions];
-                next[qi] = { ...q, correctAnswer: e.target.value };
-                setQuestions(next);
-              }}
-            />
-          )}
-        </div>
-      ))}
-      {err && <ErrorBox error={err} />}
-      <Button onClick={() => upsert.mutate()} disabled={questions.length === 0} className="mt-3">
-        <Save className="inline" size={16} /> {t('save')} {t('quiz')}
+    <>
+      <Button variant="ghost" className="!min-h-9 !px-3" onClick={show}>
+        {existing ? <Pencil className="inline" size={14} /> : <Plus className="inline" size={14} />}{' '}
+        {existing ? t('edit') : t('add')} {t('quiz')}
       </Button>
-    </Card>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('quiz')}
+        className="max-w-3xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={save} disabled={upsert.isPending}>
+              <Save className="inline" size={16} /> {t('save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pe-1">
+          <Input
+            label={t('quiz')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('quiz')}
+          />
+          {questions.map((q, qi) => (
+            <div key={qi} className="flex flex-col gap-3 rounded-xl border border-line bg-white p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-bold">{t('question')} {qi + 1}</span>
+                <button
+                  type="button"
+                  aria-label={t('delete')}
+                  title={t('delete')}
+                  onClick={() => setQuestions(questions.filter((_, i) => i !== qi))}
+                  className="text-ink-soft hover:text-secondary"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+              <Select
+                label={t('question')}
+                value={q.questionType}
+                onChange={(e) =>
+                  update(qi, {
+                    questionType: e.target.value as QuestionForm['questionType'],
+                    correctIndex: null,
+                    correctBool: '',
+                  })
+                }
+              >
+                <option value="MCQ">{t('mcq')}</option>
+                <option value="TRUE_FALSE">{t('trueFalse')}</option>
+              </Select>
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('question')}</span>
+                <textarea
+                  className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
+                  rows={2}
+                  value={q.prompt}
+                  onChange={(e) => update(qi, { prompt: e.target.value })}
+                  placeholder={t('question')}
+                />
+              </label>
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-ink-soft">{t('questionImage')}</span>
+                {q.imageUrl && (
+                  <div className="flex items-start gap-3">
+                    <img src={q.imageUrl} alt="" className="max-h-40 min-w-0 rounded-lg border border-line object-contain" />
+                    <button
+                      type="button"
+                      onClick={() => update(qi, { imageKey: null, imageUrl: null })}
+                      className="shrink-0 text-sm font-semibold text-secondary hover:underline"
+                    >
+                      {t('removeImage')}
+                    </button>
+                  </div>
+                )}
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line bg-background px-3 py-2 text-sm font-semibold text-ink-soft hover:border-primary">
+                  <ImagePlus size={16} className="shrink-0" />
+                  <span className="min-w-0 truncate">
+                    {uploading === qi ? '…' : q.imageUrl ? t('removeImage') : t('questionImage')}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadImage(qi, file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              {q.questionType === 'MCQ' ? (
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-ink-soft">{t('correctAnswer')}</span>
+                  {q.options.map((option, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={`correct-${qi}`}
+                        aria-label={`${t('correctAnswer')} ${oi + 1}`}
+                        checked={q.correctIndex === oi}
+                        onChange={() => update(qi, { correctIndex: oi })}
+                        className="h-4 w-4 shrink-0 accent-primary"
+                      />
+                      <input
+                        className="min-h-10 w-full min-w-0 rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                        value={option}
+                        aria-label={`${t('addOption')} ${oi + 1}`}
+                        placeholder={`${t('addOption')} ${oi + 1}`}
+                        onChange={(e) => {
+                          const options = [...q.options];
+                          options[oi] = e.target.value;
+                          update(qi, { options });
+                        }}
+                      />
+                      {q.options.length > 2 && (
+                        <button
+                          type="button"
+                          aria-label={t('delete')}
+                          title={t('delete')}
+                          onClick={() => update(qi, { options: q.options.filter((_, i) => i !== oi), correctIndex: null })}
+                          className="shrink-0 text-ink-soft hover:text-secondary"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {q.options.length < 4 && (
+                    <Button variant="ghost" className="!min-h-9 self-start !px-3" onClick={() => update(qi, { options: [...q.options, ''] })}>
+                      <Plus className="inline" size={14} /> {t('addOption')}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {(['true', 'false'] as const).map((value) => (
+                    <label
+                      key={value}
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm ${q.correctBool === value ? 'border-primary bg-primary-light font-semibold' : 'border-line'}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`correct-${qi}`}
+                        checked={q.correctBool === value}
+                        onChange={() => update(qi, { correctBool: value })}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      {value === 'true' ? t('trueLabel') : t('falseLabel')}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          <Button variant="ghost" className="self-start" onClick={() => setQuestions([...questions, blankQuestion()])}>
+            <Plus className="inline" size={16} /> {t('question')}
+          </Button>
+          {err && <ErrorBox error={err} />}
+        </div>
+      </Dialog>
+    </>
   );
 }
 

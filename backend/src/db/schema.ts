@@ -256,6 +256,7 @@ export const quizzes = pgTable(
       .unique()
       .references(() => courses.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
+    displayOrder: integer('display_order').notNull().default(0),
   },
   (t) => [
     check(
@@ -271,7 +272,8 @@ export const quizQuestions = pgTable('quiz_questions', {
     .notNull()
     .references(() => quizzes.id, { onDelete: 'cascade' }),
   questionType: questionTypeEnum('question_type').notNull().default('MCQ'),
-  prompt: text('prompt').notNull(),
+  prompt: text('prompt').notNull().default(''),
+  imageKey: text('image_key'),
   options: jsonb('options').$type<string[]>(), // for MCQ
   correctAnswer: text('correct_answer').notNull(),
   explanation: text('explanation'),

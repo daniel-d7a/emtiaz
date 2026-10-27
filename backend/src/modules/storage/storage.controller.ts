@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Injectable, Module, Param, Post, Req, Res } from '@nestjs/common';
-import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto } from '../../lib/schemas';
+import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto, QuizImageUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -55,6 +55,20 @@ export class StorageController {
     if (!course) throw new NotFoundException('Course not found');
     if (course.teacherId !== req.user!.id) throw new ForbiddenException('Not your course');
     const objectKey = StorageService.buildCourseImageKey(dto.courseId, dto.fileName);
+    return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
+  }
+
+  @Roles('TEACHER')
+  @Post('api/storage/quiz-image')
+  async quizImageUpload(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(QuizImageUploadDto))
+    dto: z.infer<typeof QuizImageUploadDto>,
+  ) {
+    const [course] = await db.select().from(courses).where(eq(courses.id, dto.courseId));
+    if (!course) throw new NotFoundException('Course not found');
+    if (course.teacherId !== req.user!.id) throw new ForbiddenException('Not your course');
+    const objectKey = StorageService.buildQuizImageKey(dto.courseId, dto.fileName);
     return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
   }
 

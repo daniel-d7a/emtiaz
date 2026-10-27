@@ -37,6 +37,7 @@ type QuizPayload = {
   questions: Array<{
     questionType: 'MCQ' | 'TRUE_FALSE';
     prompt: string;
+    imageKey?: string | null;
     options?: string[] | null;
     correctAnswer: string;
     explanation?: string | null;
@@ -353,13 +354,18 @@ export class TeacherService {
       .select()
       .from(lessons)
       .where(eq(lessons.moduleId, moduleId));
+    const [unitQuiz] = await db
+      .select({ displayOrder: quizzes.displayOrder })
+      .from(quizzes)
+      .where(eq(quizzes.moduleId, moduleId));
     const [lesson] = await db
       .insert(lessons)
       .values({
         moduleId,
         title: dto.title,
         content: dto.content,
-        displayOrder: existing.length,
+        displayOrder:
+          Math.max(-1, ...existing.map((l) => l.displayOrder), unitQuiz?.displayOrder ?? -1) + 1,
       })
       .returning();
     return lesson;
@@ -387,10 +393,10 @@ export class TeacherService {
     return updated;
   }
 
-  async reorderLessons(
+  async reorderModuleItems(
     user: { id: string; role: string },
     moduleId: string,
-    lessonIds: string[],
+    items: Array<{ id: string; type: 'lesson' | 'quiz' }>,
   ) {
     const [mod] = await db
       .select()
@@ -398,12 +404,34 @@ export class TeacherService {
       .where(eq(modules.id, moduleId));
     if (!mod) throw new NotFoundException('Module not found');
     await this.assertCourseAccess(user, mod.courseId);
+    const lessonRows = await db
+      .select({ id: lessons.id })
+      .from(lessons)
+      .where(eq(lessons.moduleId, moduleId));
+    const [quiz] = await db
+      .select({ id: quizzes.id })
+      .from(quizzes)
+      .where(eq(quizzes.moduleId, moduleId));
+    const lessonIds = new Set(lessonRows.map((l) => l.id));
+    const seen = new Set<string>();
+    if (items.length !== lessonRows.length + (quiz ? 1 : 0)) {
+      throw new BadRequestException('Reorder list must include every lesson and unit quiz');
+    }
+    for (const item of items) {
+      if (seen.has(item.id)) throw new BadRequestException('Duplicate item');
+      seen.add(item.id);
+      if (item.type === 'lesson' && !lessonIds.has(item.id)) {
+        throw new BadRequestException('Lesson does not belong to this module');
+      }
+      if (item.type === 'quiz' && quiz?.id !== item.id) {
+        throw new BadRequestException('Quiz does not belong to this module');
+      }
+    }
     await Promise.all(
-      lessonIds.map((id, i) =>
-        db
-          .update(lessons)
-          .set({ displayOrder: i })
-          .where(and(eq(lessons.id, id), eq(lessons.moduleId, moduleId))),
+      items.map((item, i) =>
+        item.type === 'lesson'
+          ? db.update(lessons).set({ displayOrder: i }).where(eq(lessons.id, item.id))
+          : db.update(quizzes).set({ displayOrder: i }).where(eq(quizzes.id, item.id)),
       ),
     );
     return this.getCourseCurriculum(mod.courseId);
@@ -454,9 +482,24 @@ export class TeacherService {
           .from(lessonAttachments)
           .where(inArray(lessonAttachments.lessonId, lessonIds))
       : [];
+    const imageUrls = new Map<string, string | null>();
+    for (const key of new Set(
+      questionRows.map((q) => q.imageKey).filter((k): k is string => !!k),
+    )) {
+      try {
+        imageUrls.set(key, await this.storage.presignedGet(key));
+      } catch {
+        imageUrls.set(key, null);
+      }
+    }
     const withQuestions = (quiz: typeof quizRows[number]) => ({
       ...quiz,
-      questions: questionRows.filter((q) => q.quizId === quiz.id),
+      questions: questionRows
+        .filter((q) => q.quizId === quiz.id)
+        .map((q) => ({
+          ...q,
+          imageUrl: q.imageKey ? imageUrls.get(q.imageKey) ?? null : null,
+        })),
     });
     const courseQuiz = quizRows.find((q) => q.courseId === courseId);
     return {
@@ -495,7 +538,7 @@ export class TeacherService {
       .from(modules)
       .where(eq(modules.id, lesson.moduleId));
     await this.assertCourseAccess(user, mod.courseId);
-    return this.upsertQuizFor({ lessonId }, payload);
+    return this.upsertQuizFor({ lessonId }, mod.courseId, payload);
   }
 
   async upsertModuleQuiz(
@@ -506,7 +549,7 @@ export class TeacherService {
     const [mod] = await db.select().from(modules).where(eq(modules.id, moduleId));
     if (!mod) throw new NotFoundException('Module not found');
     await this.assertCourseAccess(user, mod.courseId);
-    return this.upsertQuizFor({ moduleId }, payload);
+    return this.upsertQuizFor({ moduleId }, mod.courseId, payload);
   }
 
   async upsertCourseQuiz(
@@ -515,14 +558,18 @@ export class TeacherService {
     payload: QuizPayload,
   ) {
     await this.assertCourseAccess(user, courseId);
-    return this.upsertQuizFor({ courseId }, payload);
+    return this.upsertQuizFor({ courseId }, courseId, payload);
   }
 
   private async upsertQuizFor(
     target: { lessonId?: string; moduleId?: string; courseId?: string },
+    courseId: string,
     payload: QuizPayload,
   ) {
     for (const q of payload.questions) {
+      if (q.imageKey && !q.imageKey.startsWith(`courses/${courseId}/quiz/`)) {
+        throw new ForbiddenException('Question image does not belong to this course');
+      }
       if (q.questionType === 'MCQ' && q.options && !q.options.includes(q.correctAnswer)) {
         throw new ForbiddenException('correctAnswer must be one of options');
       }
@@ -538,7 +585,20 @@ export class TeacherService {
         : eq(quizzes.courseId, target.courseId!);
     let quiz = (await db.select().from(quizzes).where(targetCondition))[0];
     if (!quiz) {
-      quiz = (await db.insert(quizzes).values({ ...target, title: payload.title }).returning())[0];
+      const displayOrder = target.moduleId
+        ? (
+            await db
+              .select({ id: lessons.id })
+              .from(lessons)
+              .where(eq(lessons.moduleId, target.moduleId))
+          ).length
+        : 0;
+      quiz = (
+        await db
+          .insert(quizzes)
+          .values({ ...target, title: payload.title, displayOrder })
+          .returning()
+      )[0];
     } else {
       quiz = (
         await db
@@ -559,6 +619,7 @@ export class TeacherService {
               quizId: quiz.id,
               questionType: q.questionType,
               prompt: q.prompt,
+              imageKey: q.imageKey ?? null,
               options: q.options,
               correctAnswer: q.correctAnswer,
               explanation: q.explanation,

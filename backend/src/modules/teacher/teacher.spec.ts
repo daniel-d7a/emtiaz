@@ -100,8 +100,8 @@ describe('Phase 4: teacher endpoints', () => {
         .send({ title: '' });
       expect(badModule.status).toBe(400);
       const badReorder = await t
-        .put(`/api/teacher/modules/${world.moduleId}/lessons/reorder`)
-        .send({ lessonIds: ['not-a-uuid'] });
+        .put(`/api/teacher/modules/${world.moduleId}/items/reorder`)
+        .send({ items: [{ id: 'not-a-uuid', type: 'lesson' }] });
       expect(badReorder.status).toBe(400);
       const badQuiz = await t
         .post(`/api/teacher/lessons/${world.lesson1}/quiz`)
@@ -192,8 +192,8 @@ describe('Phase 4: teacher endpoints', () => {
       const algebra = cur.body.modules.find((m: any) => m.id === moduleId);
       const lessonIds = algebra.lessons.map((l: any) => l.id).reverse();
       const reordered = await t
-        .put(`/api/teacher/modules/${moduleId}/lessons/reorder`)
-        .send({ lessonIds });
+        .put(`/api/teacher/modules/${moduleId}/items/reorder`)
+        .send({ items: lessonIds.map((id: string) => ({ id, type: 'lesson' })) });
       expect(reordered.status).toBe(200);
       cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
       const after = cur.body.modules.find((m: any) => m.id === moduleId);
@@ -254,7 +254,63 @@ describe('Phase 4: teacher endpoints', () => {
 
       const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
       expect(cur.body.quiz.title).toBe('Course final');
-      expect(cur.body.modules.find((m: any) => m.id === moduleId).quiz.title).toBe('Module check');
+      const algebra = cur.body.modules.find((m: any) => m.id === moduleId);
+      expect(algebra.quiz.title).toBe('Module check');
+      expect(algebra.quiz.displayOrder).toBe(algebra.lessons.length);
+    });
+
+    it('reorders a unit quiz among lessons and persists it', async () => {
+      let cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      let algebra = cur.body.modules.find((m: any) => m.id === moduleId);
+      const items = [
+        { id: algebra.quiz.id, type: 'quiz' },
+        ...algebra.lessons.map((l: any) => ({ id: l.id, type: 'lesson' })),
+      ];
+      const res = await t
+        .put(`/api/teacher/modules/${moduleId}/items/reorder`)
+        .send({ items });
+      expect(res.status).toBe(200);
+
+      cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      algebra = cur.body.modules.find((m: any) => m.id === moduleId);
+      expect(algebra.quiz.displayOrder).toBe(0);
+      expect(algebra.lessons.map((l: any) => l.displayOrder)).toEqual([1, 2]);
+
+      const bad = await t
+        .put(`/api/teacher/modules/${moduleId}/items/reorder`)
+        .send({ items: [{ id: algebra.quiz.id, type: 'quiz' }] });
+      expect(bad.status).toBe(400);
+    });
+
+    it('accepts an image-only question and rejects images from another course', async () => {
+      const imageKey = `courses/${courseId}/quiz/question.png`;
+      const res = await t.post(`/api/teacher/modules/${moduleId}/quiz`).send({
+        title: 'Module check',
+        questions: [
+          {
+            questionType: 'TRUE_FALSE',
+            prompt: '',
+            imageKey,
+            correctAnswer: 'true',
+          },
+        ],
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.questions[0].prompt).toBe('');
+      expect(res.body.questions[0].imageKey).toBe(imageKey);
+
+      const foreign = await t.post(`/api/teacher/modules/${moduleId}/quiz`).send({
+        title: 'Module check',
+        questions: [
+          {
+            questionType: 'TRUE_FALSE',
+            prompt: 'P',
+            imageKey: 'courses/00000000-0000-0000-0000-000000000000/quiz/x.png',
+            correctAnswer: 'true',
+          },
+        ],
+      });
+      expect(foreign.status).toBe(403);
     });
 
     it('re-upserting a quiz resets its questions and attempts', async () => {

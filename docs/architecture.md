@@ -107,6 +107,7 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)). `npm run s3:init` creates
 the bucket and sets browser CORS for the configured frontend origins.
 
 - Lesson attachments: uploads live under `courses/<courseId>/lessons/<lessonId>/…` (max 100 MB); external links and YouTube URLs are stored directly on the attachment row.
+- Quiz question images: uploads live under `courses/<courseId>/quiz/…` (max 5 MB); quiz reads return a fresh signed URL, never the key to students.
 - Avatars: `avatars/<userId>/…`, images only, max 2 MB; `user.image` holds the
   key and `GET /api/me/avatar` redirects to a fresh presigned GET.
 - Published teacher avatars are available publicly at

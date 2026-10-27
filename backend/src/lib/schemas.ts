@@ -115,7 +115,12 @@ export const UpdateCourseDto = CreateCourseDto.partial().omit({ gradeName: true,
 export const AddModuleDto = z.object({ title: safeText(160) });
 export const UpdateModuleDto = z.object({ title: safeText(160) });
 export const IdListDto = z.object({ moduleIds: z.array(uuid) });
-export const IdListDtoLessons = z.object({ lessonIds: z.array(uuid) });
+export const ReorderModuleItemsDto = z.object({
+  items: z
+    .array(z.object({ id: uuid, type: z.enum(['lesson', 'quiz']) }))
+    .min(1)
+    .max(200),
+});
 export const AddLessonDto = z
   .object({ title: safeText(160), content: optText(20000) });
 export const UpdateLessonDto = z
@@ -128,16 +133,20 @@ export const UpdateLessonDto = z
 export const QuizQuestionDto = z
   .object({
     questionType: z.enum(['MCQ', 'TRUE_FALSE']),
-    prompt: safeText(1000),
-    options: z.array(z.string().min(1).max(100)).min(2).optional().nullable(),
+    prompt: z.string().trim().max(1000).default(''),
+    imageKey: z.string().trim().max(512).optional().nullable(),
+    options: z.array(z.string().trim().min(1).max(100)).min(2).max(4).optional().nullable(),
     correctAnswer: z.string().min(1).max(200),
     explanation: optText(1000).nullable(),
     points: z.number().int().positive().default(1),
     displayOrder: z.number().int().default(0),
   })
+  .refine((q) => q.prompt.length > 0 || !!q.imageKey, {
+    message: 'A question needs text or an image',
+  })
   .refine(
     (q) => q.questionType !== 'MCQ' || (q.options && q.options.length >= 2),
-    { message: 'MCQ questions need ≥2 options' },
+    { message: 'MCQ questions need 2–4 options' },
   );
 export const UpsertQuizDto = z.object({
   title: safeText(160),
@@ -180,6 +189,7 @@ export const CourseImageUploadDto = z.object({
   mimeType: z.string().regex(/^image\//, 'must be an image'),
   fileSizeBytes: z.number().int().min(1).max(5 * 1024 * 1024),
 });
+export const QuizImageUploadDto = CourseImageUploadDto;
 export const PresignedUploadDto = z
   .object({
     courseId: uuid,

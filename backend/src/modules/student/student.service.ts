@@ -438,12 +438,23 @@ export class StudentService {
       .from(quizQuestions)
       .where(eq(quizQuestions.quizId, quizId))
       .orderBy(asc(quizQuestions.displayOrder));
+    const imageUrls = new Map<string, string | null>();
+    for (const key of new Set(
+      questions.map((q) => q.imageKey).filter((k): k is string => !!k),
+    )) {
+      try {
+        imageUrls.set(key, await this.storage.presignedGet(key));
+      } catch {
+        imageUrls.set(key, null);
+      }
+    }
     return {
       quiz,
       questions: questions.map((q) => ({
         id: q.id,
         questionType: q.questionType,
         prompt: q.prompt,
+        imageUrl: q.imageKey ? imageUrls.get(q.imageKey) ?? null : null,
         options: q.options,
         points: q.points,
       })),

@@ -86,6 +86,10 @@ export default function StudentGroup() {
               <div className="flex min-w-0 flex-col gap-5">
                 {data.modules.map((mod) => {
                   const isCurrent = mod.id === currentModuleId;
+                  const items = [
+                    ...mod.lessons.map((lesson) => ({ type: 'lesson' as const, order: lesson.displayOrder, lesson })),
+                    ...(mod.quiz ? [{ type: 'quiz' as const, order: mod.quiz.displayOrder, quiz: mod.quiz }] : []),
+                  ].sort((a, b) => a.order - b.order);
                   return (
                     <section
                       key={mod.id}
@@ -97,18 +101,17 @@ export default function StudentGroup() {
                         <Badge>{mod.lessons.length} {t('lessons')}</Badge>
                       </div>
                       <div className="flex min-w-0 flex-col gap-2">
-                        {mod.lessons.map((lesson) => (
-                          <LessonRow
-                            key={lesson.id}
-                            lesson={lesson}
-                            groupId={groupId}
-                            current={lesson.id === currentLessonId}
-                          />
-                        ))}
-                        {mod.quiz && (
-                          <div className="mt-1">
-                            <StudentQuiz quizId={mod.quiz.id} groupId={groupId} />
-                          </div>
+                        {items.map((item) =>
+                          item.type === 'quiz' ? (
+                            <StudentQuiz key={item.quiz.id} quizId={item.quiz.id} groupId={groupId} />
+                          ) : (
+                            <LessonRow
+                              key={item.lesson.id}
+                              lesson={item.lesson}
+                              groupId={groupId}
+                              current={item.lesson.id === currentLessonId}
+                            />
+                          ),
                         )}
                       </div>
                     </section>

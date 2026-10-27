@@ -190,12 +190,14 @@ export type Quiz = {
   moduleId: string | null;
   courseId: string | null;
   title: string;
+  displayOrder: number;
 };
 
 export type QuizQuestion = {
   id: string;
   questionType: QuestionType;
   prompt: string;
+  imageUrl: string | null;
   options: string[] | null;
   points: number;
 };

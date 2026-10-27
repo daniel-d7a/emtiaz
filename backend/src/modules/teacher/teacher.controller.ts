@@ -24,10 +24,10 @@ import {
   CreateCourseDto,
   GradeCellDto,
   IdListDto,
-  IdListDtoLessons,
   ToGroupDto,
   UpdateCourseDto,
   UpdateLessonDto,
+  ReorderModuleItemsDto,
   UpdateModuleDto,
   UpsertQuizDto,
 } from '../../lib/schemas';
@@ -133,15 +133,15 @@ export class TeacherController {
     return this.teachers.updateLesson(req.user!, lessonId, dto);
   }
 
-  @Put('api/teacher/modules/:moduleId/lessons/reorder')
+  @Put('api/teacher/modules/:moduleId/items/reorder')
   @Roles('TEACHER')
-  reorderLessons(
+  reorderModuleItems(
     @Req() req: Request,
     @Param('moduleId') moduleId: string,
-    @Body(new ZodBodyPipe(IdListDtoLessons))
-    dto: z.infer<typeof IdListDtoLessons>,
+    @Body(new ZodBodyPipe(ReorderModuleItemsDto))
+    dto: z.infer<typeof ReorderModuleItemsDto>,
   ) {
-    return this.teachers.reorderLessons(req.user!, moduleId, dto.lessonIds);
+    return this.teachers.reorderModuleItems(req.user!, moduleId, dto.items);
   }
 
   @Delete('api/teacher/modules/:moduleId')

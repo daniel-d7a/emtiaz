@@ -83,6 +83,9 @@ export default function StudentQuizPage() {
                       )}
                       <p className="font-semibold">{i + 1}. {q.prompt}</p>
                     </div>
+                    {q.imageUrl && (
+                      <img src={q.imageUrl} alt="" className="mb-3 max-h-64 rounded-xl border border-line object-contain" />
+                    )}
                     <dl className="grid gap-1 text-sm">
                       <div className="flex flex-wrap gap-1">
                         <dt className="text-ink-soft">{t('yourAnswer')}:</dt>
@@ -111,6 +114,9 @@ export default function StudentQuizPage() {
                   <p className="mb-3 font-semibold">
                     {i + 1}. {q.prompt} <span className="text-sm font-normal text-ink-soft">({q.points})</span>
                   </p>
+                  {q.imageUrl && (
+                    <img src={q.imageUrl} alt="" className="mb-3 max-h-64 rounded-xl border border-line object-contain" />
+                  )}
                   {q.options ? (
                     <div className="flex flex-col gap-2">
                       {q.options.map((opt) => (

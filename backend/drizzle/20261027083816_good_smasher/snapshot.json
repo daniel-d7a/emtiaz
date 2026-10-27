@@ -1,0 +1,106 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "a557c675-caa8-492f-9a4a-b5f1c070075a",
+  "prevIds": [
+    "cfa33a42-aba6-4e9d-ab46-3418abdb6871"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "quiz_questions",
+        "image_key"
+      ],
+      "writes": [
+        "s|col|public.quiz_questions.image_key",
+        "n|col|public.quiz_questions.image_key",
+        "e|col|public.quiz_questions.image_key"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_questions",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "quizzes",
+        "display_order"
+      ],
+      "writes": [
+        "s|col|public.quizzes.display_order",
+        "n|col|public.quizzes.display_order",
+        "e|col|public.quizzes.display_order"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "quiz_questions",
+        "prompt"
+      ],
+      "writes": [
+        "s|colprop|public.quiz_questions.prompt.default"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_questions",
+        "n|sch|public",
+        "n|col|public.quiz_questions.prompt"
+      ],
+      "sqlHash": "9908a89beb9c3581"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quiz_questions",
+        "name": "image_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "display_order",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"quiz_questions\",\"prompt\"]",
+      "set": {
+        "default": "''"
+      }
+    }
+  ]
+}
