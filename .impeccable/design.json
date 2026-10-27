@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T04:58:18+03:00",
+  "title": "Design System: Emtiaz",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Gulf Teal", "canonical": "oklch(51.1% 0.0861 186.4)", "tonalRamp": ["#000F0D", "#002E2A", "#004F48", "#057169", "#3A938A", "#69B5AC", "#9CD7CF", "#D9F6F1"] },
+      "primary-dark": { "role": "primary", "displayName": "Gulf Teal Deep", "canonical": "oklch(38.6% 0.0590 188.4)", "tonalRamp": ["#020E0D", "#052C29", "#1A4B47", "#366C68", "#588E89", "#7FB0AB", "#ABD2CE", "#E0F3F1"] },
+      "primary-light": { "role": "primary", "displayName": "Mint Wash", "canonical": "oklch(95.3% 0.0498 180.8)", "tonalRamp": ["#040E0B", "#0E2B26", "#254A43", "#406B63", "#618C84", "#87AFA6", "#B1D1CA", "#E3F3EF"] },
+      "secondary": { "role": "secondary", "displayName": "Terracotta Ember", "canonical": "oklch(64.6% 0.1943 41.1)", "tonalRamp": ["#200000", "#550000", "#850000", "#B32100", "#DB4C00", "#FD7945", "#FFA981", "#FFE0CC"] },
+      "secondary-light": { "role": "secondary", "displayName": "Apricot Wash", "canonical": "oklch(95.4% 0.0372 75.2)", "tonalRamp": ["#0E0A06", "#2D2316", "#4D402E", "#6E5F4A", "#90806A", "#B2A38E", "#D4C7B7", "#F4EDE5"] },
+      "background": { "role": "neutral", "displayName": "Warm Sand", "canonical": "oklch(98.0% 0.0045 78.3)", "tonalRamp": ["#0B0B0A", "#262523", "#434240", "#63615E", "#84827F", "#A6A5A2", "#CAC9C7", "#EFEEED"] },
+      "surface": { "role": "neutral", "displayName": "Surface White", "canonical": "oklch(100.0% 0.0000 89.9)", "tonalRamp": ["#0B0B0B", "#252525", "#424242", "#616161", "#828282", "#A5A5A5", "#C9C9C9", "#EEEEEE"] },
+      "line": { "role": "neutral", "displayName": "Stone Line", "canonical": "oklch(92.3% 0.0026 48.7)", "tonalRamp": ["#0B0B0B", "#262524", "#434241", "#626160", "#848281", "#A6A4A4", "#CAC9C8", "#EFEEEE"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "oklch(21.6% 0.0061 56.0)", "tonalRamp": ["#0C0B0A", "#272523", "#44413F", "#64605E", "#85817F", "#A8A4A2", "#CBC8C6", "#F0EEED"] },
+      "ink-soft": { "role": "neutral", "displayName": "Soft Ink", "canonical": "oklch(44.4% 0.0096 73.6)", "tonalRamp": ["#0C0B0A", "#272521", "#45413D", "#65605B", "#86827C", "#A8A49F", "#CCC8C4", "#F0EEEC"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing hero headlines only." },
+      "headline": { "displayName": "Headline", "purpose": "Landing section headings and app page titles." },
+      "title": { "displayName": "Title", "purpose": "Card headings, lesson titles, group names." },
+      "body": { "displayName": "Body", "purpose": "Reading text, forms, gradebook cells." },
+      "label": { "displayName": "Label", "purpose": "Field labels, metadata, table headers." },
+      "body-latin": { "displayName": "Body (English)", "purpose": "Latin-mode body text in DM Sans." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for color, border, and background state transitions (150–250ms)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "560px" },
+      { "name": "md", "value": "900px" },
+      { "name": "app-column", "value": "768px" },
+      { "name": "landing-wrap", "value": "1120px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The default action: teal fill, white text, 12px corners, 48px tall.",
+      "html": "<button class=\"ds-btn-primary\">حفظ التغييرات</button>",
+      "css": ".ds-btn-primary { font-family: Cairo, Readex Pro, sans-serif; background: #0F766E; color: #FFFFFF; min-height: 48px; padding: 12px 20px; border: 1px solid #0F766E; border-radius: 12px; font-size: 16px; font-weight: 600; line-height: 1.4; cursor: pointer; transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #134E4A; border-color: #134E4A; } .ds-btn-primary:focus-visible { outline: 3px solid #EA580C; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The one warm action on a view: terracotta fill, used sparingly.",
+      "html": "<button class=\"ds-btn-secondary\">ابدأ الآن</button>",
+      "css": ".ds-btn-secondary { font-family: Cairo, Readex Pro, sans-serif; background: #EA580C; color: #FFFFFF; min-height: 48px; padding: 12px 20px; border: 1px solid #EA580C; border-radius: 12px; font-size: 16px; font-weight: 600; line-height: 1.4; cursor: pointer; transition: filter 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-secondary:hover { filter: brightness(0.92); } .ds-btn-secondary:focus-visible { outline: 3px solid #134E4A; outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet secondary action: transparent with a stone border.",
+      "html": "<button class=\"ds-btn-ghost\">إلغاء</button>",
+      "css": ".ds-btn-ghost { font-family: Cairo, Readex Pro, sans-serif; background: transparent; color: #1C1917; min-height: 48px; padding: 12px 20px; border: 1px solid #E7E5E4; border-radius: 12px; font-size: 16px; font-weight: 600; line-height: 1.4; cursor: pointer; transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-ghost:hover { background: rgba(231, 229, 228, 0.5); border-color: #D6D3D1; } .ds-btn-ghost:focus-visible { outline: 3px solid #EA580C; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled field: white fill, stone border, teal focus border.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">اسم المجموعة</span><input class=\"ds-input\" type=\"text\" placeholder=\"مثال: مجموعة السبت\" /></label>",
+      "css": ".ds-field { display: block; font-family: Cairo, Readex Pro, sans-serif; } .ds-field-label { display: block; margin-bottom: 4px; color: #57534E; font-size: 13px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; } .ds-input { width: 100%; box-sizing: border-box; min-height: 48px; padding: 12px 16px; background: #FFFFFF; color: #1C1917; border: 1px solid #E7E5E4; border-radius: 12px; font-family: inherit; font-size: 16px; line-height: 1.4; outline: none; transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-input::placeholder { color: #A8A29E; } .ds-input:hover { border-color: #D6D3D1; } .ds-input:focus-visible { border-color: #0F766E; outline: 3px solid #EA580C; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White surface on warm sand, 1px stone border, flat with no shadow.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">الوحدة الأولى</h3><p class=\"ds-card-body\">مقدمة في المحادثة اليومية، مع تمارين قصيرة بعد كل درس.</p></div>",
+      "css": ".ds-card { font-family: Cairo, Readex Pro, sans-serif; background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 16px; padding: 20px; color: #1C1917; } .ds-card-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; line-height: 1.35; } .ds-card-body { margin: 0; color: #57534E; font-size: 14px; line-height: 1.65; max-width: 65ch; }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Mint status pill for counts, grades, and group state.",
+      "html": "<span class=\"ds-chip\">مستمرة</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 4px; font-family: Cairo, Readex Pro, sans-serif; background: #CCFBF1; color: #134E4A; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1.4; letter-spacing: 0.02em; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Landing navigation link with a mint hover fill.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">المعلمون</a><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">الدورات</a><a class=\"ds-nav-link\" href=\"#\">الأسعار</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 6px; font-family: Cairo, Readex Pro, sans-serif; } .ds-nav-link { padding: 8px 12px; border-radius: 10px; color: #57534E; font-size: 14.5px; font-weight: 600; line-height: 1.4; text-decoration: none; transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-nav-link:hover, .ds-nav-link-active { background: #CCFBF1; color: #134E4A; } .ds-nav-link:focus-visible { outline: 3px solid #EA580C; outline-offset: 2px; }"
+    },
+    {
+      "name": "Progress",
+      "kind": "custom",
+      "description": "Flat teal progress bar on a stone track; always paired with a label.",
+      "html": "<div class=\"ds-progress-wrap\"><div class=\"ds-progress-label\"><span>تقدّم المجموعة</span><span>60%</span></div><div class=\"ds-progress\" role=\"progressbar\" aria-valuenow=\"60\" aria-valuemin=\"0\" aria-valuemax=\"100\"><i class=\"ds-progress-fill\" style=\"width: 60%\"></i></div></div>",
+      "css": ".ds-progress-wrap { font-family: Cairo, Readex Pro, sans-serif; } .ds-progress-label { display: flex; justify-content: space-between; margin-bottom: 6px; color: #57534E; font-size: 13px; font-weight: 600; } .ds-progress { height: 8px; background: #E7E5E4; border-radius: 999px; overflow: hidden; } .ds-progress-fill { display: block; height: 100%; background: #0F766E; border-radius: 999px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Majlis",
+    "overview": "Emtiaz should feel like a majlis: a calm, generous room where a teacher hosts students and parents. Warm sand paper, white surfaces, and one-pixel stone borders hold the content. The interface is the furniture, not the decoration — nothing floats or glows, and state is expressed through border and color rather than shadow.\n\nThe palette carries the hospitality. Gulf teal is the host: the color of the room and of every action that moves learning forward. Terracotta is the coffee pot — a warm accent kept for the one thing that needs attention. Typography is Arabic-first: Cairo sets the voice, DM Sans is its Latin twin, and English is a mode of the same room, not a translation of it.\n\nDensity is comfortable rather than airy. Phone-first tap targets, 16px body text, and 1.65 line-height give a parent enough rhythm to scan a gradebook without instructions.",
+    "keyCharacteristics": [
+      "Warm sand ground (#FAF8F5), white cards, and 1px stone borders; no shadows anywhere.",
+      "Gulf teal (#0F766E) for navigation, primary actions, links, and progress.",
+      "Terracotta (#EA580C) on no more than 10% of a screen, marking a single point of attention.",
+      "Rounded but not bubbly: 12px controls, 16–20px containers, full pills for status.",
+      "Arabic-first RTL with a mirrored English mode.",
+      "Comfortable phone density: 48px minimum controls and generous line-height."
+    ],
+    "rules": [
+      { "name": "The One Warm Accent Rule", "body": "Terracotta covers ≤10% of any screen. It marks the one thing the user should notice; using it twice dilutes it to decoration.", "section": "colors" },
+      { "name": "The Border-Not-Shadow Rule", "body": "Depth is a 1px stone border on warm paper. No box-shadows, glows, or glassmorphism anywhere in the system.", "section": "colors" },
+      { "name": "The Arabic-First Rule", "body": "Start every text style in Arabic and RTL. English inherits the same sizes, weights, and line-height; it may never compress the Arabic setting to fit.", "section": "typography" },
+      { "name": "The Two-Step Weight Rule", "body": "Use 400 for reading and 600–700 for emphasis. No light weights; they disappear on a phone in daylight.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "A surface that needs to stand out gets a border or a tonal fill, not a shadow.", "section": "elevation" },
+      { "name": "The Concentric Corner Rule", "body": "Never place a 12px control inside a 16px card flush to its edge; either inset it by at least 4px or reduce the inner radius so the corners read as parallel.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do place white cards on Warm Sand and separate them with 1px #E7E5E4 borders.",
+      "Do keep terracotta to one attention point per screen.",
+      "Do design Arabic and RTL first, then mirror spacing and icons for English.",
+      "Do keep every phone control at least 48px tall.",
+      "Do use 12px radii for controls and 16–20px for containers.",
+      "Do use the 3px terracotta focus outline with 2px offset on every interactive element."
+    ],
+    "donts": [
+      "Don't add shadows, glows, gradients-as-depth, or glassmorphism.",
+      "Don't use terracotta as a large fill or a second primary color.",
+      "Don't set body text below 16px on mobile.",
+      "Don't substitute pure black or cool grey; Ink (#1C1917) and Stone (#E7E5E4) are warm.",
+      "Don't write English first and translate into Arabic; Arabic is the source language."
+    ]
+  }
+}
