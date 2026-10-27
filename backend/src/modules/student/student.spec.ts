@@ -113,6 +113,26 @@ describe('Phase 3: student endpoints', () => {
     expect(lessons.find((l: any) => l.id === world.lesson1).unlocked).toBe(true);
   });
 
+  it('blocks locked lesson quizzes even by direct URL', async () => {
+    const { rows: quizRows } = await testPool.query(
+      `INSERT INTO quizzes (lesson_id, title) VALUES ($1,'Locked quiz') RETURNING id`,
+      [world.lesson2],
+    );
+    await testPool.query(
+      `INSERT INTO quiz_questions (quiz_id, question_type, prompt, correct_answer, points) VALUES ($1,'TRUE_FALSE','Locked?','true',1)`,
+      [quizRows[0].id],
+    );
+    expect((await s1.get(`/api/student/quizzes/${quizRows[0].id}`)).status).toBe(403);
+    expect((await s1.get(`/api/student/groups/${world.group1}/quizzes/${quizRows[0].id}`)).status).toBe(403);
+    expect(
+      (
+        await s1
+          .post(`/api/student/quizzes/${quizRows[0].id}/submit`)
+          .send({ groupId: world.group1, answers: { x: 'true' } })
+      ).status,
+    ).toBe(403);
+  });
+
   it('views lesson detail with hasQuiz, and rejects locked lessons', async () => {
     const res = await s1.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`);
     expect(res.status).toBe(200);
@@ -201,6 +221,12 @@ describe('Phase 3: student endpoints', () => {
     expect(res3.status).toBe(200);
     expect(res3.body.quizzes).toHaveLength(1);
     expect(res3.body.quizzes[0].score).toBe(2);
+
+    const reopened = await s1.get(`/api/student/groups/${world.group1}/quizzes/${world.quiz}`);
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.attempt.score).toBe(2);
+    expect(reopened.body.attempt.answers[world.questionIds[0]]).toBe('m/s');
+    expect(reopened.body.attempt.result).toHaveLength(2);
   });
 
   it('serves and grades a module quiz through the group', async () => {

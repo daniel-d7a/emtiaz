@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowRight, CheckCircle2, Lock, NotebookPen, Paperclip, RotateCcw, Trophy,
+  ArrowRight, CheckCircle2, Lock, NotebookPen, Paperclip, Trophy,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Badge, Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
@@ -207,10 +206,7 @@ function LessonRow({ lesson, groupId, current }: { lesson: StudentLesson; groupI
 
 export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; quizId?: string; groupId: string }) {
   const { t } = useLang();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<QuizSubmission | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const { data: quiz, isLoading } = useQuery({
+  const { data: quiz } = useQuery({
     queryKey: ['quiz', quizId ?? lessonId],
     queryFn: () =>
       quizId
@@ -220,90 +216,28 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
   });
 
   if (!quiz?.quiz?.id) return null;
-  const quizData = quiz.quiz;
-
-  const submit = async () => {
-    setError(null);
-    try {
-      const res = await api<QuizSubmission>(`/api/student/quizzes/${quizData.id}/submit`, {
-        body: { groupId, answers },
-      });
-      setResult(res);
-      toast.success(t('sent'));
-    } catch (e) {
-      setError(e as Error);
-      toast.error((e as Error).message || t('errorOccurred'));
-    }
-  };
+  const attempt = quiz.attempt ?? null;
 
   return (
     <Card className="border-primary/30 bg-primary-light/30">
-      <h3 className="mb-3 font-bold">{t('quiz')}: {quizData.title}</h3>
-      {isLoading && <Loading />}
-      {!result && (
-        <div className="flex flex-col gap-4">
-          {quiz.questions.map((q, i) => (
-            <div key={q.id}>
-              <p className="mb-2 text-sm font-semibold">
-                {i + 1}. {q.prompt} <span className="text-ink-soft">({q.points})</span>
-              </p>
-              {q.options ? (
-                <div className="flex flex-wrap gap-2">
-                  {q.options.map((opt: string) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setAnswers({ ...answers, [q.id]: opt })}
-                      className={`rounded-lg border px-3 py-2 text-sm ${answers[q.id] === opt ? 'border-primary bg-primary-light font-semibold' : 'border-line bg-white'}`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              ) : q.questionType === 'TRUE_FALSE' ? (
-                <div className="flex gap-2">
-                  {['true', 'false'].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setAnswers({ ...answers, [q.id]: opt })}
-                      className={`rounded-lg border px-4 py-2 text-sm ${answers[q.id] === opt ? 'border-primary bg-primary-light font-semibold' : 'border-line bg-white'}`}
-                    >
-                      {opt === 'true' ? '✓ ' : '✗ '}{opt === 'true' ? t('trueLabel') : t('falseLabel')}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary"
-                  value={answers[q.id] ?? ''}
-                  onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                />
-              )}
-            </div>
-          ))}
-          {error && <ErrorBox error={error} />}
-          <Button variant="secondary" onClick={() => void submit()}>
-            {t('submit')}
-          </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0 grow">
+          <h3 className="font-bold">{t('quiz')}: {quiz.quiz.title}</h3>
+          {attempt && (
+            <p className="text-sm text-ink-soft">
+              {t('yourScore')}: <span className="font-bold text-primary">{attempt.score}/{attempt.maxScore}</span>
+            </p>
+          )}
         </div>
-      )}
-      {result && (
-        <div className="flex flex-col gap-3 text-sm">
-          <p className="text-lg font-bold text-primary">
-            {t('yourScore')}: {result.score}/{result.maxScore}
-          </p>
-          {result.result.map((r, i) => (
-            <div key={r.questionId}>
-              <span className={r.correct ? 'font-semibold text-primary' : 'font-semibold text-secondary'}>
-                {r.correct ? '✓' : '✗'} {i + 1}
-              </span>
-              <span className="text-ink-soft"> — {r.expected === 'true' ? t('trueLabel') : r.expected === 'false' ? t('falseLabel') : r.expected}{r.explanation ? `: ${r.explanation}` : ''}</span>
-            </div>
-          ))}
-          <Button variant="ghost" aria-label={t('retry')} title={t('retry')} onClick={() => { setResult(null); setAnswers({}); }}><RotateCcw size={18} /></Button>
-        </div>
-      )}
+        {attempt ? <Badge tone="primary">{t('completed')}</Badge> : <Badge>{t('startQuiz')}</Badge>}
+        <Link
+          to="/student/groups/$groupId/quizzes/$quizId"
+          params={{ groupId, quizId: quiz.quiz.id }}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+        >
+          {attempt ? t('viewResult') : t('startQuiz')}
+        </Link>
+      </div>
     </Card>
   );
 }

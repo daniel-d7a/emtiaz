@@ -267,9 +267,18 @@ export type StudentLessonView = {
   hasQuiz: boolean;
 };
 
+export type QuizAttemptResult = {
+  answers: Record<string, string>;
+  score: number;
+  maxScore: number;
+  submittedAt: string;
+  result: QuizResult[];
+};
+
 export type QuizPayload = {
   quiz: Quiz | null;
   questions: QuizQuestion[];
+  attempt?: QuizAttemptResult | null;
 };
 
 export type QuizResult = {

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   categories,
@@ -426,6 +426,12 @@ export class StudentService {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
     await this.assertQuizAccess(studentId, quiz);
+    if (quiz.lessonId) {
+      const { enrollments } = await this.lessonEnrollments(studentId, quiz.lessonId);
+      if (!(await this.lessonUnlocked(enrollments, quiz.lessonId))) {
+        throw new ForbiddenException('Lesson is locked for your group');
+      }
+    }
     const questions = await db
       .select()
       .from(quizQuestions)
@@ -453,6 +459,12 @@ export class StudentService {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
     await this.assertQuizInGroupCourse(quiz, groupId);
+    if (quiz.lessonId) {
+      const { enrollments } = await this.lessonEnrollments(studentId, quiz.lessonId);
+      if (!(await this.lessonUnlocked(enrollments, quiz.lessonId, groupId))) {
+        throw new ForbiddenException('Lesson is locked for your group');
+      }
+    }
     if (!Object.keys(answers).length) {
       throw new BadRequestException('Answers required');
     }
@@ -554,7 +566,53 @@ export class StudentService {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
     await this.assertQuizInGroupCourse(quiz, groupId);
-    return this.getQuiz(studentId, quizId);
+    if (quiz.lessonId) {
+      const { enrollments } = await this.lessonEnrollments(studentId, quiz.lessonId);
+      if (!(await this.lessonUnlocked(enrollments, quiz.lessonId, groupId))) {
+        throw new ForbiddenException('Lesson is locked for your group');
+      }
+    }
+    const payload = await this.getQuiz(studentId, quizId);
+    const attempt = await this.attemptResult(studentId, groupId, quizId);
+    return { ...payload, attempt };
+  }
+
+  private async attemptResult(
+    studentId: string,
+    groupId: string,
+    quizId: string,
+  ) {
+    const questions = await db
+      .select()
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, quizId))
+      .orderBy(asc(quizQuestions.displayOrder));
+    const [attempt] = await db
+      .select()
+      .from(quizAttempts)
+      .where(
+        and(
+          eq(quizAttempts.studentId, studentId),
+          eq(quizAttempts.groupId, groupId),
+          eq(quizAttempts.quizId, quizId),
+        ),
+      )
+      .orderBy(desc(quizAttempts.score))
+      .limit(1);
+    if (!attempt) return null;
+    const answers = attempt.answersJson as Record<string, string>;
+    return {
+      answers,
+      score: attempt.score,
+      maxScore: attempt.maxScore,
+      submittedAt: attempt.submittedAt,
+      result: questions.map((q) => ({
+        questionId: q.id,
+        correct: norm(answers[q.id] ?? '') === norm(q.correctAnswer),
+        expected: q.correctAnswer,
+        explanation: q.explanation,
+      })),
+    };
   }
 
   async myGrades(studentId: string, groupId: string) {
