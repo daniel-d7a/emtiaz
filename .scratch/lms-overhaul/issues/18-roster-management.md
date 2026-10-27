@@ -4,10 +4,15 @@
 
 **Blocked by:** 17.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Adding a student searches by phone and only runs at 4+ digits, debounced.
-- [ ] Moving a student opens a modal to pick the destination group.
-- [ ] Revoke access uses the shared confirm dialog and removes the enrollment.
-- [ ] No `window.confirm` remains on the roster.
-- [ ] Roster updates optimistically or refetches after each action.
+- [x] Adding a student searches by phone and only runs at 4+ digits, debounced.
+- [x] Moving a student opens a modal to pick the destination group.
+- [x] Revoke access uses the shared confirm dialog and removes the enrollment.
+- [x] No `window.confirm` remains on the roster.
+- [x] Roster updates optimistically or refetches after each action.
+
+## Close-out notes
+
+- Phone search normalises punctuation/spaces and is teacher-only.
+- The legacy bulk-add card remains for creating new phone-only students; the add button searches existing students.
