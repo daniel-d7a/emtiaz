@@ -44,6 +44,31 @@ describe('Phase 3: student endpoints', () => {
     expect(g).toHaveProperty('progress');
   });
 
+  it('returns home stats and latest courses', async () => {
+    const res = await s1.get('/api/student/home');
+    expect(res.status).toBe(200);
+    expect(res.body.stats.activeGroups).toBe(2);
+    expect(res.body.stats.lessonsDone).toBeGreaterThanOrEqual(0);
+    expect(res.body.latestCourses).toHaveLength(2);
+    expect(res.body.latestCourses[0]).toHaveProperty('joinedAt');
+  });
+
+  it('updates student date of birth and grade', async () => {
+    const res = await s1
+      .patch('/api/me')
+      .send({ dateOfBirth: '2009-03-14', gradeId: world.gradeId });
+    expect(res.status).toBe(200);
+    expect(res.body.dateOfBirth).toBe('2009-03-14');
+    expect(res.body.gradeId).toBe(world.gradeId);
+
+    const bad = await s1.patch('/api/me').send({ dateOfBirth: '14-03-2009' });
+    expect(bad.status).toBe(400);
+
+    const cleared = await s1.patch('/api/me').send({ dateOfBirth: null, gradeId: null });
+    expect(cleared.body.dateOfBirth).toBeNull();
+    expect(cleared.body.gradeId).toBeNull();
+  });
+
   it('refuses groups the student is not enrolled in', async () => {
     const res = await s1.get(
       `/api/student/groups/${'00000000-0000-4000-8000-000000000000'}/curriculum`,

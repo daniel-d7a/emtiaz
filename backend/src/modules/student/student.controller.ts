@@ -9,6 +9,12 @@ import { StudentService } from './student.service';
 export class StudentController {
   constructor(private students: StudentService) {}
 
+  @Get('api/student/home')
+  @Roles('STUDENT')
+  home(@Req() req: Request) {
+    return this.students.home(req.user!.id);
+  }
+
   @Get('api/student/groups')
   @Roles('STUDENT')
   myGroups(@Req() req: Request) {

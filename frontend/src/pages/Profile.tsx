@@ -23,6 +23,11 @@ export default function Profile() {
     queryFn: () => api('/api/categories'),
     enabled: user?.role === 'TEACHER',
   });
+  const { data: grades = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['grades-list'],
+    queryFn: () => api('/api/admin/taxonomy/grades'),
+    enabled: user?.role === 'STUDENT',
+  });
   const [version, setVersion] = useState(0);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarErr, setAvatarErr] = useState<Error | null>(null);
@@ -31,6 +36,8 @@ export default function Profile() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gradeId, setGradeId] = useState('');
   const [landingSlug, setLandingSlug] = useState('');
   const [landingBio, setLandingBio] = useState('');
   const [landingPublished, setLandingPublished] = useState(false);
@@ -48,6 +55,8 @@ export default function Profile() {
     setLandingBio(me.user.landingBio ?? '');
     setLandingPublished(me.user.landingPublished);
     setTheme(normalizeTheme(me.user.landingTheme));
+    setDateOfBirth(me.user.dateOfBirth ?? '');
+    setGradeId(me.user.gradeId ?? '');
     setLandingInit(true);
   }
 
@@ -117,6 +126,9 @@ export default function Profile() {
           name,
           phoneNumber: phone || undefined,
           subject: user?.role === 'TEACHER' && subject ? subject : undefined,
+          ...(user?.role === 'STUDENT'
+            ? { dateOfBirth: dateOfBirth || null, gradeId: gradeId || null }
+            : {}),
           ...(user?.role === 'TEACHER'
             ? { landingSlug, landingBio, landingPublished, landingTheme: theme }
             : {}),
@@ -179,6 +191,21 @@ export default function Profile() {
           <div className="flex flex-col gap-3">
             <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
             <Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />
+            {user.role === 'STUDENT' && (
+              <>
+                <Input
+                  label={t('dateOfBirth')}
+                  type="date"
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                />
+                <Select label={t('gradeOptional')} value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
+                  <option value="">—</option>
+                  {grades.map((g) => <option key={g.id} value={g.id}>{localizeName(g.name, lang)}</option>)}
+                </Select>
+              </>
+            )}
             {user.role === 'TEACHER' && (
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('specialization')}</span>

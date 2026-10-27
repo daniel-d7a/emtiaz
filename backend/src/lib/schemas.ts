@@ -68,6 +68,13 @@ export const UpdateMeDto = z
       .transform(normalizePhone)
       .optional(),
     subject: optText(60),
+    dateOfBirth: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'dateOfBirth must be YYYY-MM-DD')
+      .nullable()
+      .optional(),
+    gradeId: uuid.nullable().optional(),
     image: z.string().trim().max(512).nullable().optional(),
     landingSlug: z
       .string()

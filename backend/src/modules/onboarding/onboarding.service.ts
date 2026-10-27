@@ -96,6 +96,8 @@ export class OnboardingService {
       name: string;
       phoneNumber: string;
       subject: string;
+      dateOfBirth: string | null;
+      gradeId: string | null;
       image: string | null;
       landingSlug: string;
       landingBio: string;
@@ -112,6 +114,8 @@ export class OnboardingService {
     if (dto.subject !== undefined) {
       allowed.subjectCategoryId = (await this.ensureCategory(dto.subject)).id;
     }
+    if (dto.dateOfBirth !== undefined) allowed.dateOfBirth = dto.dateOfBirth?.trim() || null;
+    if (dto.gradeId !== undefined) allowed.gradeId = dto.gradeId;
     if (dto.image !== undefined) {
       const image = dto.image?.trim() || null;
       if (image && !image.startsWith(`avatars/${userId}/`)) {

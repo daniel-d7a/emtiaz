@@ -36,7 +36,7 @@ const ROLE_LABEL: Record<SessionUser['role'], Key> = {
 };
 
 const ROLE_NAV: Record<SessionUser['role'], NavItem[]> = {
-  STUDENT: [{ to: '/student/dashboard', label: 'myCourses', icon: BookOpen }],
+  STUDENT: [{ to: '/student/dashboard', label: 'home', icon: BookOpen }],
   TEACHER: [{ to: '/teacher/dashboard', label: 'myWorkspace', icon: LayoutDashboard }],
   PARENT: [{ to: '/parent/dashboard', label: 'myChildren', icon: Users }],
   ADMIN: [{ to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard }],

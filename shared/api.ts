@@ -34,6 +34,7 @@ export type User = {
   landingTheme: TeacherTheme | null;
   landingPublished: boolean;
   isActive: boolean;
+  dateOfBirth: string | null;
   subjectCategoryId: string | null;
   gradeId: string | null;
   createdAt: string;
@@ -188,6 +189,7 @@ export type QuizWithAttempt = Quiz & {
 export type StudentGroup = {
   group: Group;
   course: Course;
+  joinedAt: string;
   teacher: {
     name: string;
     subject: string | null;
@@ -197,6 +199,11 @@ export type StudentGroup = {
   progress: number;
   completedLessons: number;
   totalLessons: number;
+};
+
+export type StudentHome = {
+  stats: { activeGroups: number; lessonsDone: number; averageGrade: number };
+  latestCourses: StudentGroup[];
 };
 
 export type StudentLesson = Lesson & {

@@ -1,0 +1,47 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "c38806bd-1357-4917-b59c-69b1820776e8",
+  "prevIds": [
+    "4f0b25c8-237f-4be6-929b-a2d6153fcf54"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "date_of_birth"
+      ],
+      "writes": [
+        "s|col|public.user.date_of_birth",
+        "n|col|public.user.date_of_birth",
+        "e|col|public.user.date_of_birth"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "date_of_birth",
+        "type": "date",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

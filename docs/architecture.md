@@ -57,7 +57,7 @@ login-lockout middleware runs in front of its sign-in routes.
 There is one authentication identity table, `user`, with a `role` enum:
 `ADMIN`, `TEACHER`, `STUDENT`, `PARENT`. Sessions and accounts reference that
 row. Role-specific fields live on the same row (`landing_*` for teachers,
-`grade_id` for students, `subject_category_id` for teachers). The rationale and the future profile-table option are in
+`grade_id` and `date_of_birth` for students, `subject_category_id` for teachers). The rationale and the future profile-table option are in
 [ADR-0015](./adr/0015-single-user-table.md).
 
 Core relationships:
@@ -130,7 +130,7 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
 - TanStack Query owns server state; there is no Zustand store.
 - Pages: home, login/register, join, profile, student dashboard/group/lesson/
   quiz, teacher dashboard/course/group/public landing/public course, parent
-  dashboard, admin dashboard (teachers, students, parents, courses,
+  home, dashboard, admin dashboard (teachers, students, parents, courses,
   notifications, taxonomy, audit).
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
@@ -146,7 +146,7 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
 
 - Expo / React Native with role-specific React Navigation native stacks
   ([ADR-0013](./adr/0013-mobile-react-navigation.md)).
-- Student: groups, join, curriculum, lesson, quiz, profile, notifications.
+- Student: home, groups, join, curriculum, lesson, quiz, profile, notifications.
 - Teacher: course/group summaries, pacing, roster, announcements, profile,
   notifications.
 - Parent: link/unlink children, progress, grades, notifications.

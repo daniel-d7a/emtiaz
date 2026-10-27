@@ -103,6 +103,7 @@ export class StudentService {
       .select({
         group: groups,
         course: courses,
+        joinedAt: groupStudents.joinedAt,
         teacher: {
           name: users.name,
           subject: categories.name,
@@ -171,11 +172,36 @@ export class StudentService {
           theme: teacher.theme,
           bannerUrl: teacher.banner ? bannerUrls.get(teacher.banner) ?? null : null,
         },
+        joinedAt: r.joinedAt,
         progress: total === 0 ? 0 : Math.round((done / total) * 100),
         completedLessons: done,
         totalLessons: total,
       };
     });
+  }
+
+  async home(studentId: string) {
+    const groups = await this.myGroups(studentId);
+    const grades = await Promise.all(
+      groups.map((g) => this.myGrades(studentId, g.group.id)),
+    );
+    const percentages = grades.flatMap((g) => [
+      ...g.quizzes.map((q) => q.score / q.maxScore),
+      ...g.manual.filter((m) => m.score !== null).map((m) => (m.score ?? 0) / m.maxScore),
+    ]);
+    const latestCourses = [...groups]
+      .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
+      .slice(0, 3);
+    return {
+      stats: {
+        activeGroups: groups.length,
+        lessonsDone: groups.reduce((sum, g) => sum + g.completedLessons, 0),
+        averageGrade: percentages.length
+          ? Math.round((percentages.reduce((sum, p) => sum + p, 0) / percentages.length) * 100)
+          : 0,
+      },
+      latestCourses,
+    };
   }
 
   async joinByCode(studentId: string, joinCode: string) {
