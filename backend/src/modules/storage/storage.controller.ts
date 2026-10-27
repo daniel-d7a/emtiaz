@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Injectable, Module, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Injectable, Module, Param, Post, Req, Res } from '@nestjs/common';
 import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../../db';
 import {
@@ -119,6 +119,22 @@ export class StorageController {
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
   @Get('api/storage/attachments/:id/download')
   async download(@Req() req: Request, @Param('id') id: string) {
+    const row = await this.readableAttachment(req.user!, id);
+    return { id: row.id, url: await this.storage.presignedGet(row.r2ObjectKey) };
+  }
+
+  @Roles('STUDENT', 'TEACHER', 'ADMIN')
+  @Get('api/storage/attachments/:id/file')
+  async file(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const row = await this.readableAttachment(req.user!, id);
+    res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey));
+  }
+
+  private async readableAttachment(user: { id: string; role: string }, id: string) {
     const [row] = await db
       .select()
       .from(lessonAttachments)
@@ -126,13 +142,13 @@ export class StorageController {
     if (!row) throw new NotFoundException('Attachment not found');
     const course = await this.courseForLesson(row.lessonId);
 
-    if (req.user!.role === 'TEACHER' && course.teacherId !== req.user!.id) {
+    if (user.role === 'TEACHER' && course.teacherId !== user.id) {
       throw new ForbiddenException('Not your course');
     }
-    if (req.user!.role === 'STUDENT') {
-      await this.assertStudentCanRead(req.user!.id, row.lessonId, row.groupId, course.id);
+    if (user.role === 'STUDENT') {
+      await this.assertStudentCanRead(user.id, row.lessonId, row.groupId, course.id);
     }
-    return { id: row.id, url: await this.storage.presignedGet(row.r2ObjectKey) };
+    return row;
   }
 
   private async courseForLesson(lessonId: string) {

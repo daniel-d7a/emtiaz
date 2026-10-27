@@ -504,6 +504,18 @@ describe('Phase 4: teacher endpoints', () => {
       expect(dl.status).toBe(200);
       expect(dl.body.url).toContain(att.body.r2ObjectKey);
 
+      const file = await s.get(`/api/storage/attachments/${att.body.id}/file`).redirects(0);
+      expect(file.status).toBe(302);
+      expect(file.headers.location).toContain(att.body.r2ObjectKey);
+
+      const view = await s.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`);
+      expect(view.status).toBe(200);
+      expect(view.body.attachments[0]).toMatchObject({
+        id: att.body.id,
+        title: 'Worksheet PDF',
+        fileType: 'PDF',
+      });
+
       await request(server)
         .post('/api/onboarding/student')
         .send({

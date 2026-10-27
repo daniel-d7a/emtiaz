@@ -78,7 +78,7 @@ describe('Phase 3: student endpoints', () => {
 
   it('returns curriculum w/ unlocked flag, attachments, quiz availability', async () => {
     await testPool.query(
-      `UPDATE "user" SET landing_theme = $1::jsonb WHERE email = $2`,
+      `UPDATE "user" SET landing_theme = $1::jsonb, landing_slug = 'teacher-page', landing_published = true WHERE email = $2`,
       [
         JSON.stringify({
           layout: 'split',
@@ -94,6 +94,7 @@ describe('Phase 3: student endpoints', () => {
     const res = await s1.get(`/api/student/groups/${world.group1}/curriculum`);
     expect(res.status).toBe(200);
     expect(res.body.teacher.theme.primary).toBe('#1D4ED8');
+    expect(res.body.teacher.slug).toBe('teacher-page');
     expect(res.body.modules[0].lessons).toHaveLength(2);
     const l1 = res.body.modules[0].lessons[0];
     expect(l1.unlocked).toBe(true);

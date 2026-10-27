@@ -1,24 +1,25 @@
 import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Download, FileDown, Lock, NotebookPen, RotateCcw, Trophy } from 'lucide-react';
+import {
+  ArrowRight, CheckCircle2, Lock, NotebookPen, Paperclip, RotateCcw, Trophy,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
+import { Badge, Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
 import { ThemeHero, ThemeSurface } from '../../components/TeacherTheme';
 import type {
   QuizPayload,
   QuizSubmission,
   StudentCurriculum as Curriculum,
   StudentGrades as Grades,
+  StudentLesson,
 } from '../../../../shared/api';
 
 export default function StudentGroup() {
   const { groupId } = useParams({ from: '/student/groups/$groupId' });
   const { t } = useLang();
-  const qc = useQueryClient();
-  const [openLesson, setOpenLesson] = useState<string | null>(null);
   const [tab, setTab] = useState<'lessons' | 'grades'>('lessons');
 
   const { data, isLoading, error } = useQuery(studentCurriculumQuery(groupId));
@@ -28,151 +29,179 @@ export default function StudentGroup() {
     enabled: tab === 'grades',
   });
 
-  const complete = useMutation({
-    mutationFn: (lessonId: string) => api(`/api/student/lessons/${lessonId}/complete`, { method: 'POST' }),
-    onSuccess: () => {
-      toast.success(t('saved'));
-      void qc.invalidateQueries({ queryKey: ['curriculum', groupId] });
-    },
-  });
+  const ordered = data?.modules.flatMap((m) => m.lessons) ?? [];
+  const currentLessonId = ordered.find((l) => l.unlocked && !l.completed)?.id ?? null;
+  const currentModuleId = data?.modules.find((m) =>
+    m.lessons.some((l) => l.id === currentLessonId),
+  )?.id;
+  const totalLessons = ordered.length;
+  const doneLessons = ordered.filter((l) => l.completed).length;
 
   return (
     <ThemeSurface theme={data?.teacher.theme}>
-    <Page
-      title={data ? data.group.name : '…'}
-      right={
-        <div className="flex gap-2 text-sm">
-          <button onClick={() => setTab('lessons')} className={`rounded-lg px-3 py-2 ${tab === 'lessons' ? 'bg-primary text-white' : 'border border-line'}`}>{t('lessons')}</button>
-          <button onClick={() => setTab('grades')} className={`rounded-lg px-3 py-2 ${tab === 'grades' ? 'bg-primary text-white' : 'border border-line'}`}>{t('myGrades')}</button>
-        </div>
-      }
-    >
-      {isLoading ? <Loading /> : error ? (
-        <ErrorBox error={error} />
-      ) : data ? (
-        <div className="flex flex-col gap-6">
-          <ThemeHero
-            theme={data.teacher.theme}
-            bannerUrl={data.teacher.bannerUrl}
-            name={data.teacher.name}
-            subject={data.course.title}
-          />
-          <p className="text-sm text-ink-soft">{data.group.name}</p>
-          {/* lesson modules only on the lessons tab */}
-      {tab === 'lessons' && data.quiz && (
-        <section>
-          <h2 className="mb-3 text-lg font-bold text-secondary">{t('quiz')}</h2>
-          <StudentQuiz quizId={data.quiz.id} groupId={groupId} />
-        </section>
-      )}
-      {tab === 'lessons' && data.modules.map((mod) => (
-            <section key={mod.title}>
-              <h2 className="mb-3 text-lg font-bold text-secondary">{mod.title}</h2>
-              {mod.quiz && <div className="mb-3"><StudentQuiz quizId={mod.quiz.id} groupId={groupId} /></div>}
-              <div className="flex flex-col gap-2">
-                {mod.lessons.map((l) => (
-                  <div key={l.id}>
-                    {l.unlocked ? (
-                      <Card>
-                        <button className="flex w-full items-center justify-between text-start" onClick={() => setOpenLesson(openLesson === l.id ? null : l.id)}>
-                          <span className="flex items-center gap-2 font-semibold">
-                            {l.completed && <CheckCircle2 size={18} className="text-primary" />}
-                            {l.title}
-                            {l.hasQuiz && <NotebookPen size={14} className="text-ink-soft" />}
-                          </span>
-                          <ArrowRight size={16} className="text-ink-soft ltr:rotate-180 rtl:rotate-0" />
-                        </button>
-                        {openLesson === l.id && (
-                          <div className="mt-4 border-t border-line pt-4">
-                            {l.content && <p className="mb-3 whitespace-pre-wrap text-sm text-ink-soft">{l.content}</p>}
-                            {l.attachments.length > 0 && (
-                              <ul className="mb-3 flex flex-col gap-2">
-                                {l.attachments.map((a) => <AttachmentRow key={a.id} id={a.id} title={a.title} />)}
-                              </ul>
-                            )}
-                            {l.hasQuiz && <StudentQuiz lessonId={l.id} groupId={groupId} />}
-                            <div className="mt-3">
-                              {l.completed ? (
-                                <span className="text-sm font-semibold text-primary">✓ {t('completed')}</span>
-                              ) : (
-                                <Button variant="ghost" onClick={() => complete.mutate(l.id)}>{t('markComplete')}</Button>
-                              )}
-                            </div>
+      <Page
+        title={data ? data.group.name : '…'}
+        right={
+          <div className="flex gap-2 text-sm">
+            <button
+              onClick={() => setTab('lessons')}
+              className={`rounded-lg px-3 py-2 ${tab === 'lessons' ? 'bg-primary text-white' : 'border border-line'}`}
+            >
+              {t('lessons')}
+            </button>
+            <button
+              onClick={() => setTab('grades')}
+              className={`rounded-lg px-3 py-2 ${tab === 'grades' ? 'bg-primary text-white' : 'border border-line'}`}
+            >
+              {t('myGrades')}
+            </button>
+          </div>
+        }
+      >
+        {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : data ? (
+          <div className="flex min-w-0 flex-col gap-6">
+            <ThemeHero
+              theme={data.teacher.theme}
+              bannerUrl={data.teacher.bannerUrl}
+              name={data.teacher.name}
+              subject={data.course.title}
+            />
+
+            <Card className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 grow">
+                <h2 className="text-lg font-bold">{data.course.title}</h2>
+                <p className="text-sm text-ink-soft">
+                  {t('teacher')}:{' '}
+                  {data.teacher.slug ? (
+                    <Link to="/t/$slug" params={{ slug: data.teacher.slug }} className="font-semibold text-primary underline">
+                      {data.teacher.name}
+                    </Link>
+                  ) : data.teacher.name}
+                </p>
+              </div>
+              <Badge tone="primary">{doneLessons}/{totalLessons} {t('lessons')}</Badge>
+              <Badge>{data.modules.length} {t('modules')}</Badge>
+            </Card>
+
+            {tab === 'lessons' && (
+              <div className="flex min-w-0 flex-col gap-5">
+                {data.modules.map((mod) => {
+                  const isCurrent = mod.id === currentModuleId;
+                  return (
+                    <section
+                      key={mod.id}
+                      className={`min-w-0 rounded-2xl border p-4 ${isCurrent ? 'border-primary bg-primary-light/20' : 'border-line bg-surface'}`}
+                    >
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-bold text-secondary">{mod.title}</h2>
+                        {isCurrent && <Badge tone="primary">{t('currentUnit')}</Badge>}
+                        <Badge>{mod.lessons.length} {t('lessons')}</Badge>
+                      </div>
+                      <div className="flex min-w-0 flex-col gap-2">
+                        {mod.lessons.map((lesson) => (
+                          <LessonRow
+                            key={lesson.id}
+                            lesson={lesson}
+                            groupId={groupId}
+                            current={lesson.id === currentLessonId}
+                          />
+                        ))}
+                        {mod.quiz && (
+                          <div className="mt-1">
+                            <StudentQuiz quizId={mod.quiz.id} groupId={groupId} />
                           </div>
                         )}
-                      </Card>
-                    ) : (
-                      <Card className="opacity-60">
-                        <span className="flex items-center gap-2 font-semibold text-ink-soft">
-                          <Lock size={16} /> {l.title}
-                        </span>
-                        <p className="text-xs text-ink-soft">{t('locked')}</p>
-                      </Card>
-                    )}
-                  </div>
-                ))}
+                      </div>
+                    </section>
+                  );
+                })}
+
+                {data.quiz && (
+                  <section className="min-w-0">
+                    <h2 className="mb-3 text-lg font-bold text-secondary">{t('finalQuiz')}</h2>
+                    <StudentQuiz quizId={data.quiz.id} groupId={groupId} />
+                  </section>
+                )}
               </div>
-            </section>
-          ))}
-        </div>
-      ) : <Loading />}
-      {grades && tab === 'grades' && (
-        <section className="mt-6">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
-            <Trophy size={18} className="text-secondary" /> {t('myGrades')}
-          </h2>
-          <Card>
-            {grades.quizzes.length === 0 && grades.manual.length === 0 && <p className="text-sm text-ink-soft">—</p>}
-            <ul className="flex flex-col divide-y divide-line">
-              {grades.quizzes.map((q) => (
-                <li key={q.quizId} className="flex items-center justify-between py-2 text-sm">
-                  <span>{q.title} <span className="text-ink-soft">({q.lessonTitle})</span></span>
-                  <span className="font-bold">{q.score}/{q.maxScore}</span>
-                </li>
-              ))}
-              {grades.manual.map((m) => (
-                <li key={m.columnId} className="flex items-center justify-between py-2 text-sm">
-                  <span>{m.title}{m.note ? ` — ${m.note}` : ''}</span>
-                  <span className="font-bold">{m.score ?? '—'}/{m.maxScore}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
-      )}
-      <p className="mt-8 text-center">
-        <Link to="/student/dashboard" className="text-sm text-primary underline">{t('myCourses')}</Link>
-      </p>
-    </Page>
+            )}
+
+            {tab === 'grades' && grades && (
+              <section>
+                <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
+                  <Trophy size={18} className="text-secondary" /> {t('myGrades')}
+                </h2>
+                <Card>
+                  {grades.quizzes.length === 0 && grades.manual.length === 0 && <p className="text-sm text-ink-soft">—</p>}
+                  <ul className="flex flex-col divide-y divide-line">
+                    {grades.quizzes.map((q) => (
+                      <li key={q.quizId} className="flex items-center justify-between gap-3 py-2 text-sm">
+                        <span>{q.title} <span className="text-ink-soft">({q.lessonTitle})</span></span>
+                        <span className="font-bold">{q.score}/{q.maxScore}</span>
+                      </li>
+                    ))}
+                    {grades.manual.map((m) => (
+                      <li key={m.columnId} className="flex items-center justify-between gap-3 py-2 text-sm">
+                        <span>{m.title}{m.note ? ` — ${m.note}` : ''}</span>
+                        <span className="font-bold">{m.score ?? '—'}/{m.maxScore}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </section>
+            )}
+
+            <p className="text-center">
+              <Link to="/student/dashboard" className="text-sm text-primary underline">{t('home')}</Link>
+            </p>
+          </div>
+        ) : <Loading />}
+      </Page>
     </ThemeSurface>
   );
 }
 
-function AttachmentRow({ id, title }: { id: string; title: string }) {
+function LessonRow({ lesson, groupId, current }: { lesson: StudentLesson; groupId: string; current: boolean }) {
   const { t } = useLang();
-  const [url, setUrl] = useState<string | null>(null);
+  const body = (
+    <Card className={`flex min-w-0 flex-wrap items-center gap-3 ${current ? 'border-primary' : ''} ${lesson.unlocked ? 'transition hover:border-primary' : 'opacity-60'}`}>
+      <span className="flex min-w-0 grow items-center gap-2 font-semibold">
+        {!lesson.unlocked ? (
+          <Lock size={16} className="shrink-0 text-ink-soft" />
+        ) : lesson.completed ? (
+          <CheckCircle2 size={18} className="shrink-0 text-primary" />
+        ) : (
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+        )}
+        <span className="truncate">{lesson.title}</span>
+      </span>
+      <span className="flex flex-wrap items-center gap-2">
+        {lesson.hasQuiz && <NotebookPen size={15} className="text-ink-soft" aria-label={t('quiz')} />}
+        {lesson.attachments.length > 0 && (
+          <span className="flex items-center gap-1 text-xs text-ink-soft">
+            <Paperclip size={14} /> {lesson.attachments.length}
+          </span>
+        )}
+        {!lesson.unlocked ? (
+          <Badge>{t('locked')}</Badge>
+        ) : lesson.completed ? (
+          <Badge tone="primary">{t('completed')}</Badge>
+        ) : current ? (
+          <Badge tone="primary">{t('current')}</Badge>
+        ) : null}
+        {lesson.unlocked && <ArrowRight size={16} className="shrink-0 text-ink-soft ltr:rotate-180 rtl:rotate-0" />}
+      </span>
+    </Card>
+  );
+
+  if (!lesson.unlocked) return body;
   return (
-    <li className="flex items-center justify-between gap-2 rounded-lg bg-background px-3 py-2 text-sm">
-      <FileDown size={16} className="text-ink-soft" />
-      <span className="grow">{title}</span>
-      {url ? (
-        <a href={url} target="_blank" rel="noreferrer" className="font-semibold text-primary underline">
-          <Download size={16} className="inline" />
-        </a>
-      ) : (
-        <Button
-          variant="ghost"
-          className="!min-h-9 !px-3 !py-1 text-xs"
-          onClick={() => {
-            api(`/api/storage/attachments/${id}/download`)
-              .then((d: any) => setUrl(d.url))
-              .catch((e: unknown) => toast.error((e as Error).message || t('errorOccurred')));
-          }}
-        >
-          {t('download')}
-        </Button>
-      )}
-    </li>
+    <Link
+      to="/student/groups/$groupId/lessons/$lessonId"
+      params={{ groupId, lessonId: lesson.id }}
+      className="block min-w-0"
+    >
+      {body}
+    </Link>
   );
 }
 

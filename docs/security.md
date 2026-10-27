@@ -93,6 +93,10 @@ student.
   check, not a public bucket listing. Public catalogue and course detail
   resolve only published courses of a published, active teacher and expose no
   storage keys or lesson content.
+- Lesson materials are readable only through the attachment download/file
+  endpoints, which repeat the teacher ownership and student enrollment/unlock
+  checks. The file endpoint 302s to a short-lived signed URL so inline previews
+  do not expose bucket keys.
 
 ## Exports
 

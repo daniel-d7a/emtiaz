@@ -304,7 +304,13 @@ export class StudentService {
       .from(courses)
       .where(eq(courses.id, group.courseId));
     const [teacher] = await db
-      .select({ name: users.name, theme: users.landingTheme, banner: users.landingBanner })
+      .select({
+        name: users.name,
+        theme: users.landingTheme,
+        banner: users.landingBanner,
+        slug: users.landingSlug,
+        published: users.landingPublished,
+      })
       .from(users)
       .where(eq(users.id, course.teacherId));
 
@@ -314,6 +320,7 @@ export class StudentService {
         name: teacher?.name ?? '',
         theme: teacher?.theme ?? null,
         bannerUrl: await this.signedBanner(teacher?.banner ?? null),
+        slug: teacher?.published ? teacher.slug : null,
       },
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
       quiz: courseQuiz ? { ...courseQuiz, bestAttempt: bestFor(courseQuiz.id) } : null,
@@ -395,7 +402,12 @@ export class StudentService {
         .limit(1)).length,
       attachments: attachments
         .filter((a) => !a.groupId || enrollments.some((e) => a.groupId === e.group.id))
-        .map((a) => ({ id: a.id, title: a.title })),
+        .map((a) => ({
+          id: a.id,
+          title: a.title,
+          fileType: a.fileType,
+          mimeType: a.mimeType,
+        })),
       hasQuiz: !!(await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId)).limit(1)).length,
     };
   }

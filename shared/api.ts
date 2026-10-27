@@ -248,7 +248,12 @@ export type StudentModule = Module & {
 
 export type StudentCurriculum = {
   course: Course;
-  teacher: { name: string; theme: TeacherTheme | null; bannerUrl: string | null };
+  teacher: {
+    name: string;
+    theme: TeacherTheme | null;
+    bannerUrl: string | null;
+    slug: string | null;
+  };
   group: Pick<Group, 'id' | 'name' | 'joinCode'>;
   quiz: QuizWithAttempt | null;
   modules: StudentModule[];
@@ -258,7 +263,7 @@ export type StudentLessonView = {
   title: string;
   content: string | null;
   completed: boolean;
-  attachments: Array<Pick<Attachment, 'id' | 'title'>>;
+  attachments: Array<Pick<Attachment, 'id' | 'title' | 'fileType' | 'mimeType'>>;
   hasQuiz: boolean;
 };
 
