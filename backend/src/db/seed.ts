@@ -179,6 +179,22 @@ async function seedDemo() {
     phoneNumber: '+96894000002',
   });
   await db.update(users).set({ subjectCategoryId: (await getOrCreateCategory('Languages')).id }).where(eq(users.id, teacher2));
+  await db
+    .update(users)
+    .set({
+      landingSlug: 'fatma',
+      landingBio: 'English conversation and IELTS prep in Muscat.',
+      landingPublished: true,
+      landingTheme: {
+        layout: 'banner',
+        primary: '#1D4ED8',
+        secondary: '#B45309',
+        marquee: 'Speak English with confidence',
+        arabicFont: 'tajawal',
+        englishFont: 'inter',
+      },
+    })
+    .where(eq(users.id, teacher2));
   const studentIds: string[] = [];
   for (let i = 1; i <= 6; i++) {
     studentIds.push(await signUp(`Student ${i}`, `student${i}@demo.om`, DEMO_PASSWORD, 'STUDENT', { phoneNumber: `+96894100006${i}` }));

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  BookOpen, GraduationCap, LayoutDashboard, LogOut, UserRound, Users,
+  BookOpen, GraduationCap, Home, LayoutDashboard, LogOut, UserRound, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { authApi } from '../lib/api';
@@ -14,6 +14,7 @@ import { NotificationBell } from './NotificationBell';
 
 type NavTarget =
   | '/student/dashboard'
+  | '/student/courses'
   | '/teacher/dashboard'
   | '/parent/dashboard'
   | '/admin/dashboard'
@@ -36,7 +37,10 @@ const ROLE_LABEL: Record<SessionUser['role'], Key> = {
 };
 
 const ROLE_NAV: Record<SessionUser['role'], NavItem[]> = {
-  STUDENT: [{ to: '/student/dashboard', label: 'home', icon: BookOpen }],
+  STUDENT: [
+    { to: '/student/dashboard', label: 'home', icon: Home },
+    { to: '/student/courses', label: 'browseCourses', icon: BookOpen },
+  ],
   TEACHER: [{ to: '/teacher/dashboard', label: 'myWorkspace', icon: LayoutDashboard }],
   PARENT: [{ to: '/parent/dashboard', label: 'myChildren', icon: Users }],
   ADMIN: [{ to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard }],

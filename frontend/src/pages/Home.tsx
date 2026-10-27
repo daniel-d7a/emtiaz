@@ -25,6 +25,9 @@ export default function Home() {
           {t('student')} — {t('register')}
         </Link>
       </div>
+      <Link to="/courses" className="rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-primary">
+        {t('browseCourses')}
+      </Link>
       <Link to="/login" className="pt-2 text-primary underline">{t('login')}</Link>
     </div>
   );

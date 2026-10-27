@@ -7,6 +7,7 @@ import { joinRoute } from './pages/Join';
 import { profileRoute } from './pages/Profile';
 import { studentDashboardRoute } from './pages/student/Dashboard';
 import { studentGroupRoute } from './pages/student/Group';
+import { studentCoursesRoute } from './pages/student/Courses';
 import { teacherDashboardRoute } from './pages/teacher/Dashboard';
 import { teacherCurriculumRoute } from './pages/teacher/Curriculum';
 import { teacherGroupRoute } from './pages/teacher/Group';
@@ -14,6 +15,7 @@ import { adminDashboardRoute } from './pages/admin/Dashboard';
 import { parentDashboardRoute } from './pages/parent/Dashboard';
 import { teacherLandingRoute } from './pages/public/Teacher';
 import { publicCourseRoute } from './pages/public/Course';
+import { publicCoursesRoute } from './pages/public/Courses';
 
 const fallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -31,6 +33,7 @@ const routeTree = rootRoute.addChildren([
   profileRoute,
   studentDashboardRoute,
   studentGroupRoute,
+  studentCoursesRoute,
   teacherDashboardRoute,
   teacherCurriculumRoute,
   teacherGroupRoute,
@@ -38,6 +41,7 @@ const routeTree = rootRoute.addChildren([
   parentDashboardRoute,
   teacherLandingRoute,
   publicCourseRoute,
+  publicCoursesRoute,
   fallbackRoute,
 ]);
 

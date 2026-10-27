@@ -44,7 +44,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `teacher` | Course/module/lesson CRUD, quizzes, groups, pacing, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress and grades |
-| `public` | Published teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
+| `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
 | `storage` | Presigned uploads, attachment records/downloads, avatars, banners |
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
 
@@ -128,10 +128,10 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
 - Code-based TanStack Router with role guards in `beforeLoad` and query
   prefetching in loaders ([ADR-0008](./adr/0008-tanstack-router.md)).
 - TanStack Query owns server state; there is no Zustand store.
-- Pages: home, login/register, join, profile, student dashboard/group/lesson/
-  quiz, teacher dashboard/course/group/public landing/public course, parent
-  home, dashboard, admin dashboard (teachers, students, parents, courses,
-  notifications, taxonomy, audit).
+- Pages: home, public course catalogue, login/register, join, profile,
+  student home/catalogue/group/lesson/quiz, teacher dashboard/course/group/
+  public landing/public course, parent home, dashboard, admin dashboard
+  (teachers, students, parents, courses, notifications, taxonomy, audit).
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
 - Teachers own a theme in `user.landing_theme` (layout, two colours, marquee,
@@ -164,9 +164,13 @@ Per-teacher pages are not static: `/t/<slug>` is a web route backed by
 `sitemap.xml`. The storefront filters published courses by type and links to
 `/t/<slug>/courses/<id>`, backed by
 `GET /api/public/teachers/<slug>/courses/<id>` (course image, description,
-preview video/link, and an outline of module/lesson titles). Both pages share
-the teacher theme and a footer with the teacher's contact details plus the
-admin-configured platform support contacts.
+preview video/link, and an outline of module/lesson titles). `/courses` is a
+public catalogue backed by `GET /api/public/courses`, with server-side search
+and teacher, specialization, grade, type, and semester filters. It only returns
+published courses from published, active teachers, and each card carries its
+teacher's theme. Both storefront pages share the teacher theme and a footer with
+the teacher's contact details plus the admin-configured platform support
+contacts.
 
 ## Deployment and operations
 

@@ -42,7 +42,12 @@ export default function StudentDashboard() {
           </div>
 
           <section className="mb-6">
-            <h2 className="mb-3 text-lg font-bold">{t('latestCourses')}</h2>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold">{t('latestCourses')}</h2>
+              <Link to="/student/courses" className="text-sm font-semibold text-primary underline">
+                {t('browseCourses')}
+              </Link>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {home.data?.latestCourses.map((e) => (
                 <Link key={e.group.id} to="/student/groups/$groupId" params={{ groupId: e.group.id }}>

@@ -89,7 +89,7 @@ export default function TeacherLanding() {
         </Link>
       </ThemeHero>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {(['ALL', 'ACADEMIC', 'GENERAL'] as const).map((value) => (
           <button
             key={value}
@@ -101,6 +101,9 @@ export default function TeacherLanding() {
             {value === 'ALL' ? t('all') : value === 'ACADEMIC' ? t('academic') : t('general')}
           </button>
         ))}
+        <Link to="/courses" className="ms-auto text-sm font-semibold text-primary underline">
+          {t('browseCourses')}
+        </Link>
       </div>
 
       {filter !== 'GENERAL' && academic.length > 0 && (

@@ -51,7 +51,7 @@ alone never grants access to another user's course, group, or child.
 | Upload own avatar | yes | yes | yes | yes |
 | Upload own banner | no | yes | no | no |
 | Read own inbox / mark read | yes | yes | yes | yes |
-| Public teacher page/course, avatar/banner, sitemap, robots | public | public | public | public |
+| Public course catalogue/teacher page/course, avatar/banner, sitemap, robots | public | public | public | public |
 
 \* Admin endpoints are read-only for courses/groups; admin does not call the
 teacher endpoints. Admin can download any attachment and manually enroll a
@@ -90,9 +90,9 @@ student.
 - Replaced/cleared avatars, banners, and course covers are deleted best-effort. Objects uploaded but never
   attached still need a bucket lifecycle rule.
 - Public teacher avatars and banners are served through a published-teacher
-  check, not a public bucket listing. Public course detail resolves only
-  published courses of a published, active teacher and exposes no storage keys
-  or lesson content.
+  check, not a public bucket listing. Public catalogue and course detail
+  resolve only published courses of a published, active teacher and expose no
+  storage keys or lesson content.
 
 ## Exports
 

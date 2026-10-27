@@ -109,6 +109,33 @@ export type PublicTeacherPage = {
   support: PublicSupport;
 };
 
+export type CatalogueTeacher = {
+  id: string;
+  name: string;
+  slug: string;
+  theme: TeacherTheme | null;
+};
+
+export type CatalogueCourse = Pick<
+  Course,
+  'id' | 'title' | 'description' | 'courseType' | 'semester'
+> & {
+  imageUrl: string | null;
+  teacher: CatalogueTeacher;
+  subject: string | null;
+  grade: string | null;
+};
+
+export type CourseCatalogue = {
+  courses: CatalogueCourse[];
+  filters: {
+    teachers: Array<{ id: string; name: string; slug: string }>;
+    subjects: TaxonomyItem[];
+    grades: TaxonomyItem[];
+    semesters: string[];
+  };
+};
+
 export type PublicCoursePage = {
   teacher: Omit<PublicTeacher, 'avatarUrl' | 'bio' | 'subject'>;
   course: Course & { imageUrl: string | null };

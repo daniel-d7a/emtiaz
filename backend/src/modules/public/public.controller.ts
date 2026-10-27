@@ -1,11 +1,11 @@
-import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNull, isNotNull, type SQL } from 'drizzle-orm';
 import { Public } from '../../auth/public.decorator';
 import { db } from '../../db';
 import { StorageService } from '../storage/storage.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
-import { categories, courses, lessons, modules, users } from '../../db/schema';
+import { categories, courses, grades, lessons, modules, users } from '../../db/schema';
 
 @Controller()
 export class PublicController {
@@ -127,6 +127,114 @@ export class PublicController {
   robots(@Res() res: Response) {
     const base = (process.env.FRONTEND_URL ?? 'http://localhost:8088').replace(/\/$/, '');
     res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${base}/sitemap.xml\n`);
+  }
+
+  @Public()
+  @Get('api/public/courses')
+  async catalogue(
+    @Query()
+    q: {
+      search?: string;
+      teacherId?: string;
+      subjectId?: string;
+      gradeId?: string;
+      courseType?: string;
+      semester?: string;
+    },
+  ) {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const visible = [
+      eq(courses.isPublished, true),
+      eq(users.role, 'TEACHER'),
+      eq(users.landingPublished, true),
+      isNotNull(users.landingSlug),
+      eq(users.isActive, true),
+      isNull(users.deletedAt),
+    ];
+    const filters: SQL[] = [...visible];
+    const search = q.search?.trim().slice(0, 120);
+    if (search) filters.push(ilike(courses.title, `%${search}%`));
+    if (q.teacherId) filters.push(eq(users.id, q.teacherId));
+    if (q.subjectId && uuid.test(q.subjectId)) filters.push(eq(users.subjectCategoryId, q.subjectId));
+    if (q.gradeId && uuid.test(q.gradeId)) filters.push(eq(courses.gradeId, q.gradeId));
+    if (q.courseType === 'ACADEMIC' || q.courseType === 'GENERAL') {
+      filters.push(eq(courses.courseType, q.courseType));
+    }
+    if (q.semester) filters.push(eq(courses.semester, q.semester));
+
+    const rows = await db
+      .select({
+        id: courses.id,
+        title: courses.title,
+        description: courses.description,
+        courseType: courses.courseType,
+        semester: courses.semester,
+        image: courses.image,
+        teacherId: users.id,
+        teacherName: users.name,
+        teacherSlug: users.landingSlug,
+        teacherTheme: users.landingTheme,
+        subject: categories.name,
+        grade: grades.name,
+      })
+      .from(courses)
+      .innerJoin(users, eq(courses.teacherId, users.id))
+      .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
+      .leftJoin(grades, eq(courses.gradeId, grades.id))
+      .where(and(...filters))
+      .orderBy(asc(courses.title));
+
+    const all = await db
+      .select({
+        teacherId: users.id,
+        teacherName: users.name,
+        teacherSlug: users.landingSlug,
+        subjectId: categories.id,
+        subjectName: categories.name,
+        gradeId: grades.id,
+        gradeName: grades.name,
+        semester: courses.semester,
+      })
+      .from(courses)
+      .innerJoin(users, eq(courses.teacherId, users.id))
+      .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
+      .leftJoin(grades, eq(courses.gradeId, grades.id))
+      .where(and(...visible))
+      .orderBy(asc(users.name), asc(courses.title));
+
+    const uniq = <T,>(items: T[], key: (item: T) => string | null) => {
+      const seen = new Map<string, T>();
+      for (const item of items) {
+        const id = key(item);
+        if (id && !seen.has(id)) seen.set(id, item);
+      }
+      return [...seen.values()];
+    };
+
+    return {
+      courses: await Promise.all(
+        rows.map(async ({ image, teacherId, teacherName, teacherSlug, teacherTheme, ...course }) => ({
+          ...course,
+          teacher: { id: teacherId, name: teacherName, slug: teacherSlug!, theme: teacherTheme },
+          imageUrl: await this.signed(image),
+        })),
+      ),
+      filters: {
+        teachers: uniq(
+          all.map((r) => ({ id: r.teacherId, name: r.teacherName, slug: r.teacherSlug! })),
+          (r) => r.id,
+        ),
+        subjects: uniq(
+          all.map((r) => ({ id: r.subjectId, name: r.subjectName })),
+          (r) => r.id,
+        ),
+        grades: uniq(
+          all.map((r) => ({ id: r.gradeId, name: r.gradeName })),
+          (r) => r.id,
+        ),
+        semesters: [...new Set(all.map((r) => r.semester).filter((s): s is string => !!s))],
+      },
+    };
   }
 
   @Public()

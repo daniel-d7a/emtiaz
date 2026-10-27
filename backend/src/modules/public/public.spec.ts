@@ -46,6 +46,21 @@ describe('public teacher landing', () => {
     const course = page.body.courses.find((c: any) => c.title === 'Physics 10');
     expect(course).toBeTruthy();
 
+    const catalog = await request(server).get('/api/public/courses?search=Physics');
+    expect(catalog.status).toBe(200);
+    const catalogCourse = catalog.body.courses.find((c: any) => c.id === course.id);
+    expect(catalogCourse).toBeTruthy();
+    expect(catalogCourse.teacher.slug).toBe('salim-physics');
+    expect(catalog.body.filters.teachers.some((t: any) => t.slug === 'salim-physics')).toBe(true);
+
+    const filtered = await request(server).get(
+      `/api/public/courses?teacherId=${catalogCourse.teacher.id}&courseType=ACADEMIC`,
+    );
+    expect(filtered.body.courses.every((c: any) => c.teacher.id === catalogCourse.teacher.id)).toBe(true);
+    expect(
+      (await request(server).get('/api/public/courses?courseType=NOPE')).body.courses.length,
+    ).toBeGreaterThan(0);
+
     const detail = await request(server).get(
       `/api/public/teachers/salim-physics/courses/${course.id}`,
     );
@@ -66,6 +81,7 @@ describe('public teacher landing', () => {
     const hidden = await teacher.patch('/api/me').send({ landingPublished: false });
     expect(hidden.status).toBe(200);
     expect((await request(server).get('/api/public/teachers/salim-physics')).status).toBe(404);
+    expect((await request(server).get('/api/public/courses')).body.courses).toHaveLength(0);
   });
 
   it('rejects invalid slugs and non-teacher pages', async () => {
