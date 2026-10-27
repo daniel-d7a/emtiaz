@@ -1,38 +1,12 @@
 import 'dotenv/config';
-import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
-import { Pool } from 'pg';
-
-const TEST_DB = process.env.TEST_DATABASE_URL;
-
-async function migrate() {
-  const pool = new Pool({ connectionString: TEST_DB });
-  await pool.query(`DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;`);
-  const dir = join(__dirname, '..', '..', 'drizzle');
-  const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
-  await pool.query(`CREATE SCHEMA IF NOT EXISTS drizzle`);
-  await pool.query(
-    `CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
-       id serial PRIMARY KEY, hash text, created_at bigint
-     )`,
-  );
-  const { rows } = await pool.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM drizzle.__drizzle_migrations');
-  const applied = Number(rows[0].count);
-  for (let i = applied; i < files.length; i++) {
-    const sql = readFileSync(join(dir, files[i]), 'utf8')
-      .split('--> statement-breakpoint')
-      .join(';');
-    await pool.query(sql);
-    await pool.query('INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)', [files[i], Date.now()]);
-  }
-  return { pool, files };
-}
+import type { Pool } from 'pg';
+import { resetTestDb } from './migrate';
 
 describe('Phase 1: database schema', () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    ({ pool } = await migrate());
+    pool = await resetTestDb();
   });
 
   afterAll(async () => {

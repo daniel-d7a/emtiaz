@@ -1,0 +1,725 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "af34f2aa-927e-41c0-b0c4-e06ccc7533e5",
+  "prevIds": [
+    "082cdeb9-0201-4ac2-918c-e4d8eb44d75e"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "courses",
+        "course_teacher_idx"
+      ],
+      "writes": [
+        "s|idx|public.course_teacher_idx",
+        "n|idx|public.course_teacher_idx",
+        "e|idx|public.course_teacher_idx",
+        "n|rel|public.course_teacher_idx"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|col|public.courses.teacher_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_lesson_access",
+        "group_lesson_lesson_idx"
+      ],
+      "writes": [
+        "s|idx|public.group_lesson_lesson_idx",
+        "n|idx|public.group_lesson_lesson_idx",
+        "e|idx|public.group_lesson_lesson_idx",
+        "n|rel|public.group_lesson_lesson_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_lesson_access",
+        "n|sch|public",
+        "n|col|public.group_lesson_access.lesson_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_students",
+        "group_student_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.group_student_student_idx",
+        "n|idx|public.group_student_student_idx",
+        "e|idx|public.group_student_student_idx",
+        "n|rel|public.group_student_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_students",
+        "n|sch|public",
+        "n|col|public.group_students.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "groups",
+        "group_course_idx"
+      ],
+      "writes": [
+        "s|idx|public.group_course_idx",
+        "n|idx|public.group_course_idx",
+        "e|idx|public.group_course_idx",
+        "n|rel|public.group_course_idx"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.groups.course_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lesson_attachments",
+        "attachment_lesson_idx"
+      ],
+      "writes": [
+        "s|idx|public.attachment_lesson_idx",
+        "n|idx|public.attachment_lesson_idx",
+        "e|idx|public.attachment_lesson_idx",
+        "n|rel|public.attachment_lesson_idx"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attachments",
+        "n|sch|public",
+        "n|col|public.lesson_attachments.lesson_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lesson_completions",
+        "completion_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.completion_student_idx",
+        "n|idx|public.completion_student_idx",
+        "e|idx|public.completion_student_idx",
+        "n|rel|public.completion_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_completions",
+        "n|sch|public",
+        "n|col|public.lesson_completions.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lessons",
+        "lesson_module_idx"
+      ],
+      "writes": [
+        "s|idx|public.lesson_module_idx",
+        "n|idx|public.lesson_module_idx",
+        "e|idx|public.lesson_module_idx",
+        "n|rel|public.lesson_module_idx"
+      ],
+      "reads": [
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.lessons.module_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "manual_grade_values",
+        "manual_grade_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.manual_grade_student_idx",
+        "n|idx|public.manual_grade_student_idx",
+        "e|idx|public.manual_grade_student_idx",
+        "n|rel|public.manual_grade_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.manual_grade_values",
+        "n|sch|public",
+        "n|col|public.manual_grade_values.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "modules",
+        "module_course_idx"
+      ],
+      "writes": [
+        "s|idx|public.module_course_idx",
+        "n|idx|public.module_course_idx",
+        "e|idx|public.module_course_idx",
+        "n|rel|public.module_course_idx"
+      ],
+      "reads": [
+        "n|tbl|public.modules",
+        "n|sch|public",
+        "n|col|public.modules.course_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "notifications",
+        "notification_created_idx"
+      ],
+      "writes": [
+        "s|idx|public.notification_created_idx",
+        "n|idx|public.notification_created_idx",
+        "e|idx|public.notification_created_idx",
+        "n|rel|public.notification_created_idx"
+      ],
+      "reads": [
+        "n|tbl|public.notifications",
+        "n|sch|public",
+        "n|col|public.notifications.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "parent_students",
+        "parent_students_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.parent_students_student_idx",
+        "n|idx|public.parent_students_student_idx",
+        "e|idx|public.parent_students_student_idx",
+        "n|rel|public.parent_students_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.parent_students",
+        "n|sch|public",
+        "n|col|public.parent_students.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "quiz_attempts",
+        "attempt_student_group_idx"
+      ],
+      "writes": [
+        "s|idx|public.attempt_student_group_idx",
+        "n|idx|public.attempt_student_group_idx",
+        "e|idx|public.attempt_student_group_idx",
+        "n|rel|public.attempt_student_group_idx"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_attempts",
+        "n|sch|public",
+        "n|col|public.quiz_attempts.student_id",
+        "n|col|public.quiz_attempts.group_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "quiz_attempts",
+        "attempt_quiz_idx"
+      ],
+      "writes": [
+        "s|idx|public.attempt_quiz_idx",
+        "n|idx|public.attempt_quiz_idx",
+        "e|idx|public.attempt_quiz_idx",
+        "n|rel|public.attempt_quiz_idx"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_attempts",
+        "n|sch|public",
+        "n|col|public.quiz_attempts.quiz_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "quiz_questions",
+        "question_quiz_idx"
+      ],
+      "writes": [
+        "s|idx|public.question_quiz_idx",
+        "n|idx|public.question_quiz_idx",
+        "e|idx|public.question_quiz_idx",
+        "n|rel|public.question_quiz_idx"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_questions",
+        "n|sch|public",
+        "n|col|public.quiz_questions.quiz_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "session",
+        "session_user_idx"
+      ],
+      "writes": [
+        "s|idx|public.session_user_idx",
+        "n|idx|public.session_user_idx",
+        "e|idx|public.session_user_idx",
+        "n|rel|public.session_user_idx"
+      ],
+      "reads": [
+        "n|tbl|public.session",
+        "n|sch|public",
+        "n|col|public.session.user_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "user",
+        "user_role_idx"
+      ],
+      "writes": [
+        "s|idx|public.user_role_idx",
+        "n|idx|public.user_role_idx",
+        "e|idx|public.user_role_idx",
+        "n|rel|public.user_role_idx"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.user.role"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "courses",
+        "name": "course_teacher_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "teacher_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_lesson_access",
+        "name": "group_lesson_lesson_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "lesson_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_students",
+        "name": "group_student_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "groups",
+        "name": "group_course_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "course_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attachments",
+        "name": "attachment_lesson_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "lesson_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_completions",
+        "name": "completion_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lessons",
+        "name": "lesson_module_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "module_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "manual_grade_values",
+        "name": "manual_grade_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "modules",
+        "name": "module_course_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "course_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notifications",
+        "name": "notification_created_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "parent_students_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quiz_attempts",
+        "name": "attempt_student_group_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quiz_attempts",
+        "name": "attempt_quiz_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "quiz_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quiz_questions",
+        "name": "question_quiz_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "quiz_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "session",
+        "name": "session_user_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "user_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "user_role_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "role",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    }
+  ]
+}

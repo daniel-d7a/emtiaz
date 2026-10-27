@@ -1,0 +1,3 @@
+ALTER TABLE "quiz_attempts" DROP CONSTRAINT "attempt_score_sane_chk", ADD CONSTRAINT "attempt_score_sane_chk" CHECK ("score" >= 0 AND "max_score" >= 1 AND "score" <= "max_score");--> statement-breakpoint
+ALTER TABLE "quiz_questions" DROP CONSTRAINT "quiz_points_positive_chk", ADD CONSTRAINT "quiz_points_positive_chk" CHECK ("points" > 0);--> statement-breakpoint
+ALTER TABLE "quizzes" DROP CONSTRAINT "quiz_target_chk", ADD CONSTRAINT "quiz_target_chk" CHECK (("lesson_id" IS NOT NULL)::int + ("module_id" IS NOT NULL)::int + ("course_id" IS NOT NULL)::int = 1);

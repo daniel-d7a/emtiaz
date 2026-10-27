@@ -1,0 +1,62 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ba0ca1fa-b11a-41e7-a368-590f51e00caf",
+  "prevIds": [
+    "1c9de1fb-82cd-4127-8b3b-8096084acc57"
+  ],
+  "footprints": [
+    {
+      "statementType": "drop_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|uq|public.user.user_parent_invite_code_unique",
+        "n|uq|public.user.user_parent_invite_code_unique",
+        "e|uq|public.user.user_parent_invite_code_unique",
+        "n|con|public.user.user_parent_invite_code_unique",
+        "n|rel|public.user_parent_invite_code_unique"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "e|col|public.user.parent_invite_code"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|public.user.parent_invite_code"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "parent_invite_code"
+      ],
+      "writes": [
+        "s|col|public.user.parent_invite_code",
+        "n|col|public.user.parent_invite_code",
+        "e|col|public.user.parent_invite_code"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"public\",\"user\",\"parent_invite_code\"]"
+    },
+    {
+      "op": "drop",
+      "key": "uniques\u0000[\"public\",\"user\",\"user_parent_invite_code_unique\"]"
+    }
+  ]
+}

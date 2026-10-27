@@ -10,7 +10,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 export async function applyMigrations(url: string, dir?: string) {
   const realDir = dir ?? join(__dirname, '..', '..', 'drizzle');
   const pool = new Pool({ connectionString: url });
-  await migrate(drizzle(pool), { migrationsFolder: realDir });
+  await migrate(drizzle({ client: pool }), { migrationsFolder: realDir });
   return pool;
 }
 

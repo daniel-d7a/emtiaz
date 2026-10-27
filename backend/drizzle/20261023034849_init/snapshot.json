@@ -1,0 +1,3687 @@
+{
+  "type": "base",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "3a5a2ec2-3045-4b34-a9a7-b79fb4f7faef",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "attachment_type"
+      ],
+      "writes": [
+        "s|enum|public.attachment_type",
+        "n|enum|public.attachment_type",
+        "e|enum|public.attachment_type",
+        "n|type|public.attachment_type"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "course_type"
+      ],
+      "writes": [
+        "s|enum|public.course_type",
+        "n|enum|public.course_type",
+        "e|enum|public.course_type",
+        "n|type|public.course_type"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "question_type"
+      ],
+      "writes": [
+        "s|enum|public.question_type",
+        "n|enum|public.question_type",
+        "e|enum|public.question_type",
+        "n|type|public.question_type"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "role"
+      ],
+      "writes": [
+        "s|enum|public.role",
+        "n|enum|public.role",
+        "e|enum|public.role",
+        "n|type|public.role"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "account"
+      ],
+      "writes": [
+        "s|tbl|public.account",
+        "n|tbl|public.account",
+        "e|tbl|public.account",
+        "n|rel|public.account",
+        "n|type|public.account",
+        "n|rel|public.account_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "categories"
+      ],
+      "writes": [
+        "s|tbl|public.categories",
+        "n|tbl|public.categories",
+        "e|tbl|public.categories",
+        "n|rel|public.categories",
+        "n|type|public.categories",
+        "n|rel|public.categories_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "courses"
+      ],
+      "writes": [
+        "s|tbl|public.courses",
+        "n|tbl|public.courses",
+        "e|tbl|public.courses",
+        "n|rel|public.courses",
+        "n|type|public.courses",
+        "n|rel|public.courses_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.course_type"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "grades"
+      ],
+      "writes": [
+        "s|tbl|public.grades",
+        "n|tbl|public.grades",
+        "e|tbl|public.grades",
+        "n|rel|public.grades",
+        "n|type|public.grades",
+        "n|rel|public.grades_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_lesson_access"
+      ],
+      "writes": [
+        "s|tbl|public.group_lesson_access",
+        "n|tbl|public.group_lesson_access",
+        "e|tbl|public.group_lesson_access",
+        "n|rel|public.group_lesson_access",
+        "n|type|public.group_lesson_access",
+        "n|rel|public.group_lesson_access_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_students"
+      ],
+      "writes": [
+        "s|tbl|public.group_students",
+        "n|tbl|public.group_students",
+        "e|tbl|public.group_students",
+        "n|rel|public.group_students",
+        "n|type|public.group_students",
+        "n|rel|public.group_students_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "groups"
+      ],
+      "writes": [
+        "s|tbl|public.groups",
+        "n|tbl|public.groups",
+        "e|tbl|public.groups",
+        "n|rel|public.groups",
+        "n|type|public.groups",
+        "n|rel|public.groups_pkey",
+        "n|rel|public.groups_join_code_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_attachments"
+      ],
+      "writes": [
+        "s|tbl|public.lesson_attachments",
+        "n|tbl|public.lesson_attachments",
+        "e|tbl|public.lesson_attachments",
+        "n|rel|public.lesson_attachments",
+        "n|type|public.lesson_attachments",
+        "n|rel|public.lesson_attachments_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.attachment_type"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_completions"
+      ],
+      "writes": [
+        "s|tbl|public.lesson_completions",
+        "n|tbl|public.lesson_completions",
+        "e|tbl|public.lesson_completions",
+        "n|rel|public.lesson_completions",
+        "n|type|public.lesson_completions",
+        "n|rel|public.lesson_completions_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "lessons"
+      ],
+      "writes": [
+        "s|tbl|public.lessons",
+        "n|tbl|public.lessons",
+        "e|tbl|public.lessons",
+        "n|rel|public.lessons",
+        "n|type|public.lessons",
+        "n|rel|public.lessons_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "manual_grade_columns"
+      ],
+      "writes": [
+        "s|tbl|public.manual_grade_columns",
+        "n|tbl|public.manual_grade_columns",
+        "e|tbl|public.manual_grade_columns",
+        "n|rel|public.manual_grade_columns",
+        "n|type|public.manual_grade_columns",
+        "n|rel|public.manual_grade_columns_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "manual_grade_values"
+      ],
+      "writes": [
+        "s|tbl|public.manual_grade_values",
+        "n|tbl|public.manual_grade_values",
+        "e|tbl|public.manual_grade_values",
+        "n|rel|public.manual_grade_values",
+        "n|type|public.manual_grade_values",
+        "n|rel|public.manual_grade_values_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "modules"
+      ],
+      "writes": [
+        "s|tbl|public.modules",
+        "n|tbl|public.modules",
+        "e|tbl|public.modules",
+        "n|rel|public.modules",
+        "n|type|public.modules",
+        "n|rel|public.modules_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_attempts"
+      ],
+      "writes": [
+        "s|tbl|public.quiz_attempts",
+        "n|tbl|public.quiz_attempts",
+        "e|tbl|public.quiz_attempts",
+        "n|rel|public.quiz_attempts",
+        "n|type|public.quiz_attempts",
+        "n|rel|public.quiz_attempts_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_questions"
+      ],
+      "writes": [
+        "s|tbl|public.quiz_questions",
+        "n|tbl|public.quiz_questions",
+        "e|tbl|public.quiz_questions",
+        "n|rel|public.quiz_questions",
+        "n|type|public.quiz_questions",
+        "n|rel|public.quiz_questions_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.question_type"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|tbl|public.quizzes",
+        "n|tbl|public.quizzes",
+        "e|tbl|public.quizzes",
+        "n|rel|public.quizzes",
+        "n|type|public.quizzes",
+        "n|rel|public.quizzes_pkey",
+        "n|rel|public.quizzes_lesson_id_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "session"
+      ],
+      "writes": [
+        "s|tbl|public.session",
+        "n|tbl|public.session",
+        "e|tbl|public.session",
+        "n|rel|public.session",
+        "n|type|public.session",
+        "n|rel|public.session_pkey",
+        "n|rel|public.session_token_unique"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|tbl|public.user",
+        "n|tbl|public.user",
+        "e|tbl|public.user",
+        "n|rel|public.user",
+        "n|type|public.user",
+        "n|rel|public.user_pkey",
+        "n|rel|public.user_email_unique",
+        "n|rel|public.user_phone_number_unique"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.role"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "verification"
+      ],
+      "writes": [
+        "s|tbl|public.verification",
+        "n|tbl|public.verification",
+        "e|tbl|public.verification",
+        "n|rel|public.verification",
+        "n|type|public.verification",
+        "n|rel|public.verification_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_lesson_access",
+        "unique_group_lesson_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_group_lesson_idx",
+        "n|idx|public.unique_group_lesson_idx",
+        "e|idx|public.unique_group_lesson_idx",
+        "n|rel|public.unique_group_lesson_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_lesson_access",
+        "n|sch|public",
+        "n|col|public.group_lesson_access.group_id",
+        "n|col|public.group_lesson_access.lesson_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_students",
+        "unique_group_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_group_student_idx",
+        "n|idx|public.unique_group_student_idx",
+        "e|idx|public.unique_group_student_idx",
+        "n|rel|public.unique_group_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_students",
+        "n|sch|public",
+        "n|col|public.group_students.group_id",
+        "n|col|public.group_students.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lesson_completions",
+        "unique_lesson_completion_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_lesson_completion_idx",
+        "n|idx|public.unique_lesson_completion_idx",
+        "e|idx|public.unique_lesson_completion_idx",
+        "n|rel|public.unique_lesson_completion_idx"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_completions",
+        "n|sch|public",
+        "n|col|public.lesson_completions.lesson_id",
+        "n|col|public.lesson_completions.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "manual_grade_values",
+        "unique_manual_grade_cell_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_manual_grade_cell_idx",
+        "n|idx|public.unique_manual_grade_cell_idx",
+        "e|idx|public.unique_manual_grade_cell_idx",
+        "n|rel|public.unique_manual_grade_cell_idx"
+      ],
+      "reads": [
+        "n|tbl|public.manual_grade_values",
+        "n|sch|public",
+        "n|col|public.manual_grade_values.column_id",
+        "n|col|public.manual_grade_values.student_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "account"
+      ],
+      "writes": [
+        "s|fk|public.account.account_user_id_user_id_fk",
+        "n|fk|public.account.account_user_id_user_id_fk",
+        "e|fk|public.account.account_user_id_user_id_fk",
+        "n|con|public.account.account_user_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.account",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.account.user_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "courses"
+      ],
+      "writes": [
+        "s|fk|public.courses.courses_teacher_id_user_id_fk",
+        "n|fk|public.courses.courses_teacher_id_user_id_fk",
+        "e|fk|public.courses.courses_teacher_id_user_id_fk",
+        "n|con|public.courses.courses_teacher_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.courses.teacher_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "courses"
+      ],
+      "writes": [
+        "s|fk|public.courses.courses_grade_id_grades_id_fk",
+        "n|fk|public.courses.courses_grade_id_grades_id_fk",
+        "e|fk|public.courses.courses_grade_id_grades_id_fk",
+        "n|con|public.courses.courses_grade_id_grades_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|tbl|public.grades",
+        "n|sch|public",
+        "n|col|public.courses.grade_id",
+        "n|col|public.grades.id",
+        "e|uniqueness|public.grades.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "courses"
+      ],
+      "writes": [
+        "s|fk|public.courses.courses_category_id_categories_id_fk",
+        "n|fk|public.courses.courses_category_id_categories_id_fk",
+        "e|fk|public.courses.courses_category_id_categories_id_fk",
+        "n|con|public.courses.courses_category_id_categories_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|tbl|public.categories",
+        "n|sch|public",
+        "n|col|public.courses.category_id",
+        "n|col|public.categories.id",
+        "e|uniqueness|public.categories.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_lesson_access"
+      ],
+      "writes": [
+        "s|fk|public.group_lesson_access.group_lesson_access_group_id_groups_id_fk",
+        "n|fk|public.group_lesson_access.group_lesson_access_group_id_groups_id_fk",
+        "e|fk|public.group_lesson_access.group_lesson_access_group_id_groups_id_fk",
+        "n|con|public.group_lesson_access.group_lesson_access_group_id_groups_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.group_lesson_access",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.group_lesson_access.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_lesson_access"
+      ],
+      "writes": [
+        "s|fk|public.group_lesson_access.group_lesson_access_lesson_id_lessons_id_fk",
+        "n|fk|public.group_lesson_access.group_lesson_access_lesson_id_lessons_id_fk",
+        "e|fk|public.group_lesson_access.group_lesson_access_lesson_id_lessons_id_fk",
+        "n|con|public.group_lesson_access.group_lesson_access_lesson_id_lessons_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.group_lesson_access",
+        "n|sch|public",
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.group_lesson_access.lesson_id",
+        "n|col|public.lessons.id",
+        "e|uniqueness|public.lessons.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_students"
+      ],
+      "writes": [
+        "s|fk|public.group_students.group_students_group_id_groups_id_fk",
+        "n|fk|public.group_students.group_students_group_id_groups_id_fk",
+        "e|fk|public.group_students.group_students_group_id_groups_id_fk",
+        "n|con|public.group_students.group_students_group_id_groups_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.group_students",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.group_students.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_students"
+      ],
+      "writes": [
+        "s|fk|public.group_students.group_students_student_id_user_id_fk",
+        "n|fk|public.group_students.group_students_student_id_user_id_fk",
+        "e|fk|public.group_students.group_students_student_id_user_id_fk",
+        "n|con|public.group_students.group_students_student_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.group_students",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.group_students.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "groups"
+      ],
+      "writes": [
+        "s|fk|public.groups.groups_course_id_courses_id_fk",
+        "n|fk|public.groups.groups_course_id_courses_id_fk",
+        "e|fk|public.groups.groups_course_id_courses_id_fk",
+        "n|con|public.groups.groups_course_id_courses_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|col|public.groups.course_id",
+        "n|col|public.courses.id",
+        "e|uniqueness|public.courses.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_attachments"
+      ],
+      "writes": [
+        "s|fk|public.lesson_attachments.lesson_attachments_lesson_id_lessons_id_fk",
+        "n|fk|public.lesson_attachments.lesson_attachments_lesson_id_lessons_id_fk",
+        "e|fk|public.lesson_attachments.lesson_attachments_lesson_id_lessons_id_fk",
+        "n|con|public.lesson_attachments.lesson_attachments_lesson_id_lessons_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attachments",
+        "n|sch|public",
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.lesson_attachments.lesson_id",
+        "n|col|public.lessons.id",
+        "e|uniqueness|public.lessons.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_attachments"
+      ],
+      "writes": [
+        "s|fk|public.lesson_attachments.lesson_attachments_group_id_groups_id_fk",
+        "n|fk|public.lesson_attachments.lesson_attachments_group_id_groups_id_fk",
+        "e|fk|public.lesson_attachments.lesson_attachments_group_id_groups_id_fk",
+        "n|con|public.lesson_attachments.lesson_attachments_group_id_groups_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attachments",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.lesson_attachments.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_completions"
+      ],
+      "writes": [
+        "s|fk|public.lesson_completions.lesson_completions_lesson_id_lessons_id_fk",
+        "n|fk|public.lesson_completions.lesson_completions_lesson_id_lessons_id_fk",
+        "e|fk|public.lesson_completions.lesson_completions_lesson_id_lessons_id_fk",
+        "n|con|public.lesson_completions.lesson_completions_lesson_id_lessons_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_completions",
+        "n|sch|public",
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.lesson_completions.lesson_id",
+        "n|col|public.lessons.id",
+        "e|uniqueness|public.lessons.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_completions"
+      ],
+      "writes": [
+        "s|fk|public.lesson_completions.lesson_completions_student_id_user_id_fk",
+        "n|fk|public.lesson_completions.lesson_completions_student_id_user_id_fk",
+        "e|fk|public.lesson_completions.lesson_completions_student_id_user_id_fk",
+        "n|con|public.lesson_completions.lesson_completions_student_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_completions",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.lesson_completions.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lessons"
+      ],
+      "writes": [
+        "s|fk|public.lessons.lessons_module_id_modules_id_fk",
+        "n|fk|public.lessons.lessons_module_id_modules_id_fk",
+        "e|fk|public.lessons.lessons_module_id_modules_id_fk",
+        "n|con|public.lessons.lessons_module_id_modules_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|tbl|public.modules",
+        "n|sch|public",
+        "n|col|public.lessons.module_id",
+        "n|col|public.modules.id",
+        "e|uniqueness|public.modules.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "manual_grade_columns"
+      ],
+      "writes": [
+        "s|fk|public.manual_grade_columns.manual_grade_columns_group_id_groups_id_fk",
+        "n|fk|public.manual_grade_columns.manual_grade_columns_group_id_groups_id_fk",
+        "e|fk|public.manual_grade_columns.manual_grade_columns_group_id_groups_id_fk",
+        "n|con|public.manual_grade_columns.manual_grade_columns_group_id_groups_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.manual_grade_columns",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.manual_grade_columns.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "manual_grade_values"
+      ],
+      "writes": [
+        "s|fk|public.manual_grade_values.manual_grade_values_column_id_manual_grade_columns_id_fk",
+        "n|fk|public.manual_grade_values.manual_grade_values_column_id_manual_grade_columns_id_fk",
+        "e|fk|public.manual_grade_values.manual_grade_values_column_id_manual_grade_columns_id_fk",
+        "n|con|public.manual_grade_values.manual_grade_values_column_id_manual_grade_columns_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.manual_grade_values",
+        "n|sch|public",
+        "n|tbl|public.manual_grade_columns",
+        "n|sch|public",
+        "n|col|public.manual_grade_values.column_id",
+        "n|col|public.manual_grade_columns.id",
+        "e|uniqueness|public.manual_grade_columns.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "manual_grade_values"
+      ],
+      "writes": [
+        "s|fk|public.manual_grade_values.manual_grade_values_student_id_user_id_fk",
+        "n|fk|public.manual_grade_values.manual_grade_values_student_id_user_id_fk",
+        "e|fk|public.manual_grade_values.manual_grade_values_student_id_user_id_fk",
+        "n|con|public.manual_grade_values.manual_grade_values_student_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.manual_grade_values",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.manual_grade_values.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "modules"
+      ],
+      "writes": [
+        "s|fk|public.modules.modules_course_id_courses_id_fk",
+        "n|fk|public.modules.modules_course_id_courses_id_fk",
+        "e|fk|public.modules.modules_course_id_courses_id_fk",
+        "n|con|public.modules.modules_course_id_courses_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.modules",
+        "n|sch|public",
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|col|public.modules.course_id",
+        "n|col|public.courses.id",
+        "e|uniqueness|public.courses.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_attempts"
+      ],
+      "writes": [
+        "s|fk|public.quiz_attempts.quiz_attempts_quiz_id_quizzes_id_fk",
+        "n|fk|public.quiz_attempts.quiz_attempts_quiz_id_quizzes_id_fk",
+        "e|fk|public.quiz_attempts.quiz_attempts_quiz_id_quizzes_id_fk",
+        "n|con|public.quiz_attempts.quiz_attempts_quiz_id_quizzes_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_attempts",
+        "n|sch|public",
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quiz_attempts.quiz_id",
+        "n|col|public.quizzes.id",
+        "e|uniqueness|public.quizzes.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_attempts"
+      ],
+      "writes": [
+        "s|fk|public.quiz_attempts.quiz_attempts_student_id_user_id_fk",
+        "n|fk|public.quiz_attempts.quiz_attempts_student_id_user_id_fk",
+        "e|fk|public.quiz_attempts.quiz_attempts_student_id_user_id_fk",
+        "n|con|public.quiz_attempts.quiz_attempts_student_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_attempts",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.quiz_attempts.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_attempts"
+      ],
+      "writes": [
+        "s|fk|public.quiz_attempts.quiz_attempts_group_id_groups_id_fk",
+        "n|fk|public.quiz_attempts.quiz_attempts_group_id_groups_id_fk",
+        "e|fk|public.quiz_attempts.quiz_attempts_group_id_groups_id_fk",
+        "n|con|public.quiz_attempts.quiz_attempts_group_id_groups_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_attempts",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.quiz_attempts.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_questions"
+      ],
+      "writes": [
+        "s|fk|public.quiz_questions.quiz_questions_quiz_id_quizzes_id_fk",
+        "n|fk|public.quiz_questions.quiz_questions_quiz_id_quizzes_id_fk",
+        "e|fk|public.quiz_questions.quiz_questions_quiz_id_quizzes_id_fk",
+        "n|con|public.quiz_questions.quiz_questions_quiz_id_quizzes_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_questions",
+        "n|sch|public",
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quiz_questions.quiz_id",
+        "n|col|public.quizzes.id",
+        "e|uniqueness|public.quizzes.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|fk|public.quizzes.quizzes_lesson_id_lessons_id_fk",
+        "n|fk|public.quizzes.quizzes_lesson_id_lessons_id_fk",
+        "e|fk|public.quizzes.quizzes_lesson_id_lessons_id_fk",
+        "n|con|public.quizzes.quizzes_lesson_id_lessons_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.quizzes.lesson_id",
+        "n|col|public.lessons.id",
+        "e|uniqueness|public.lessons.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "session"
+      ],
+      "writes": [
+        "s|fk|public.session.session_user_id_user_id_fk",
+        "n|fk|public.session.session_user_id_user_id_fk",
+        "e|fk|public.session.session_user_id_user_id_fk",
+        "n|con|public.session.session_user_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.session",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.session.user_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|fk|public.user.user_grade_id_grades_id_fk",
+        "n|fk|public.user.user_grade_id_grades_id_fk",
+        "e|fk|public.user.user_grade_id_grades_id_fk",
+        "n|con|public.user.user_grade_id_grades_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|tbl|public.grades",
+        "n|sch|public",
+        "n|col|public.user.grade_id",
+        "n|col|public.grades.id",
+        "e|uniqueness|public.grades.id"
+      ]
+    }
+  ],
+  "ddl": [
+    {
+      "schema": "public",
+      "name": "account",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "categories",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "courses",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "grades",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "group_lesson_access",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "group_students",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "groups",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "lesson_attachments",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "lesson_completions",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "lessons",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "manual_grade_columns",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "manual_grade_values",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "modules",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "quiz_attempts",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "quiz_questions",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "quizzes",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "session",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "user",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "verification",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "name": "attachment_type",
+      "values": [
+        "PDF",
+        "DOC",
+        "AUDIO",
+        "IMAGE",
+        "ARCHIVE",
+        "LINK",
+        "VIDEO"
+      ],
+      "entityType": "enums"
+    },
+    {
+      "schema": "public",
+      "name": "course_type",
+      "values": [
+        "ACADEMIC",
+        "GENERAL"
+      ],
+      "entityType": "enums"
+    },
+    {
+      "schema": "public",
+      "name": "question_type",
+      "values": [
+        "MCQ",
+        "TRUE_FALSE",
+        "SHORT_ANSWER"
+      ],
+      "entityType": "enums"
+    },
+    {
+      "schema": "public",
+      "name": "role",
+      "values": [
+        "ADMIN",
+        "TEACHER",
+        "STUDENT"
+      ],
+      "entityType": "enums"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "account_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "provider_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "user_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "access_token",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "refresh_token",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "id_token",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "access_token_expires_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "refresh_token_expires_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "scope",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "password",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "updated_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "title",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "description",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "course_type",
+      "type": "course_type",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'ACADEMIC'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "teacher_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "grade_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "semester",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "category_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "is_published",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grades",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grades",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "grades",
+      "name": "display_order",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "group_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "lesson_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "is_unlocked",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "group_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "student_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "joined_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "course_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "join_code",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "unlock_all_by_default",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "is_active",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "lesson_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "group_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "title",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "r2_object_key",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "public_or_signed_url",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "file_type",
+      "type": "attachment_type",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'PDF'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "file_size_bytes",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "mime_type",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "lesson_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "student_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "completed_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "module_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "title",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "content",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "display_order",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "group_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "title",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "max_score",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "10",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "display_order",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "column_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "student_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "score",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "teacher_note",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "updated_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "modules",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "modules",
+      "name": "course_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "modules",
+      "name": "title",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "modules",
+      "name": "display_order",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "quiz_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "student_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "group_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "score",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "max_score",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "answers_json",
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "submitted_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "quiz_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "question_type",
+      "type": "question_type",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'MCQ'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "prompt",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "options",
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "correct_answer",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "explanation",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "points",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "display_order",
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quizzes",
+      "name": "id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quizzes",
+      "name": "lesson_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "quizzes",
+      "name": "title",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "expires_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "token",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "updated_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "ip_address",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "user_agent",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "user_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "name",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "email",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "email_verified",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "phone_number",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "phone_number_verified",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "image",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "role",
+      "type": "role",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'STUDENT'",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "is_active",
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "specialization",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "grade_id",
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "updated_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "identifier",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "value",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "expires_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "created_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "updated_at",
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "unique_group_lesson_idx",
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "group_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "lesson_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "entityType": "indexes"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "unique_group_student_idx",
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "group_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "student_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "entityType": "indexes"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "unique_lesson_completion_idx",
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "lesson_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "student_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "entityType": "indexes"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "unique_manual_grade_cell_idx",
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "column_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "student_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "entityType": "indexes"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "account_user_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "courses_teacher_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "teacher_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "courses_grade_id_grades_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "grade_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "grades",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "courses_category_id_categories_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "category_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "categories",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "group_lesson_access_group_id_groups_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "group_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "group_lesson_access_lesson_id_lessons_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "group_students_group_id_groups_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "group_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "group_students_student_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "student_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "groups_course_id_courses_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "course_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "courses",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "lesson_attachments_lesson_id_lessons_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "lesson_attachments_group_id_groups_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "group_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "lesson_completions_lesson_id_lessons_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "lesson_completions_student_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "student_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "lessons_module_id_modules_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "module_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "modules",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "manual_grade_columns_group_id_groups_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "group_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "manual_grade_values_column_id_manual_grade_columns_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "column_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "manual_grade_columns",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "manual_grade_values_student_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "student_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "modules",
+      "name": "modules_course_id_courses_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "course_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "courses",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "quiz_attempts_quiz_id_quizzes_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "quiz_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "quizzes",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "quiz_attempts_student_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "student_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "quiz_attempts_group_id_groups_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "group_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "quiz_questions_quiz_id_quizzes_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "quiz_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "quizzes",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "quizzes",
+      "name": "quizzes_lesson_id_lessons_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "lessons",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "session_user_id_user_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "user_grade_id_grades_id_fk",
+      "nameExplicit": false,
+      "columns": [
+        "grade_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "grades",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "entityType": "fks"
+    },
+    {
+      "schema": "public",
+      "table": "account",
+      "name": "account_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "categories",
+      "name": "categories_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "courses",
+      "name": "courses_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "grades",
+      "name": "grades_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "group_lesson_access",
+      "name": "group_lesson_access_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "group_students",
+      "name": "group_students_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "groups_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_attachments",
+      "name": "lesson_attachments_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "lesson_completions",
+      "name": "lesson_completions_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "lessons",
+      "name": "lessons_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_columns",
+      "name": "manual_grade_columns_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "manual_grade_values",
+      "name": "manual_grade_values_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "modules",
+      "name": "modules_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_attempts",
+      "name": "quiz_attempts_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "quiz_questions",
+      "name": "quiz_questions_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "quizzes",
+      "name": "quizzes_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "session_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "user_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "verification",
+      "name": "verification_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "public",
+      "table": "groups",
+      "name": "groups_join_code_unique",
+      "nameExplicit": false,
+      "columns": [
+        "join_code"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "quizzes",
+      "name": "quizzes_lesson_id_unique",
+      "nameExplicit": false,
+      "columns": [
+        "lesson_id"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "session",
+      "name": "session_token_unique",
+      "nameExplicit": false,
+      "columns": [
+        "token"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "user_email_unique",
+      "nameExplicit": false,
+      "columns": [
+        "email"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    },
+    {
+      "schema": "public",
+      "table": "user",
+      "name": "user_phone_number_unique",
+      "nameExplicit": false,
+      "columns": [
+        "phone_number"
+      ],
+      "nullsNotDistinct": false,
+      "entityType": "uniques"
+    }
+  ]
+}

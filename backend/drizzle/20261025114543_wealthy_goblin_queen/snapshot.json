@@ -1,0 +1,149 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "082cdeb9-0201-4ac2-918c-e4d8eb44d75e",
+  "prevIds": [
+    "bc1c6206-60b6-44c7-975d-e83aabd98d5c"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "admin_enabled"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.admin_enabled",
+        "n|col|public.notification_settings.admin_enabled",
+        "e|col|public.notification_settings.admin_enabled"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "parent_enabled"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.parent_enabled",
+        "n|col|public.notification_settings.parent_enabled",
+        "e|col|public.notification_settings.parent_enabled"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "teacher_enabled"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.teacher_enabled",
+        "n|col|public.notification_settings.teacher_enabled",
+        "e|col|public.notification_settings.teacher_enabled"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notifications",
+        "type"
+      ],
+      "writes": [
+        "s|col|public.notifications.type",
+        "n|col|public.notifications.type",
+        "e|col|public.notifications.type"
+      ],
+      "reads": [
+        "n|tbl|public.notifications",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "admin_enabled",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "true",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "parent_enabled",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "true",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "teacher_enabled",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "true",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notifications",
+        "name": "type",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'SYSTEM'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

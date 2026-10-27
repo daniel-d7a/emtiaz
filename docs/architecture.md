@@ -8,11 +8,11 @@ and is historical.
 
 | Surface | Path | Stack | Served by |
 |---|---|---|---|
-| Web app | `/` | React 18, Vite, Tailwind v4, TanStack Router/Query | Caddy (`web/`) |
+| Web app | `/` | React 18, Vite 8, Tailwind v4, TanStack Router/Query | Caddy (`web/`) |
 | Marketing | `/landing/`, `/landing/teachers` | Static HTML/CSS/JS, bilingual | Caddy (`landing/`) |
 | Teacher page | `/t/<slug>` | Web app + public API | Caddy + API |
 | Mobile | Expo / React Native | React Navigation native stacks | Expo Go / app stores |
-| API | `/api/*` | NestJS 11, Drizzle, Better Auth | Caddy → API |
+| API | `/api/*` | NestJS 11, Drizzle 1, Better Auth | Caddy → API |
 
 ## Runtime topology
 
@@ -43,7 +43,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades, parent-code rotation |
 | `teacher` | Course/module/lesson CRUD, quizzes, groups, pacing, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
-| `parent` | Link/unlink children by student code, read-only progress and grades |
+| `parent` | Link/unlink children by student phone, read-only progress and grades |
 | `public` | Published teacher landing data/avatar, sitemap, robots |
 | `storage` | Presigned uploads, attachment records/downloads, avatars |
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
@@ -57,8 +57,7 @@ login-lockout middleware runs in front of its sign-in routes.
 There is one authentication identity table, `user`, with a `role` enum:
 `ADMIN`, `TEACHER`, `STUDENT`, `PARENT`. Sessions and accounts reference that
 row. Role-specific fields live on the same row (`landing_*` for teachers,
-`grade_id` / `parent_invite_code` for students, `subject_category_id` for
-teachers). The rationale and the future profile-table option are in
+`grade_id` for students, `subject_category_id` for teachers). The rationale and the future profile-table option are in
 [ADR-0015](./adr/0015-single-user-table.md).
 
 Core relationships:

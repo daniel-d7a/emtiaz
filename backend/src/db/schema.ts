@@ -27,11 +27,7 @@ export const attachmentTypeEnum = pgEnum('attachment_type', [
   'LINK',
   'VIDEO', // Reserved for future phase
 ]);
-export const questionTypeEnum = pgEnum('question_type', [
-  'MCQ',
-  'TRUE_FALSE',
-  'SHORT_ANSWER',
-]);
+export const questionTypeEnum = pgEnum('question_type', ['MCQ', 'TRUE_FALSE']);
 
 // ==========================================
 // 2. TAXONOMY TABLES (Grades & Categories)
@@ -63,7 +59,6 @@ export const users = pgTable('user', {
   landingBio: text('landing_bio'),
   landingPublished: boolean('landing_published').notNull().default(false),
   isActive: boolean('is_active').notNull().default(true),
-  specialization: text('specialization'), // legacy freetext; superseded by subjectCategoryId FK for teachers
   subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),
   gradeId: uuid('grade_id').references(() => grades.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -1,0 +1,90 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "f5bc65b1-08bc-412e-b260-6335f182c07a",
+  "prevIds": [
+    "6ea04a81-61be-4fd9-a322-ab7eabf0ac3b"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "subject_category_id"
+      ],
+      "writes": [
+        "s|col|public.user.subject_category_id",
+        "n|col|public.user.subject_category_id",
+        "e|col|public.user.subject_category_id"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|fk|public.user.user_subject_category_id_categories_id_fk",
+        "n|fk|public.user.user_subject_category_id_categories_id_fk",
+        "e|fk|public.user.user_subject_category_id_categories_id_fk",
+        "n|con|public.user.user_subject_category_id_categories_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|tbl|public.categories",
+        "n|sch|public",
+        "n|col|public.user.subject_category_id",
+        "n|col|public.categories.id",
+        "e|uniqueness|public.categories.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "subject_category_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "user_subject_category_id_categories_id_fk",
+        "nameExplicit": false,
+        "columns": [
+          "subject_category_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "categories",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    }
+  ]
+}

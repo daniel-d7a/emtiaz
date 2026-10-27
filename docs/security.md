@@ -116,5 +116,5 @@ Teacher CSV exports go through `frontend/src/lib/csv.ts`:
   served through presigned URLs.
 - Redis is optional. Without it, lockout and throttle counters are per replica;
   losing Redis resets counters and the monthly-summary lock.
-- Parent invite codes are bearer secrets. Rotating a code revokes all existing
-  parent links for that student.
+- Parent linking trusts knowledge of the student's registered phone number.
+  Add an OTP challenge if abuse appears.

@@ -1,0 +1,94 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ef4eacfe-70c8-4aea-b2ed-ce1048acd524",
+  "prevIds": [
+    "4e2f28b6-9870-47d0-81d4-660f99cb9ed2"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_attempts"
+      ],
+      "writes": [
+        "s|ck|public.quiz_attempts.attempt_score_sane_chk"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_attempts",
+        "n|sch|public",
+        "n|col|public.quiz_attempts.score",
+        "n|col|public.quiz_attempts.max_score",
+        "e|col|public.quiz_attempts.score",
+        "e|col|public.quiz_attempts.max_score"
+      ],
+      "sqlHash": "b11334ab769e5106"
+    },
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "quiz_questions"
+      ],
+      "writes": [
+        "s|ck|public.quiz_questions.quiz_points_positive_chk"
+      ],
+      "reads": [
+        "n|tbl|public.quiz_questions",
+        "n|sch|public",
+        "n|col|public.quiz_questions.points",
+        "e|col|public.quiz_questions.points"
+      ],
+      "sqlHash": "c5d0198c3364da6b"
+    },
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|ck|public.quizzes.quiz_target_chk"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quizzes.lesson_id",
+        "n|col|public.quizzes.module_id",
+        "n|col|public.quizzes.course_id",
+        "e|col|public.quizzes.lesson_id",
+        "e|col|public.quizzes.module_id",
+        "e|col|public.quizzes.course_id"
+      ],
+      "sqlHash": "731bb381d66d64a8"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"quiz_attempts\",\"attempt_score_sane_chk\"]",
+      "set": {
+        "value": "\"score\" >= 0 AND \"max_score\" >= 1 AND \"score\" <= \"max_score\""
+      }
+    },
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"quiz_questions\",\"quiz_points_positive_chk\"]",
+      "set": {
+        "value": "\"points\" > 0"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"quizzes\",\"quiz_target_chk\"]",
+      "set": {
+        "value": "(\"lesson_id\" IS NOT NULL)::int + (\"module_id\" IS NOT NULL)::int + (\"course_id\" IS NOT NULL)::int = 1"
+      }
+    }
+  ]
+}

@@ -5,8 +5,8 @@ freelance skill instructors (GENERAL). Arabic-first (RTL) with an English switch
 
 ## Stack
 
-- **API** `backend/` — NestJS + Drizzle ORM + PostgreSQL + Better Auth (cookie sessions), Redis (optional shared throttling/lockout), S3-compatible object storage (RustFS in dev, Cloudflare R2 in prod)
-- **App** `frontend/` — React 18 + Vite + Tailwind v4 + TanStack Router + TanStack Query
+- **API** `backend/` — NestJS + Drizzle 1 + PostgreSQL + Better Auth (cookie sessions), Redis (optional shared throttling/lockout), S3-compatible object storage (RustFS in dev, Cloudflare R2 in prod)
+- **App** `frontend/` — React 18 + Vite 8 + Tailwind v4 + TanStack Router + TanStack Query
 - **Landing** `landing/` — static bilingual marketing pages (`/landing/`, `/landing/teachers`), no build step
 - **Mobile** `mobile/` — Expo / React Native with role-specific React Navigation stacks (student, teacher, parent)
 - **Docs** `docs/` — current architecture, security model, runbooks, and ADRs ([index](docs/README.md))

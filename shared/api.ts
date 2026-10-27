@@ -23,7 +23,6 @@ export type User = {
   landingBio: string | null;
   landingPublished: boolean;
   isActive: boolean;
-  specialization: string | null;
   subjectCategoryId: string | null;
   gradeId: string | null;
   createdAt: string;

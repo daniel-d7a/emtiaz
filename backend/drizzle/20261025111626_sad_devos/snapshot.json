@@ -1,0 +1,320 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "bc1c6206-60b6-44c7-975d-e83aabd98d5c",
+  "prevIds": [
+    "b0a09d1e-7de0-432b-8897-d732fe6bc5b3"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "role"
+      ],
+      "writes": [
+        "s|enum|public.role"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "parent_students"
+      ],
+      "writes": [
+        "s|tbl|public.parent_students",
+        "n|tbl|public.parent_students",
+        "e|tbl|public.parent_students",
+        "n|rel|public.parent_students",
+        "n|type|public.parent_students"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "parent_invite_code"
+      ],
+      "writes": [
+        "s|col|public.user.parent_invite_code",
+        "n|col|public.user.parent_invite_code",
+        "e|col|public.user.parent_invite_code"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|uq|public.user.user_parent_invite_code_unique",
+        "n|uq|public.user.user_parent_invite_code_unique",
+        "e|uq|public.user.user_parent_invite_code_unique",
+        "n|con|public.user.user_parent_invite_code_unique",
+        "n|rel|public.user_parent_invite_code_unique"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.user.parent_invite_code"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "parent_students",
+        "parent_students_pair"
+      ],
+      "writes": [
+        "s|idx|public.parent_students_pair",
+        "n|idx|public.parent_students_pair",
+        "e|idx|public.parent_students_pair",
+        "n|rel|public.parent_students_pair"
+      ],
+      "reads": [
+        "n|tbl|public.parent_students",
+        "n|sch|public",
+        "n|col|public.parent_students.parent_id",
+        "n|col|public.parent_students.student_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "parent_students"
+      ],
+      "writes": [
+        "s|fk|public.parent_students.parent_students_parent_id_user_id_fk",
+        "n|fk|public.parent_students.parent_students_parent_id_user_id_fk",
+        "e|fk|public.parent_students.parent_students_parent_id_user_id_fk",
+        "n|con|public.parent_students.parent_students_parent_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.parent_students",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.parent_students.parent_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "parent_students"
+      ],
+      "writes": [
+        "s|fk|public.parent_students.parent_students_student_id_user_id_fk",
+        "n|fk|public.parent_students.parent_students_student_id_user_id_fk",
+        "e|fk|public.parent_students.parent_students_student_id_user_id_fk",
+        "n|con|public.parent_students.parent_students_student_id_user_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.parent_students",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.parent_students.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "parent_students",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "parent_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "student_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "parent_invite_code",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "('P' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 7)))",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "parent_students_pair",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "parent_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "parent_students_parent_id_user_id_fk",
+        "nameExplicit": false,
+        "columns": [
+          "parent_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "parent_students_student_id_user_id_fk",
+        "nameExplicit": false,
+        "columns": [
+          "student_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "user_parent_invite_code_unique",
+        "nameExplicit": false,
+        "columns": [
+          "parent_invite_code"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"public\",\"role\"]",
+      "set": {
+        "values": [
+          "ADMIN",
+          "TEACHER",
+          "STUDENT",
+          "PARENT"
+        ]
+      }
+    }
+  ]
+}

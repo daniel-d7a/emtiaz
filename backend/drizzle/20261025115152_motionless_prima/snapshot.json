@@ -1,0 +1,149 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "750405b2-3b25-4a1d-bf31-49b2ee5afde2",
+  "prevIds": [
+    "ece2bad7-ad4b-472b-870e-b7a4abaedcec"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "landing_slug"
+      ],
+      "writes": [
+        "s|col|public.user.landing_slug",
+        "n|col|public.user.landing_slug",
+        "e|col|public.user.landing_slug"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "landing_bio"
+      ],
+      "writes": [
+        "s|col|public.user.landing_bio",
+        "n|col|public.user.landing_bio",
+        "e|col|public.user.landing_bio"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "landing_published"
+      ],
+      "writes": [
+        "s|col|public.user.landing_published",
+        "n|col|public.user.landing_published",
+        "e|col|public.user.landing_published"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|uq|public.user.user_landing_slug_unique",
+        "n|uq|public.user.user_landing_slug_unique",
+        "e|uq|public.user.user_landing_slug_unique",
+        "n|con|public.user.user_landing_slug_unique",
+        "n|rel|public.user_landing_slug_unique"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.user.landing_slug"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "landing_slug",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "landing_bio",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "landing_published",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "user_landing_slug_unique",
+        "nameExplicit": false,
+        "columns": [
+          "landing_slug"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    }
+  ]
+}

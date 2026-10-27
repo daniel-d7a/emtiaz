@@ -1,0 +1,68 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "4e2f28b6-9870-47d0-81d4-660f99cb9ed2",
+  "prevIds": [
+    "ba0ca1fa-b11a-41e7-a368-590f51e00caf"
+  ],
+  "footprints": [
+    {
+      "statementType": "recreate_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "question_type"
+      ],
+      "writes": [
+        "s|enum|public.question_type",
+        "n|enum|public.question_type",
+        "e|enum|public.question_type",
+        "n|type|public.question_type",
+        "s|colprop|public.quiz_questions.question_type.type",
+        "s|colprop|public.quiz_questions.question_type.default"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|tbl|public.quiz_questions",
+        "n|sch|public",
+        "n|col|public.quiz_questions.question_type"
+      ],
+      "sqlHash": "27bc704bd4ce59e2"
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "specialization"
+      ],
+      "writes": [
+        "s|col|public.user.specialization",
+        "n|col|public.user.specialization",
+        "e|col|public.user.specialization"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"public\",\"user\",\"specialization\"]"
+    },
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"public\",\"question_type\"]",
+      "set": {
+        "values": [
+          "MCQ",
+          "TRUE_FALSE"
+        ]
+      }
+    }
+  ]
+}

@@ -44,7 +44,6 @@ export const auth = betterAuth({
       role: { type: 'string', defaultValue: 'STUDENT', input: true },
       phoneNumber: { type: 'string', required: false, input: true },
       gradeId: { type: 'string', required: false, input: true },
-      specialization: { type: 'string', required: false, input: true },
       subjectCategoryId: { type: 'string', required: false, input: true },
       isActive: { type: 'boolean', defaultValue: true, input: false },
     },

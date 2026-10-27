@@ -1,0 +1,291 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "b4b17abb-8d03-4a17-ae35-b96d328e04d9",
+  "prevIds": [
+    "ea618c42-6285-4797-826a-122e681f216f"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "quizzes",
+        "module_id"
+      ],
+      "writes": [
+        "s|col|public.quizzes.module_id",
+        "n|col|public.quizzes.module_id",
+        "e|col|public.quizzes.module_id"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "quizzes",
+        "course_id"
+      ],
+      "writes": [
+        "s|col|public.quizzes.course_id",
+        "n|col|public.quizzes.course_id",
+        "e|col|public.quizzes.course_id"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "quizzes",
+        "lesson_id"
+      ],
+      "writes": [
+        "s|colprop|public.quizzes.lesson_id.notNull"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quizzes.lesson_id"
+      ],
+      "sqlHash": "c1fa06c9ffad31a7"
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|uq|public.quizzes.quizzes_module_id_unique",
+        "n|uq|public.quizzes.quizzes_module_id_unique",
+        "e|uq|public.quizzes.quizzes_module_id_unique",
+        "n|con|public.quizzes.quizzes_module_id_unique",
+        "n|rel|public.quizzes_module_id_unique"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quizzes.module_id"
+      ]
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|uq|public.quizzes.quizzes_course_id_unique",
+        "n|uq|public.quizzes.quizzes_course_id_unique",
+        "e|uq|public.quizzes.quizzes_course_id_unique",
+        "n|con|public.quizzes.quizzes_course_id_unique",
+        "n|rel|public.quizzes_course_id_unique"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quizzes.course_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|fk|public.quizzes.quizzes_module_id_modules_id_fk",
+        "n|fk|public.quizzes.quizzes_module_id_modules_id_fk",
+        "e|fk|public.quizzes.quizzes_module_id_modules_id_fk",
+        "n|con|public.quizzes.quizzes_module_id_modules_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|tbl|public.modules",
+        "n|sch|public",
+        "n|col|public.quizzes.module_id",
+        "n|col|public.modules.id",
+        "e|uniqueness|public.modules.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|fk|public.quizzes.quizzes_course_id_courses_id_fk",
+        "n|fk|public.quizzes.quizzes_course_id_courses_id_fk",
+        "e|fk|public.quizzes.quizzes_course_id_courses_id_fk",
+        "n|con|public.quizzes.quizzes_course_id_courses_id_fk"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|tbl|public.courses",
+        "n|sch|public",
+        "n|col|public.quizzes.course_id",
+        "n|col|public.courses.id",
+        "e|uniqueness|public.courses.id"
+      ]
+    },
+    {
+      "statementType": "add_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|ck|public.quizzes.quiz_target_chk",
+        "n|ck|public.quizzes.quiz_target_chk",
+        "e|ck|public.quizzes.quiz_target_chk",
+        "n|con|public.quizzes.quiz_target_chk"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.quizzes.lesson_id",
+        "n|col|public.quizzes.module_id",
+        "n|col|public.quizzes.course_id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "module_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "course_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "quizzes_module_id_modules_id_fk",
+        "nameExplicit": false,
+        "columns": [
+          "module_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "modules",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "quizzes_course_id_courses_id_fk",
+        "nameExplicit": false,
+        "columns": [
+          "course_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "courses",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "quizzes_module_id_unique",
+        "nameExplicit": false,
+        "columns": [
+          "module_id"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "quizzes_course_id_unique",
+        "nameExplicit": false,
+        "columns": [
+          "course_id"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "quizzes",
+        "name": "quiz_target_chk",
+        "value": "(\"quizzes\".\"lesson_id\" IS NOT NULL)::int + (\"quizzes\".\"module_id\" IS NOT NULL)::int + (\"quizzes\".\"course_id\" IS NOT NULL)::int = 1",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"quizzes\",\"lesson_id\"]",
+      "set": {
+        "notNull": false
+      }
+    }
+  ]
+}

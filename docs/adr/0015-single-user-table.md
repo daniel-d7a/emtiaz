@@ -37,8 +37,6 @@ If role-specific data grows, add optional 1:1 profile tables
   `landing_slug` is meaningful only for teachers and `grade_id` only for
   students. Application code filters by role; add `CHECK` constraints or 1:1
   profile tables if this becomes a source of bugs.
-- `parent_invite_code` is generated for every row by a Postgres default, but
-  only codes belonging to active `STUDENT` rows resolve.
 - A role change can leave role-specific fields populated. Clear them in the
   role-change flow if that becomes supported.
 - Queries that need only one role should still filter by `role` (and usually
