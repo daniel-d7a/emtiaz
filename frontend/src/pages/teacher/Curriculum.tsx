@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createRoute, useLocation, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, FileUp, Plus, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, ErrorBox, Input, Loading, Page } from '../../components/ui';
+import { Button, Card, ConfirmDialog, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
 
 type Question = {
   questionType: 'MCQ' | 'TRUE_FALSE';
@@ -46,6 +47,7 @@ export default function TeacherCurriculum() {
   const location = useLocation() as { state?: { lessonId?: string } };
 
   const { data, isLoading, error } = useQuery(teacherCurriculumQuery(courseId));
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
 
   const [moduleName, setModuleName] = useState('');
   const addModule = useMutation({
@@ -53,28 +55,45 @@ export default function TeacherCurriculum() {
     onSuccess: () => {
       setModuleName('');
       toast.success(t('saved'));
-      void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+      invalidate();
     },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const reorderModules = useMutation({
+    mutationFn: (moduleIds: string[]) =>
+      api(`/api/teacher/courses/${courseId}/modules/reorder`, { method: 'PUT', body: { moduleIds } }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
 
+  const modules = data?.modules ?? [];
+  const lessonCount = modules.reduce((total, mod) => total + mod.lessons.length, 0);
+  const quizCount = [data?.quiz, ...modules.flatMap((mod) => [mod.quiz, ...mod.lessons.map((lesson) => lesson.quiz)])]
+    .filter(Boolean).length;
+
   return (
-    <Page title={t('curriculum')}>
+    <Page title={t('curriculum')} wide>
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
         <div className="flex flex-col gap-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard label={t('modules')} value={modules.length} />
+            <StatCard label={t('lessons')} value={lessonCount} />
+            <StatCard label={t('quizzes')} value={quizCount} />
+          </div>
           {data && <QuizBuilder endpoint={`/api/teacher/courses/${courseId}/quiz`} existing={data.quiz} />}
-          {data?.modules.map((mod, mi) => (
+          {modules.map((mod, mi) => (
             <ModuleCard
               key={mod.id}
               mod={mod}
               courseId={courseId}
               focusLessonId={location.state?.lessonId}
               canUp={mi > 0}
-              canDown={mi < data.modules.length - 1}
-              onMoveModule={(dir) =>
-                api(`/api/teacher/courses/${courseId}/modules/reorder`, {
-                  body: { moduleIds: swap(data.modules.map((m) => m.id), mi, dir) },
-                }).then(() => qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] }))
-              }
+              canDown={mi < modules.length - 1}
+              moving={reorderModules.isPending}
+              onMoveModule={(dir) => reorderModules.mutate(swap(modules.map((m) => m.id), mi, dir))}
             />
           ))}
 
@@ -83,7 +102,7 @@ export default function TeacherCurriculum() {
               <div className="grow">
                 <Input label={t('newModule')} value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder={t('modules')} />
               </div>
-              <Button onClick={() => addModule.mutate()} disabled={!moduleName}>
+              <Button onClick={() => addModule.mutate()} disabled={!moduleName || addModule.isPending}>
                 <Plus className="inline" size={18} /> {t('add')}
               </Button>
             </div>
@@ -95,21 +114,54 @@ export default function TeacherCurriculum() {
   );
 }
 
-function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule }: {
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.inert = !open;
+  }, [open]);
+  return (
+    <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+      <div ref={ref} className="overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMoveModule }: {
   mod: Curriculum['modules'][0];
   courseId: string;
   focusLessonId?: string;
   canUp: boolean;
   canDown: boolean;
+  moving: boolean;
   onMoveModule?: (dir: -1 | 1) => void;
 }) {
   const { t } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [moduleTitle, setModuleTitle] = useState(mod.title);
   const [lessonTitle, setLessonTitle] = useState('');
   const [confirming, setConfirming] = useState(false);
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
 
+  const rename = useMutation({
+    mutationFn: () => api(`/api/teacher/modules/${mod.id}`, { method: 'PATCH', body: { title: moduleTitle } }),
+    onSuccess: () => {
+      setEditing(false);
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const reorderLessons = useMutation({
+    mutationFn: (lessonIds: string[]) =>
+      api(`/api/teacher/modules/${mod.id}/lessons/reorder`, { method: 'PUT', body: { lessonIds } }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
   const addLesson = useMutation({
     mutationFn: () => api(`/api/teacher/modules/${mod.id}/lessons`, { body: { title: lessonTitle } }),
     onSuccess: () => {
@@ -117,6 +169,7 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
       toast.success(t('saved'));
       invalidate();
     },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
   const delModule = useMutation({
     mutationFn: () => api(`/api/teacher/modules/${mod.id}`, { method: 'DELETE' }),
@@ -124,28 +177,49 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
       toast.success(t('deleted'));
       invalidate();
     },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
+  const unitQuizCount = [mod.quiz, ...mod.lessons.map((lesson) => lesson.quiz)].filter(Boolean).length;
 
   return (
     <Card>
-      <div className="flex items-center justify-between">
-        <div className="flex grow items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 grow items-center gap-2">
           {(canUp || canDown) && (
-            <span className="flex flex-col gap-0">
-              <button aria-label={t('moveUp')} title={t('moveUp')} disabled={!canUp} onClick={() => onMoveModule?.(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
-              <button aria-label={t('moveDown')} title={t('moveDown')} disabled={!canDown} onClick={() => onMoveModule?.(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+            <span className="flex shrink-0 flex-col gap-0">
+              <button aria-label={t('moveUp')} title={t('moveUp')} disabled={!canUp || moving} onClick={() => onMoveModule?.(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button aria-label={t('moveDown')} title={t('moveDown')} disabled={!canDown || moving} onClick={() => onMoveModule?.(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
             </span>
           )}
-          <button aria-expanded={open} aria-label={open ? t('collapse') : t('expand')} title={open ? t('collapse') : t('expand')} className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
-            <ChevronDown className={`transition ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
-            {mod.title}
-          </button>
+          {editing ? (
+            <div className="flex min-w-0 grow flex-wrap items-center gap-2">
+              <div className="min-w-40 grow">
+                <Input aria-label={t('name')} value={moduleTitle} autoFocus onChange={(e) => setModuleTitle(e.target.value)} onKeyDown={(e) => {
+                  if (e.key === 'Enter' && moduleTitle.trim()) rename.mutate();
+                  if (e.key === 'Escape') setEditing(false);
+                }} />
+              </div>
+              <Button onClick={() => rename.mutate()} disabled={!moduleTitle.trim() || rename.isPending}>{t('save')}</Button>
+              <Button variant="ghost" onClick={() => { setEditing(false); setModuleTitle(mod.title); }}>{t('cancel')}</Button>
+            </div>
+          ) : (
+            <>
+              <button aria-expanded={open} aria-label={`${open ? t('collapse') : t('expand')}: ${mod.title}`} title={open ? t('collapse') : t('expand')} className="flex min-w-0 grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
+                <ChevronDown className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
+                <span className="min-w-0">{mod.title}</span>
+                <span className="shrink-0 text-xs font-semibold text-ink-soft">
+                  {mod.lessons.length} {t('lessons')} · {unitQuizCount} {t('quizzes')}
+                </span>
+              </button>
+              <button aria-label={t('edit')} title={t('edit')} onClick={() => setEditing(true)} className="shrink-0 text-ink-soft hover:text-primary"><Pencil size={15} /></button>
+            </>
+          )}
         </div>
-        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="shrink-0 text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={16} />
         </button>
       </div>
-      {open && (
+      <Collapse open={open}>
         <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
           {mod.lessons.map((l, li) => (
             <LessonEditor
@@ -155,23 +229,20 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
               autoFocus={l.id === focusLessonId}
               canUp={li > 0}
               canDown={li < mod.lessons.length - 1}
-              onMove={(dir) =>
-                api(`/api/teacher/modules/${mod.id}/lessons/reorder`, {
-                  body: { lessonIds: swap(mod.lessons.map((x) => x.id), li, dir) },
-                }).then(invalidate)
-              }
+              moving={reorderLessons.isPending}
+              onMove={(dir) => reorderLessons.mutate(swap(mod.lessons.map((x) => x.id), li, dir))}
             />
           ))}
           <div className="flex gap-2">
             <Input value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder={t('newLesson')} label={t('newLesson')} />
-            <Button onClick={() => addLesson.mutate()} disabled={!lessonTitle} className="self-end">
+            <Button onClick={() => addLesson.mutate()} disabled={!lessonTitle || addLesson.isPending} className="self-end">
               <Plus className="inline" size={18} /> {t('add')}
             </Button>
           </div>
           {addLesson.error && <ErrorBox error={addLesson.error} />}
           <QuizBuilder endpoint={`/api/teacher/modules/${mod.id}/quiz`} existing={mod.quiz} />
         </div>
-      )}
+      </Collapse>
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
@@ -185,12 +256,13 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
   );
 }
 
-function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
+function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onMove }: {
   lesson: Curriculum['modules'][0]['lessons'][0];
   courseId: string;
   autoFocus?: boolean;
   canUp: boolean;
   canDown: boolean;
+  moving: boolean;
   onMove: (dir: -1 | 1) => void;
 }) {
   const { t } = useLang();
@@ -207,6 +279,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
       toast.success(t('saved'));
       invalidate();
     },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
   const del = useMutation({
     mutationFn: () => api(`/api/teacher/lessons/${lesson.id}`, { method: 'DELETE' }),
@@ -214,6 +287,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
       toast.success(t('deleted'));
       invalidate();
     },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
 
   return (
@@ -221,18 +295,21 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
       <div className="flex items-center justify-between gap-2">
         <div className="flex grow items-center gap-1">
           {(canUp || canDown) && (
-            <span className="flex flex-col gap-0">
-              <button aria-label={t('moveUp')} title={t('moveUp')} disabled={!canUp} onClick={() => onMove(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
-              <button aria-label={t('moveDown')} title={t('moveDown')} disabled={!canDown} onClick={() => onMove(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+            <span className="flex shrink-0 flex-col gap-0">
+              <button aria-label={t('moveUp')} title={t('moveUp')} disabled={!canUp || moving} onClick={() => onMove(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button aria-label={t('moveDown')} title={t('moveDown')} disabled={!canDown || moving} onClick={() => onMove(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
             </span>
           )}
-          <button aria-expanded={open} className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
+          <button aria-expanded={open} className="flex grow items-center gap-2 text-start font-semibold" onClick={() => setOpen(!open)}>
+            <ChevronDown className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={15} />
+            {title}
+          </button>
         </div>
         <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={14} />
         </button>
       </div>
-      {open && (
+      <Collapse open={open}>
         <div className="mt-3 flex flex-col gap-3">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} label={t('name')} />
           <label className="block">
@@ -245,7 +322,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" onClick={() => save.mutate()}>
+            <Button variant="ghost" onClick={() => save.mutate()} disabled={save.isPending}>
               <Save className="inline" size={16} /> {t('save')}
             </Button>
           </div>
@@ -253,7 +330,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
           <AttachmentUploader lessonId={lesson.id} courseId={courseId} />
           <QuizBuilder endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
         </div>
-      )}
+      </Collapse>
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
@@ -338,7 +415,10 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
       setErr(null);
       toast.success(t('saved'));
     },
-    onError: (e) => setErr(e),
+    onError: (e) => {
+      setErr(e);
+      toast.error((e as Error).message || t('errorOccurred'));
+    },
   });
 
   const blank = (): Question => ({ questionType: 'MCQ', prompt: '', options: ['', '', '', ''], correctAnswer: '', points: 1 });

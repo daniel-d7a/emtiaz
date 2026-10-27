@@ -319,6 +319,25 @@ export class TeacherService {
     return this.getCourseCurriculum(courseId);
   }
 
+  async updateModule(
+    user: { id: string; role: string },
+    moduleId: string,
+    dto: { title: string },
+  ) {
+    const [mod] = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.id, moduleId));
+    if (!mod) throw new NotFoundException('Module not found');
+    await this.assertCourseAccess(user, mod.courseId);
+    const [updated] = await db
+      .update(modules)
+      .set(dto)
+      .where(eq(modules.id, moduleId))
+      .returning();
+    return updated;
+  }
+
   async addLesson(
     user: { id: string; role: string },
     moduleId: string,

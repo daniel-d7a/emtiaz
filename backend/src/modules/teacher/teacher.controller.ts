@@ -28,6 +28,7 @@ import {
   ToGroupDto,
   UpdateCourseDto,
   UpdateLessonDto,
+  UpdateModuleDto,
   UpsertQuizDto,
 } from '../../lib/schemas';
 import { TeacherService } from './teacher.service';
@@ -97,6 +98,17 @@ export class TeacherController {
     dto: z.infer<typeof IdListDto>,
   ) {
     return this.teachers.reorderModules(req.user!, courseId, dto.moduleIds);
+  }
+
+  @Patch('api/teacher/modules/:moduleId')
+  @Roles('TEACHER')
+  updateModule(
+    @Req() req: Request,
+    @Param('moduleId') moduleId: string,
+    @Body(new ZodBodyPipe(UpdateModuleDto))
+    dto: z.infer<typeof UpdateModuleDto>,
+  ) {
+    return this.teachers.updateModule(req.user!, moduleId, dto);
   }
 
   @Post('api/teacher/modules/:moduleId/lessons')

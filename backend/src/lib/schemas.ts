@@ -113,6 +113,7 @@ export const UpdateCourseDto = CreateCourseDto.partial().omit({ gradeName: true,
     .optional(),
 });
 export const AddModuleDto = z.object({ title: safeText(160) });
+export const UpdateModuleDto = z.object({ title: safeText(160) });
 export const IdListDto = z.object({ moduleIds: z.array(uuid) });
 export const IdListDtoLessons = z.object({ lessonIds: z.array(uuid) });
 export const AddLessonDto = z

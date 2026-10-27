@@ -149,6 +149,7 @@ const dict = {
   enterCode: { ar: 'رمز مجموعة', en: 'Group code' },
   progress: { ar: 'التقدّم', en: 'Progress' },
   lessons: { ar: 'الدروس', en: 'Lessons' },
+  quizzes: { ar: 'الاختبارات القصيرة', en: 'Quizzes' },
   download: { ar: 'تنزيل', en: 'Download' },
   announce: { ar: 'إعلان للمجموعة', en: 'Announce to group' },
   announcePlaceholder: { ar: 'اكتب رسالة للطلاب...', en: 'Write a message to students...' },

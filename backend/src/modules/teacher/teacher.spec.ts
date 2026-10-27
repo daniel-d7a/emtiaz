@@ -84,6 +84,10 @@ describe('Phase 4: teacher endpoints', () => {
       const stranger = (await login(server, 'curriculum-stranger@teacher.om', TEACHER.password)).session;
       const res = await stranger.get(`/api/teacher/courses/${world.courseId}/curriculum`);
       expect(res.status).toBe(403);
+      const rename = await stranger
+        .patch(`/api/teacher/modules/${world.moduleId}`)
+        .send({ title: 'Hijacked' });
+      expect(rename.status).toBe(403);
     });
 
     it('rejects malformed write payloads with 400', async () => {
@@ -168,6 +172,12 @@ describe('Phase 4: teacher endpoints', () => {
     });
 
     it('reorders modules and lessons', async () => {
+      const renamed = await t
+        .patch(`/api/teacher/modules/${moduleId}`)
+        .send({ title: 'Algebra II' });
+      expect(renamed.status).toBe(200);
+      expect(renamed.body.title).toBe('Algebra II');
+
       const mod2 = (
         await t
           .post(`/api/teacher/courses/${courseId}/modules`)
@@ -176,8 +186,19 @@ describe('Phase 4: teacher endpoints', () => {
       await t
         .put(`/api/teacher/courses/${courseId}/modules/reorder`)
         .send({ moduleIds: [mod2.id, moduleId] });
-      const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      let cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
       expect(cur.body.modules[0].title).toBe('Geometry');
+
+      const algebra = cur.body.modules.find((m: any) => m.id === moduleId);
+      const lessonIds = algebra.lessons.map((l: any) => l.id).reverse();
+      const reordered = await t
+        .put(`/api/teacher/modules/${moduleId}/lessons/reorder`)
+        .send({ lessonIds });
+      expect(reordered.status).toBe(200);
+      cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      const after = cur.body.modules.find((m: any) => m.id === moduleId);
+      expect(after.lessons.map((l: any) => l.id)).toEqual(lessonIds);
+      expect(after.title).toBe('Algebra II');
     });
 
     it('students cannot create courses; teachers cannot touch other teachers\' courses', async () => {
