@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, FileUp, ListTree, Pencil, Plus, Users } from 'lucide-react';
+import { Eye, EyeOff, ListTree, MoreVertical, Pencil, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, Dialog, EmptyState, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
-import type { MeResponse, PresignedUpload, TeacherCourse as Course } from '../../../../shared/api';
+import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
+import type { MeResponse, PresignedUpload, TeacherCourse as Course, TeacherStats } from '../../../../shared/api';
 import { ThemeStrip, ThemeSurface } from '../../components/TeacherTheme';
 
 export default function TeacherDashboard() {
@@ -14,45 +14,10 @@ export default function TeacherDashboard() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data, isLoading, error } = useQuery(teacherCoursesQuery);
+  const { data: stats } = useQuery(teacherStatsQuery);
   const { data: me } = useQuery({
     queryKey: ['me'],
     queryFn: () => api<MeResponse>('/api/me'),
-  });
-  const { data: grades } = useQuery({
-    queryKey: ['grades-list'],
-    queryFn: () => api<Array<{ id: string; name: string }>>('/api/admin/taxonomy/grades'),
-  });
-  const { data: categories } = useQuery({
-    queryKey: ['categories-list'],
-    queryFn: () => api<Array<{ id: string; name: string }>>('/api/admin/taxonomy/categories'),
-  });
-
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<'ACADEMIC' | 'GENERAL'>('ACADEMIC');
-  const [gradeId, setGradeId] = useState('');
-  const [semester, setSemester] = useState('Semester 1');
-  const [categoryId, setCategoryId] = useState('');
-  const [formError, setFormError] = useState<Error | null>(null);
-
-  const create = useMutation({
-    mutationFn: () =>
-      api('/api/teacher/courses', {
-        body: {
-          title,
-          courseType: type,
-          gradeId: type === 'ACADEMIC' ? gradeId : undefined,
-          semester: type === 'ACADEMIC' ? semester : undefined,
-          categoryId: type === 'GENERAL' ? categoryId : undefined,
-        },
-      }),
-    onSuccess: () => {
-      toast.success(t('saved'));
-      setShowForm(false);
-      setTitle('');
-      void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
-    },
-    onError: (e) => setFormError(e),
   });
   const publish = useMutation({
     mutationFn: (course: Course) =>
@@ -63,102 +28,125 @@ export default function TeacherDashboard() {
     },
   });
 
+  const sections = (['ACADEMIC', 'GENERAL'] as const).map((type) => ({
+    type,
+    title: type === 'ACADEMIC' ? t('academicCourses') : t('generalCourses'),
+    courses: data?.filter((course) => course.courseType === type) ?? [],
+  }));
+
   return (
-    <Page title={t('myWorkspace')}>
+    <Page title={t('myWorkspace')} wide>
       <ThemeSurface theme={me?.user.landingTheme}>
-      <ThemeStrip theme={me?.user.landingTheme} bannerUrl={me?.bannerUrl ?? null} />
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-lg font-bold">{t('courses')}</h2>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="inline" size={18} /> {t('newCourse')}
-        </Button>
-      </div>
+        <ThemeStrip theme={me?.user.landingTheme} bannerUrl={me?.bannerUrl ?? null} />
 
-      {showForm && (
-        <Card className="mb-6">
-          <div className="flex flex-col gap-3">
-            <Input label={t('newCourse')} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('courseTitlePlaceholder')} />
-            <Select label={`${t('academic')} / ${t('general')}`} value={type} onChange={(e) => setType(e.target.value as any)}>
-              <option value="ACADEMIC">{t('academic')}</option>
-              <option value="GENERAL">{t('general')}</option>
-            </Select>
-            {type === 'ACADEMIC' ? (
-              <>
-                <Select label={t('grade')} value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
-                  <option value="">— {t('grade')} —</option>
-                  {grades?.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </Select>
-                <Input label={t('semester')} value={semester} onChange={(e) => setSemester(e.target.value)} />
-              </>
-            ) : (
-              <Select label={t('general')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                <option value="">— {t('general')} —</option>
-                {categories?.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </Select>
-            )}
-            {formError && <ErrorBox error={formError} />}
-            <Button onClick={() => create.mutate()} disabled={!title || create.isPending}>{t('save')}</Button>
-          </div>
-        </Card>
-      )}
-
-      {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {data?.map((c) => (
-            <Card key={c.id}>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.courseType === 'ACADEMIC' ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}>
-                  {c.courseType === 'ACADEMIC' ? t('academic') : t('general')}
-                </span>
-                <EditCourse course={c} />
-              </div>
-              <h3 className="text-lg font-bold">{c.title}</h3>
-              <p className="mt-1 text-xs text-ink-soft">
-                {c.analytics.students} {t('students')} · {c.analytics.groups} {t('groups')} · {c.analytics.lessons} {t('lessons')} · {t('progress')} {c.analytics.avgProgress}%
-              </p>
-              <div className="mt-3 flex flex-col gap-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <AddGroup courseId={c.id} />
-                  <button
-                    onClick={() => publish.mutate(c)}
-                    className="flex items-center gap-2 text-ink-soft hover:text-primary"
-                  >
-                    {c.isPublished ? <Eye size={16} /> : <EyeOff size={16} />}
-                    {c.isPublished ? t('active') : t('suspended')}
-                  </button>
-                </div>
-                <Link to="/teacher/courses/$courseId/curriculum" params={{ courseId: c.id }} className="flex items-center gap-2 font-semibold text-primary">
-                  <ListTree size={16} /> {t('curriculum')}
-                </Link>
-                {c.groups.map((g) => (
-                  <Link key={g.id} to="/teacher/groups/$groupId" params={{ groupId: g.id }} className="flex items-center gap-2 text-primary">
-                    <Users size={16} /> {g.name}
-                    <span className="text-xs text-ink-soft">({g.studentCount})</span>
-                    <span className="rounded bg-background px-1.5 py-0.5 text-xs font-bold" dir="ltr">{g.joinCode}</span>
-                  </Link>
-                ))}
-                <button
-                  className="flex items-center gap-2 text-ink-soft"
-                  onClick={() => navigate({ to: '/teacher/courses/$courseId/curriculum', params: { courseId: c.id } })}
-                >
-                  <FileUp size={16} /> {t('pacing')}
-                </button>
-              </div>
-            </Card>
-          ))}
-          {data?.length === 0 && (
-            <div className="sm:col-span-2">
-              <EmptyState
-                title={t('noCourses')}
-                icon={Plus}
-                action={<Button onClick={() => setShowForm(true)}>{t('newCourse')}</Button>}
-              />
-            </div>
-          )}
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <StatCard label={t('curricula')} value={stats?.curricula ?? 0} />
+          <StatCard label={t('groups')} value={stats?.groups ?? 0} />
+          <StatCard label={t('uniqueStudents')} value={stats?.uniqueStudents ?? 0} />
         </div>
-      )}
+
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">{t('courses')}</h2>
+          <Button onClick={() => navigate({ to: '/teacher/courses/new' })}>
+            <Plus className="inline" size={18} /> {t('newCourse')}
+          </Button>
+        </div>
+
+        {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : data?.length === 0 ? (
+          <EmptyState
+            title={t('noCourses')}
+            icon={Plus}
+            action={<Button onClick={() => navigate({ to: '/teacher/courses/new' })}>{t('newCourse')}</Button>}
+          />
+        ) : (
+          <div className="flex flex-col gap-6">
+            {sections.map((section) => (
+              <section key={section.type}>
+                <h3 className="mb-3 text-sm font-bold text-ink-soft">{section.title}</h3>
+                {section.courses.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-line px-4 py-5 text-sm text-ink-soft">
+                    {t('noCourses')}
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {section.courses.map((course) => (
+                      <CourseCard key={course.id} course={course} publish={publish.mutate} publishing={publish.isPending} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+        )}
       </ThemeSurface>
     </Page>
+  );
+}
+
+function CourseCard({
+  course,
+  publish,
+  publishing,
+}: {
+  course: Course;
+  publish: (course: Course) => void;
+  publishing: boolean;
+}) {
+  const { t } = useLang();
+  const typeLabel = course.courseType === 'ACADEMIC' ? t('academic') : t('general');
+
+  return (
+    <Card className="relative !p-0">
+      <Link
+        to="/teacher/courses/$courseId/groups"
+        params={{ courseId: course.id }}
+        className="block p-5 pe-14"
+      >
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Badge tone={course.courseType === 'ACADEMIC' ? 'primary' : 'secondary'}>{typeLabel}</Badge>
+          <Badge>{course.isPublished ? t('active') : t('suspended')}</Badge>
+        </div>
+        <h3 className="text-lg font-bold">{course.title}</h3>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge tone="primary">{course.analytics.groups} {t('groups')}</Badge>
+          <Badge tone="primary">{course.analytics.students} {t('students')}</Badge>
+          <Badge tone="primary">{course.analytics.lessons} {t('lessons')}</Badge>
+          <Badge>{t('progress')} {course.analytics.avgProgress}%</Badge>
+        </div>
+        <p className="mt-3 text-sm text-ink-soft">
+          {t('latestLesson')}: {course.latestLesson?.title ?? t('noLatestLesson')}
+        </p>
+      </Link>
+
+      <details className="absolute end-3 top-3 z-10">
+        <summary
+          aria-label={t('actions')}
+          className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl border border-line bg-surface text-ink-soft hover:text-primary [&::-webkit-details-marker]:hidden"
+        >
+          <MoreVertical size={18} />
+        </summary>
+        <div className="absolute end-0 top-full mt-1 w-52 overflow-hidden rounded-xl border border-line bg-surface text-sm">
+          <div className="border-b border-line px-4 py-3">
+            <EditCourse course={course} />
+          </div>
+          <Link to="/teacher/courses/$courseId/groups" params={{ courseId: course.id }} className="flex min-h-11 items-center gap-2 px-4 font-semibold hover:bg-line/40">
+            <Users size={16} /> {t('groups')}
+          </Link>
+          <Link to="/teacher/courses/$courseId/curriculum" params={{ courseId: course.id }} className="flex min-h-11 items-center gap-2 px-4 font-semibold hover:bg-line/40">
+            <ListTree size={16} /> {t('curriculum')}
+          </Link>
+          <button
+            type="button"
+            onClick={() => publish(course)}
+            disabled={publishing}
+            className="flex min-h-11 w-full items-center gap-2 px-4 text-start font-semibold hover:bg-line/40"
+          >
+            {course.isPublished ? <EyeOff size={16} /> : <Eye size={16} />}
+            {course.isPublished ? t('suspend') : t('activate')}
+          </button>
+        </div>
+      </details>
+    </Card>
   );
 }
 
@@ -194,6 +182,7 @@ function EditCourse({ course }: { course: Course }) {
     setBusy(true);
     setUploadError(null);
     try {
+      if (file.size > 5 * 1024 * 1024) throw new Error(t('imageTooLarge'));
       const up = await api<PresignedUpload>('/api/storage/course-image', {
         body: {
           courseId: course.id,
@@ -280,46 +269,6 @@ function EditCourse({ course }: { course: Course }) {
   );
 }
 
-function AddGroup({ courseId }: { courseId: string }) {
-  const { t } = useLang();
-  const qc = useQueryClient();
-  const [name, setName] = useState('');
-  const [open, setOpen] = useState(false);
-  const add = useMutation({
-    mutationFn: () => api(`/api/teacher/courses/${courseId}/groups`, { body: { name } }),
-    onSuccess: () => {
-      setName('');
-      setOpen(false);
-      toast.success(t('saved'));
-      return qc.invalidateQueries({ queryKey: ['teacher-courses'] });
-    },
-  });
-
-  if (!open) {
-    return (
-      <button onClick={() => setOpen(true)} className="flex items-center gap-2 font-semibold text-primary">
-        <Plus size={16} /> {t('newGroup')}
-      </button>
-    );
-  }
-  return (
-    <span className="flex items-center gap-2">
-      <input
-        className="w-36 rounded-lg border border-line px-2 py-1 text-sm"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder={t('newGroup')}
-        autoFocus
-        onKeyDown={(e) => e.key === 'Enter' && add.mutate()}
-      />
-      <button onClick={() => add.mutate()} disabled={!name.trim()} className="font-semibold text-primary">
-        {t('add')}
-      </button>
-      {add.error && <ErrorBox error={add.error} />}
-    </span>
-  );
-}
-
 import { rootRoute } from '../../routes/__root';
 import { requireRole } from '../../lib/session';
 import { queryClient } from '../../lib/queryClient';
@@ -329,10 +278,18 @@ export const teacherCoursesQuery = {
   queryFn: () => api<Course[]>('/api/teacher/courses'),
 };
 
+export const teacherStatsQuery = {
+  queryKey: ['teacher-stats'] as const,
+  queryFn: () => api<TeacherStats>('/api/teacher/stats'),
+};
+
 export const teacherDashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/teacher/dashboard',
   beforeLoad: () => requireRole('TEACHER'),
-  loader: () => queryClient.ensureQueryData(teacherCoursesQuery),
+  loader: () => Promise.all([
+    queryClient.ensureQueryData(teacherCoursesQuery),
+    queryClient.ensureQueryData(teacherStatsQuery),
+  ]),
   component: TeacherDashboard,
 });

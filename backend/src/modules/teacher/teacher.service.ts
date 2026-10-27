@@ -4,13 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, count, countDistinct, eq, ilike, inArray, or } from 'drizzle-orm';
 import { db } from '../../db';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 import {
+  categories,
   courses,
+  grades,
   groupLessonAccess,
   groupStudents,
   groups,
@@ -48,6 +50,29 @@ export class TeacherService {
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
   ) {}
+
+  async homeStats(teacherId: string) {
+    const [courseRow] = await db
+      .select({ value: count() })
+      .from(courses)
+      .where(eq(courses.teacherId, teacherId));
+    const [groupRow] = await db
+      .select({ value: count() })
+      .from(groups)
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(eq(courses.teacherId, teacherId));
+    const [studentRow] = await db
+      .select({ value: countDistinct(groupStudents.studentId) })
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(eq(courses.teacherId, teacherId));
+    return {
+      curricula: Number(courseRow?.value ?? 0),
+      groups: Number(groupRow?.value ?? 0),
+      uniqueStudents: Number(studentRow?.value ?? 0),
+    };
+  }
 
   private async signedImage(key: string | null): Promise<string | null> {
     if (!key) return null;
@@ -98,7 +123,12 @@ export class TeacherService {
       : [];
     const lessonRows = courseIds.length
       ? await db
-          .select({ id: lessons.id, courseId: modules.courseId })
+          .select({
+            id: lessons.id,
+            title: lessons.title,
+            createdAt: lessons.createdAt,
+            courseId: modules.courseId,
+          })
           .from(lessons)
           .innerJoin(modules, eq(lessons.moduleId, modules.id))
           .where(inArray(modules.courseId, courseIds))
@@ -136,6 +166,10 @@ export class TeacherService {
         (x) => cStudentIds.has(x.studentId) && cLessonIds.has(x.lessonId),
       ).length;
       const possible = cStudentIds.size * cLessonIds.size;
+      const courseLessons = lessonRows.filter((l) => l.courseId === c.id);
+      const latest = [...courseLessons].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )[0];
       return {
         ...c,
         imageUrl: imageUrls.get(c.id) ?? null,
@@ -145,10 +179,20 @@ export class TeacherService {
           lessons: cLessonIds.size,
           avgProgress: possible ? Math.round((done / possible) * 100) : 0,
         },
-        groups: cGroups.map((g) => ({
-          ...g,
-          studentCount: memberships.filter((m) => m.groupId === g.id).length,
-        })),
+        latestLesson: latest ? { id: latest.id, title: latest.title } : null,
+        groups: cGroups.map((g) => {
+          const members = memberships.filter((m) => m.groupId === g.id);
+          const memberIds = new Set(members.map((m) => m.studentId));
+          const groupDone = completions.filter(
+            (x) => memberIds.has(x.studentId) && cLessonIds.has(x.lessonId),
+          ).length;
+          const groupPossible = memberIds.size * cLessonIds.size;
+          return {
+            ...g,
+            studentCount: members.length,
+            progress: groupPossible ? Math.round((groupDone / groupPossible) * 100) : 0,
+          };
+        }),
       };
     });
   }
@@ -160,12 +204,21 @@ export class TeacherService {
       description?: string;
       courseType: 'ACADEMIC' | 'GENERAL';
       gradeId?: string;
+      gradeName?: string;
       semester?: string;
       categoryId?: string;
+      categoryName?: string;
     },
   ) {
-    if (dto.courseType === 'ACADEMIC' && !dto.gradeId) {
-      throw new ForbiddenException('Academic courses need a grade');
+    let gradeId = dto.gradeId;
+    let categoryId = dto.categoryId;
+    if (dto.courseType === 'ACADEMIC') {
+      if (!gradeId && dto.gradeName?.trim()) {
+        gradeId = (await this.ensureTaxonomy(grades, dto.gradeName)).id;
+      }
+      if (!gradeId) throw new ForbiddenException('Academic courses need a grade');
+    } else if (!categoryId && dto.categoryName?.trim()) {
+      categoryId = (await this.ensureTaxonomy(categories, dto.categoryName)).id;
     }
     const [course] = await db
       .insert(courses)
@@ -174,12 +227,27 @@ export class TeacherService {
         description: dto.description,
         courseType: dto.courseType,
         teacherId,
-        gradeId: dto.gradeId,
-        semester: dto.semester,
-        categoryId: dto.categoryId,
+        gradeId,
+        semester: dto.semester?.trim() || null,
+        categoryId,
       })
       .returning();
     return course;
+  }
+
+  private async ensureTaxonomy(
+    table: typeof grades | typeof categories,
+    name: string,
+  ): Promise<{ id: string }> {
+    const trimmed = name.trim();
+    const [existing] = await db
+      .select({ id: table.id })
+      .from(table)
+      .where(ilike(table.name, trimmed))
+      .limit(1);
+    if (existing) return existing;
+    const [created] = await db.insert(table).values({ name: trimmed }).returning({ id: table.id });
+    return created;
   }
 
   async updateCourse(

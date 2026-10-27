@@ -97,10 +97,12 @@ export const CreateCourseDto = z
     description: optText(2000),
     courseType: z.enum(['ACADEMIC', 'GENERAL']),
     gradeId: uuid.optional(),
+    gradeName: optText(80),
     semester: optText(40),
     categoryId: uuid.optional(),
+    categoryName: optText(80),
   });
-export const UpdateCourseDto = CreateCourseDto.partial().extend({
+export const UpdateCourseDto = CreateCourseDto.partial().omit({ gradeName: true, categoryName: true }).extend({
   image: z.string().trim().max(512).nullable().optional(),
   previewUrl: z
     .string()

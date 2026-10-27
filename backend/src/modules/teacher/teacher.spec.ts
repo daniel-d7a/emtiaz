@@ -42,8 +42,35 @@ describe('Phase 4: teacher endpoints', () => {
       const mine = res.body.find((c: any) => c.id === world.courseId);
       expect(mine.groups).toHaveLength(2);
       expect(mine.groups[0].studentCount).toBeGreaterThanOrEqual(1);
+      expect(mine.groups[0].progress).toBeGreaterThanOrEqual(0);
       expect(mine.analytics.students).toBeGreaterThanOrEqual(1);
       expect(mine.analytics.lessons).toBeGreaterThanOrEqual(1);
+      expect(mine.latestLesson?.title).toBeTruthy();
+
+      const stats = await t.get('/api/teacher/stats');
+      expect(stats.status).toBe(200);
+      expect(stats.body.curricula).toBeGreaterThanOrEqual(1);
+      expect(stats.body.groups).toBeGreaterThanOrEqual(2);
+      expect(stats.body.uniqueStudents).toBeGreaterThanOrEqual(2);
+    });
+
+    it('resolves new shared grade and skill names from course creation', async () => {
+      const academic = await t.post('/api/teacher/courses').send({
+        title: 'Biology 11',
+        courseType: 'ACADEMIC',
+        gradeName: 'Grade 11',
+        semester: 'Semester 2',
+      });
+      expect(academic.status).toBe(201);
+      expect(academic.body.gradeId).toBeTruthy();
+
+      const general = await t.post('/api/teacher/courses').send({
+        title: 'Public speaking',
+        courseType: 'GENERAL',
+        categoryName: 'Public Speaking',
+      });
+      expect(general.status).toBe(201);
+      expect(general.body.categoryId).toBeTruthy();
     });
 
     it('refuses to read another teacher course curriculum', async () => {

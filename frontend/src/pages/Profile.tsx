@@ -64,6 +64,7 @@ export default function Profile() {
     setAvatarBusy(true);
     setAvatarErr(null);
     try {
+      if (file.size > 2 * 1024 * 1024) throw new Error(t('imageTooLarge'));
       const up = await api<PresignedUpload>('/api/storage/avatar', {
         body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
       });
@@ -90,6 +91,7 @@ export default function Profile() {
     setBannerBusy(true);
     setBannerErr(null);
     try {
+      if (file.size > 5 * 1024 * 1024) throw new Error(t('imageTooLarge'));
       const up = await api<PresignedUpload>('/api/storage/banner', {
         body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
       });

@@ -38,6 +38,12 @@ export class TeacherController {
 
   // ---------- Courier: courses & curriculum ----------
 
+  @Get('api/teacher/stats')
+  @Roles('TEACHER')
+  stats(@Req() req: Request) {
+    return this.teachers.homeStats(req.user!.id);
+  }
+
   @Get('api/teacher/courses')
   @Roles('TEACHER')
   courses(@Req() req: Request) {

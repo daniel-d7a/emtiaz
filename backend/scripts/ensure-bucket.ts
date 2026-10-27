@@ -3,7 +3,7 @@
  * Usage: npm run s3:init   (or via docker-compose rustfs-init)
  */
 import 'dotenv/config';
-import { CreateBucketCommand, HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import { CreateBucketCommand, HeadBucketCommand, PutBucketCorsCommand, S3Client } from '@aws-sdk/client-s3';
 
 const client = new S3Client({
   region: process.env.R2_REGION ?? 'us-east-1',
@@ -20,12 +20,29 @@ async function main() {
   try {
     await client.send(new HeadBucketCommand({ Bucket }));
     console.log(`bucket exists: ${Bucket}`);
-    return;
   } catch {
-    // fall through to create
+    await client.send(new CreateBucketCommand({ Bucket }));
+    console.log(`bucket created: ${Bucket}`);
   }
-  await client.send(new CreateBucketCommand({ Bucket }));
-  console.log(`bucket created: ${Bucket}`);
+
+  const origins = [...new Set([
+    process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    'http://localhost:5173',
+    'http://localhost:8088',
+  ])];
+  await client.send(new PutBucketCorsCommand({
+    Bucket,
+    CORSConfiguration: {
+      CORSRules: [{
+        AllowedOrigins: origins,
+        AllowedMethods: ['GET', 'PUT', 'HEAD'],
+        AllowedHeaders: ['*'],
+        ExposeHeaders: ['ETag'],
+        MaxAgeSeconds: 3600,
+      }],
+    },
+  }));
+  console.log(`bucket CORS set for: ${origins.join(', ')}`);
 }
 
 main().then(

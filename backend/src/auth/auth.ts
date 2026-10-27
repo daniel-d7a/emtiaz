@@ -45,6 +45,7 @@ export const auth = betterAuth({
       phoneNumber: { type: 'string', required: false, input: true },
       gradeId: { type: 'string', required: false, input: true },
       subjectCategoryId: { type: 'string', required: false, input: true },
+      landingSlug: { type: 'string', required: false, input: false },
       isActive: { type: 'boolean', defaultValue: true, input: false },
     },
   },

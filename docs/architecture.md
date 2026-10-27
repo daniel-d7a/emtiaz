@@ -41,7 +41,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 |---|---|
 | `onboarding` | Role signup, `GET/PATCH /api/me`, avatar URL, categories, health |
 | `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades, parent-code rotation |
-| `teacher` | Course/module/lesson CRUD, quizzes, groups, pacing, roster, announcements, gradebook |
+| `teacher` | Home stats, course/module/lesson CRUD, quizzes, groups (with days), pacing, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
 | `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
@@ -63,7 +63,7 @@ row. Role-specific fields live on the same row (`landing_*` for teachers,
 Core relationships:
 
 - `courses.teacher_id → user.id`
-- `groups.course_id → courses.id`
+- `groups.course_id → courses.id`; `groups.days` holds the display schedule
 - `group_students(group_id, student_id)` — enrollment, unique pair
 - `group_lesson_access(group_id, lesson_id, is_unlocked)` — per-group pacing;
   absence falls back to `groups.unlock_all_by_default`
@@ -103,7 +103,8 @@ Full matrix and storage/export rules: [`security.md`](./security.md).
 Uploads are direct-to-object-store using presigned PUT URLs. The API stores
 object keys, never permanent URLs. Two S3 clients exist because the endpoint
 reachable by the API container differs from the endpoint reachable by the
-browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
+browser ([ADR-0009](./adr/0009-two-s3-clients.md)). `npm run s3:init` creates
+the bucket and sets browser CORS for the configured frontend origins.
 
 - Lesson attachments: `courses/<courseId>/lessons/<lessonId>/…`, max 100 MB.
 - Avatars: `avatars/<userId>/…`, images only, max 2 MB; `user.image` holds the
@@ -132,9 +133,10 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
   prefetching in loaders ([ADR-0008](./adr/0008-tanstack-router.md)).
 - TanStack Query owns server state; there is no Zustand store.
 - Pages: home, public course catalogue, login/register, join, profile,
-  student home/catalogue/group/lesson/quiz, teacher dashboard/course/group/
-  public landing/public course, parent children/profile, admin dashboard
-  (teachers, students, parents, courses, notifications, taxonomy, audit).
+  student home/catalogue/group/lesson/quiz, teacher dashboard/new course/
+  course groups/course/group/public landing/public course, parent children/
+  profile, admin dashboard (teachers, students, parents, courses, notifications,
+  taxonomy, audit).
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
 - Teachers own a theme in `user.landing_theme` (layout, two colours, marquee,

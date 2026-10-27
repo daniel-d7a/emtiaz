@@ -50,6 +50,7 @@ export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
       | 'phoneNumber'
       | 'gradeId'
       | 'image'
+      | 'landingSlug'
     >
   >;
 
@@ -148,6 +149,7 @@ export type Group = {
   courseId: string;
   name: string;
   joinCode: string;
+  days: string | null;
   unlockAllByDefault: boolean;
   isActive: boolean;
   createdAt: string;
@@ -315,7 +317,9 @@ export type StudentGrades = {
   manual: ManualGrade[];
 };
 
-export type TeacherGroup = Group & { studentCount: number };
+export type TeacherStats = { curricula: number; groups: number; uniqueStudents: number };
+
+export type TeacherGroup = Group & { studentCount: number; progress: number };
 
 export type TeacherCourse = Course & {
   imageUrl: string | null;
@@ -325,6 +329,7 @@ export type TeacherCourse = Course & {
     lessons: number;
     avgProgress: number;
   };
+  latestLesson: Pick<Lesson, 'id' | 'title'> | null;
   groups: TeacherGroup[];
 };
 

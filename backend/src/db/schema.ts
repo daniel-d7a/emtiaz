@@ -171,6 +171,7 @@ export const groups = pgTable('groups', {
     .references(() => courses.id, { onDelete: 'cascade' }),
   name: text('name').notNull(), // e.g., "Sun/Tue 4PM Batch"
   joinCode: text('join_code').notNull().unique(), // e.g., "OM4829"
+  days: text('days'),
   unlockAllByDefault: boolean('unlock_all_by_default').notNull().default(true),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),

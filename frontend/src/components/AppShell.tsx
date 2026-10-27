@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  BookOpen, GraduationCap, Home, LayoutDashboard, LogOut, UserRound, Users,
+  BookOpen, Globe, GraduationCap, Home, LayoutDashboard, LogOut, UserRound, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { authApi } from '../lib/api';
@@ -167,11 +167,16 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
                     onClick={() => setMenuOpen(false)}
                     className="fixed inset-0 z-40 cursor-default"
                   />
-                  <div className="absolute end-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface">
+                  <div className="popover-enter absolute end-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface">
                     <div className="border-b border-line px-4 py-3">
                       <p className="truncate font-semibold">{user.name}</p>
                       <p className="text-xs text-ink-soft">{t(ROLE_LABEL[user.role])}</p>
                     </div>
+                    {user.role === 'TEACHER' && user.landingSlug && (
+                      <Link to="/t/$slug" params={{ slug: user.landingSlug }} className="flex min-h-12 items-center gap-2 px-4 text-sm font-semibold hover:bg-line/40">
+                        <Globe size={16} /> {t('landingPage')}
+                      </Link>
+                    )}
                     {user.role !== 'ADMIN' && (
                       <Link to="/profile" className="flex min-h-12 items-center gap-2 px-4 text-sm font-semibold hover:bg-line/40">
                         <UserRound size={16} /> {t('profile')}

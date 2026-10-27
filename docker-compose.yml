@@ -74,6 +74,7 @@ services:
       R2_ACCESS_KEY_ID: rustfsadmin
       R2_SECRET_ACCESS_KEY: rustfsadmin
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-lms-attachments}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
 
   api:
     build: ./backend

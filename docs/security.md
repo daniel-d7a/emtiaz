@@ -44,7 +44,7 @@ alone never grants access to another user's course, group, or child.
 | Complete/uncomplete a lesson | no | no | enrolled + unlocked | no |
 | Submit a quiz | no | no | enrolled + group course | no |
 | Read own grades | no | no | enrolled | no |
-| Read a linked child's progress/grades | no | no | no | linked |
+| Read a linked child's progress, attendance, grades, reports | no | no | no | linked |
 | Link/unlink a child by registered phone | no | no | no | yes |
 | Download lesson attachment | yes | owner | enrolled + unlocked | no |
 | Upload/manage attachments | no | owner | no | no |
@@ -55,7 +55,8 @@ alone never grants access to another user's course, group, or child.
 
 \* Admin endpoints are read-only for courses/groups; admin does not call the
 teacher endpoints. Admin can download any attachment and manually enroll a
-student.
+student. Teacher course creation may resolve a missing shared grade or skill
+name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
 ## Content access rules
 

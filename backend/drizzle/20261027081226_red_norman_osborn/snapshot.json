@@ -1,0 +1,47 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "5842468c-6739-48ce-9420-58bc15bdc8f7",
+  "prevIds": [
+    "f8343e67-1f91-4f03-bec8-6f48e5a55690"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "groups",
+        "days"
+      ],
+      "writes": [
+        "s|col|public.groups.days",
+        "n|col|public.groups.days",
+        "e|col|public.groups.days"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "groups",
+        "name": "days",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

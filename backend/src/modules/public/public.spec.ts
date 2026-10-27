@@ -36,6 +36,10 @@ describe('public teacher landing', () => {
     expect(set.status).toBe(200);
     expect(set.body.landingTheme).toEqual(theme);
 
+    const freshSession = await login(server, TEACHER.email, TEACHER.password);
+    const sessionBody = await freshSession.session.get('/api/auth/get-session');
+    expect(sessionBody.body.user.landingSlug).toBe('salim-physics');
+
     const page = await request(server).get('/api/public/teachers/salim-physics');
     expect(page.status).toBe(200);
     expect(page.body.teacher.name).toBe(TEACHER.name);

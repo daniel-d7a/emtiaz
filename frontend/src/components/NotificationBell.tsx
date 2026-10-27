@@ -50,32 +50,41 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute end-0 z-20 mt-2 w-80 rounded-xl border border-line bg-background shadow-lg">
-          <div className="flex items-center justify-between border-b border-line px-3 py-2">
-            <span className="font-bold">{t('notifications')}</span>
-            {count > 0 && (
-              <button onClick={() => markAll.mutate()} className="text-xs font-semibold text-primary">
-                {t('markAllRead')}
-              </button>
-            )}
-          </div>
-          <ul className="max-h-96 overflow-y-auto">
-            {list.data?.map((n) => (
-              <li key={n.id}>
-                <button
-                  onClick={() => !n.readAt && markRead.mutate(n.id)}
-                  className={`block w-full px-3 py-2 text-start text-sm hover:bg-line/40 ${n.readAt ? 'text-ink-soft' : 'font-semibold'}`}
-                >
-                  <span className="block">{n.message}</span>
-                  <span className="mt-1 block text-xs text-ink-soft">
-                    {formatDateTime(n.createdAt, lang)}
-                  </span>
+        <>
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label={t('cancel')}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-40 cursor-default"
+          />
+          <div className="popover-enter absolute end-0 z-50 mt-2 w-80 rounded-xl border border-line bg-background">
+            <div className="flex items-center justify-between border-b border-line px-3 py-2">
+              <span className="font-bold">{t('notifications')}</span>
+              {count > 0 && (
+                <button onClick={() => markAll.mutate()} className="text-xs font-semibold text-primary">
+                  {t('markAllRead')}
                 </button>
-              </li>
-            ))}
-            {list.data?.length === 0 && <li className="px-3 py-4 text-sm text-ink-soft">{t('noNotifications')}</li>}
-          </ul>
-        </div>
+              )}
+            </div>
+            <ul className="max-h-96 overflow-y-auto">
+              {list.data?.map((n) => (
+                <li key={n.id}>
+                  <button
+                    onClick={() => !n.readAt && markRead.mutate(n.id)}
+                    className={`block w-full px-3 py-2 text-start text-sm hover:bg-line/40 ${n.readAt ? 'text-ink-soft' : 'font-semibold'}`}
+                  >
+                    <span className="block">{n.message}</span>
+                    <span className="mt-1 block text-xs text-ink-soft">
+                      {formatDateTime(n.createdAt, lang)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {list.data?.length === 0 && <li className="px-3 py-4 text-sm text-ink-soft">{t('noNotifications')}</li>}
+            </ul>
+          </div>
+        </>
       )}
     </div>
   );
