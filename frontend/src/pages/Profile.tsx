@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { api, type SessionUser } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../components/ui';
@@ -60,8 +61,10 @@ export default function Profile() {
       await api('/api/me', { method: 'PATCH', body: { image: up.objectKey } });
       await qc.invalidateQueries({ queryKey: ['session'] });
       setVersion(Date.now());
+      toast.success(t('saved'));
     } catch (e) {
       setAvatarErr(e as Error);
+      toast.error((e as Error).message || t('errorOccurred'));
     } finally {
       setAvatarBusy(false);
     }
@@ -81,6 +84,7 @@ export default function Profile() {
         },
       }),
     onSuccess: () => {
+      toast.success(t('saved'));
       void qc.invalidateQueries({ queryKey: ['session'] });
       void qc.invalidateQueries({ queryKey: ['me'] });
     },

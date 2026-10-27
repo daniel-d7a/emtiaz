@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { Button, ErrorBox, Input, Progress } from './ui';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { Button, ConfirmDialog, ErrorBox, Input, Progress } from './ui';
 
 describe('UI primitives', () => {
   it('Button renders and can be disabled', () => {
@@ -24,5 +24,31 @@ describe('UI primitives', () => {
     const bar = screen.getByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('42');
     expect(bar.getAttribute('aria-valuemax')).toBe('100');
+  });
+});
+
+describe('ConfirmDialog', () => {
+  it('runs the confirmed action', () => {
+    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+      this.open = true;
+    };
+    HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+      this.open = false;
+      this.dispatchEvent(new Event('close'));
+    };
+    let confirmed = false;
+    render(
+      <ConfirmDialog
+        open
+        onOpenChange={() => {}}
+        title="Delete student?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => { confirmed = true; }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(confirmed).toBe(true);
   });
 });

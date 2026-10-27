@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { createRoute, useLocation, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, FileUp, Plus, Save, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
+import { Button, Card, ConfirmDialog, ErrorBox, Input, Loading, Page } from '../../components/ui';
 
 type Question = {
   questionType: 'MCQ' | 'TRUE_FALSE';
@@ -51,6 +52,7 @@ export default function TeacherCurriculum() {
     mutationFn: () => api(`/api/teacher/courses/${courseId}/modules`, { body: { title: moduleName } }),
     onSuccess: () => {
       setModuleName('');
+      toast.success(t('saved'));
       void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
     },
   });
@@ -105,15 +107,23 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
   const [lessonTitle, setLessonTitle] = useState('');
+  const [confirming, setConfirming] = useState(false);
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
 
   const addLesson = useMutation({
     mutationFn: () => api(`/api/teacher/modules/${mod.id}/lessons`, { body: { title: lessonTitle } }),
-    onSuccess: () => { setLessonTitle(''); invalidate(); },
+    onSuccess: () => {
+      setLessonTitle('');
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
   const delModule = useMutation({
     mutationFn: () => api(`/api/teacher/modules/${mod.id}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+    },
   });
 
   return (
@@ -122,16 +132,16 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
         <div className="flex grow items-center gap-2">
           {(canUp || canDown) && (
             <span className="flex flex-col gap-0">
-              <button aria-label={t('moveUp')} disabled={!canUp} onClick={() => onMoveModule?.(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
-              <button aria-label={t('moveDown')} disabled={!canDown} onClick={() => onMoveModule?.(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+              <button aria-label={t('moveUp')} title={t('moveUp')} disabled={!canUp} onClick={() => onMoveModule?.(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button aria-label={t('moveDown')} title={t('moveDown')} disabled={!canDown} onClick={() => onMoveModule?.(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
             </span>
           )}
-          <button aria-expanded={open} aria-label={open ? t('collapse') : t('expand')} className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
+          <button aria-expanded={open} aria-label={open ? t('collapse') : t('expand')} title={open ? t('collapse') : t('expand')} className="flex grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
             <ChevronDown className={`transition ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
             {mod.title}
           </button>
         </div>
-        <button aria-label={t('delete')} onClick={() => delModule.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={16} />
         </button>
       </div>
@@ -162,6 +172,15 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, onMoveModule
           <QuizBuilder endpoint={`/api/teacher/modules/${mod.id}/quiz`} existing={mod.quiz} />
         </div>
       )}
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`${t('delete')} ${mod.title}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => delModule.mutate()}
+      />
     </Card>
   );
 }
@@ -179,15 +198,22 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
   const [open, setOpen] = useState(!!autoFocus);
   const [title, setTitle] = useState(lesson.title);
   const [content, setContent] = useState(lesson.content ?? '');
+  const [confirming, setConfirming] = useState(false);
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
   const save = useMutation({
     mutationFn: () => api(`/api/teacher/lessons/${lesson.id}`, { method: 'PATCH', body: { title, content } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
   const del = useMutation({
     mutationFn: () => api(`/api/teacher/lessons/${lesson.id}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+    },
   });
 
   return (
@@ -196,13 +222,13 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
         <div className="flex grow items-center gap-1">
           {(canUp || canDown) && (
             <span className="flex flex-col gap-0">
-              <button aria-label={t('moveUp')} disabled={!canUp} onClick={() => onMove(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
-              <button aria-label={t('moveDown')} disabled={!canDown} onClick={() => onMove(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+              <button aria-label={t('moveUp')} title={t('moveUp')} disabled={!canUp} onClick={() => onMove(-1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button aria-label={t('moveDown')} title={t('moveDown')} disabled={!canDown} onClick={() => onMove(1)} className="text-ink-soft hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
             </span>
           )}
           <button aria-expanded={open} className="grow text-start font-semibold" onClick={() => setOpen(!open)}>{title}</button>
         </div>
-        <button aria-label={t('delete')} onClick={() => del.mutate()} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
           <Trash2 size={14} />
         </button>
       </div>
@@ -228,6 +254,15 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
           <QuizBuilder endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
         </div>
       )}
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`${t('delete')} ${lesson.title}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => del.mutate()}
+      />
     </div>
   );
 }
@@ -256,8 +291,10 @@ function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId
         body: { lessonId, title: file.name, objectKey: up.objectKey, mimeType: file.type, fileSizeBytes: file.size },
       });
       invalidate();
+      toast.success(t('saved'));
     } catch (e) {
       setErr(e as Error);
+      toast.error((e as Error).message || t('errorOccurred'));
     } finally {
       setBusy(false);
     }
@@ -296,7 +333,11 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
           })),
         },
       }),
-    onSuccess: () => { setQuestions([]); setErr(null); },
+    onSuccess: () => {
+      setQuestions([]);
+      setErr(null);
+      toast.success(t('saved'));
+    },
     onError: (e) => setErr(e),
   });
 
@@ -338,6 +379,8 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
               placeholder="…"
             />
             <button
+              aria-label={t('delete')}
+              title={t('delete')}
               className="text-ink-soft hover:text-secondary"
               onClick={() => setQuestions(questions.filter((_, i) => i !== qi))}
             >

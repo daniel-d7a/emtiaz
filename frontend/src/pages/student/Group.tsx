@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, Download, FileDown, Lock, NotebookPen, RotateCcw, Trophy } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
@@ -28,7 +29,10 @@ export default function StudentGroup() {
 
   const complete = useMutation({
     mutationFn: (lessonId: string) => api(`/api/student/lessons/${lessonId}/complete`, { method: 'POST' }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['curriculum', groupId] }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      void qc.invalidateQueries({ queryKey: ['curriculum', groupId] });
+    },
   });
 
   return (
@@ -150,7 +154,11 @@ function AttachmentRow({ id, title }: { id: string; title: string }) {
         <Button
           variant="ghost"
           className="!min-h-9 !px-3 !py-1 text-xs"
-          onClick={() => api(`/api/storage/attachments/${id}/download`).then((d: any) => setUrl(d.url))}
+          onClick={() => {
+            api(`/api/storage/attachments/${id}/download`)
+              .then((d: any) => setUrl(d.url))
+              .catch((e: unknown) => toast.error((e as Error).message || t('errorOccurred')));
+          }}
         >
           {t('download')}
         </Button>
@@ -183,8 +191,10 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
         body: { groupId, answers },
       });
       setResult(res);
+      toast.success(t('sent'));
     } catch (e) {
       setError(e as Error);
+      toast.error((e as Error).message || t('errorOccurred'));
     }
   };
 
@@ -253,7 +263,7 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
               <span className="text-ink-soft"> — {r.expected}{r.explanation ? `: ${r.explanation}` : ''}</span>
             </div>
           ))}
-          <Button variant="ghost" aria-label={t('retry')} onClick={() => { setResult(null); setAnswers({}); }}><RotateCcw size={18} /></Button>
+          <Button variant="ghost" aria-label={t('retry')} title={t('retry')} onClick={() => { setResult(null); setAnswers({}); }}><RotateCcw size={18} /></Button>
         </div>
       )}
     </Card>

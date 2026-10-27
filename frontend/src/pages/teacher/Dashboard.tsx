@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, FileUp, ListTree, Plus, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
+import { Button, Card, EmptyState, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
 import type { TeacherCourse as Course } from '../../../../shared/api';
 
 export default function TeacherDashboard() {
@@ -41,11 +42,20 @@ export default function TeacherDashboard() {
         },
       }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
+      toast.success(t('saved'));
       setShowForm(false);
       setTitle('');
+      void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
     },
     onError: (e) => setFormError(e),
+  });
+  const publish = useMutation({
+    mutationFn: (course: Course) =>
+      api(`/api/teacher/courses/${course.id}`, { method: 'PATCH', body: { isPublished: !course.isPublished } }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
+    },
   });
 
   return (
@@ -102,7 +112,7 @@ export default function TeacherDashboard() {
                 <div className="flex items-center gap-2">
                   <AddGroup courseId={c.id} />
                   <button
-                    onClick={() => api(`/api/teacher/courses/${c.id}`, { method: 'PATCH', body: { isPublished: !c.isPublished } }).then(() => qc.invalidateQueries({ queryKey: ['teacher-courses'] }))}
+                    onClick={() => publish.mutate(c)}
                     className="flex items-center gap-2 text-ink-soft hover:text-primary"
                   >
                     {c.isPublished ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -128,6 +138,15 @@ export default function TeacherDashboard() {
               </div>
             </Card>
           ))}
+          {data?.length === 0 && (
+            <div className="sm:col-span-2">
+              <EmptyState
+                title={t('noCourses')}
+                icon={Plus}
+                action={<Button onClick={() => setShowForm(true)}>{t('newCourse')}</Button>}
+              />
+            </div>
+          )}
         </div>
       )}
     </Page>
@@ -144,6 +163,7 @@ function AddGroup({ courseId }: { courseId: string }) {
     onSuccess: () => {
       setName('');
       setOpen(false);
+      toast.success(t('saved'));
       return qc.invalidateQueries({ queryKey: ['teacher-courses'] });
     },
   });

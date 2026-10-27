@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link, createRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
+import { Button, Card, EmptyState, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
 import type { StudentGroup as Enrolled } from '../../../../shared/api';
 
 export default function StudentDashboard() {
@@ -16,6 +17,7 @@ export default function StudentDashboard() {
     mutationFn: () => api('/api/student/groups/join', { body: { joinCode: code.trim() } }),
     onSuccess: () => {
       setCode('');
+      toast.success(t('joinedOk'));
       void qc.invalidateQueries({ queryKey: ['student-groups'] });
     },
   });
@@ -64,9 +66,13 @@ export default function StudentDashboard() {
             </Link>
           ))}
           {data?.length === 0 && (
-            <p className="text-ink-soft">
-              {lang === 'ar' ? 'لم تنضم إلى أي مجموعة بعد — استخدم الرمز أعلاه.' : 'No groups yet — use the code above.'}
-            </p>
+            <div className="sm:col-span-2">
+              <EmptyState
+                title={lang === 'ar' ? 'لم تنضم إلى أي مجموعة بعد' : 'No groups yet'}
+                description={lang === 'ar' ? 'استخدم رمز المجموعة أعلاه للانضمام.' : 'Use the group code above to join.'}
+                icon={BookOpen}
+              />
+            </div>
           )}
         </div>
       )}

@@ -37,6 +37,7 @@ export function NotificationBell() {
     <div className="relative">
       <button
         aria-label={t('notifications')}
+        title={t('notifications')}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg px-3 py-2 hover:bg-line/60"

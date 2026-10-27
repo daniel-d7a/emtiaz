@@ -49,6 +49,14 @@ const dict = {
   grade: { ar: 'الصف', en: 'Grade' },
   semester: { ar: 'الفصل الدراسي', en: 'Semester' },
   save: { ar: 'حفظ', en: 'Save' },
+  saved: { ar: 'تم الحفظ', en: 'Saved' },
+  copied: { ar: 'تم النسخ', en: 'Copied' },
+  errorOccurred: { ar: 'حدث خطأ', en: 'Something went wrong' },
+  deleted: { ar: 'تم الحذف', en: 'Deleted' },
+  sent: { ar: 'تم الإرسال', en: 'Sent' },
+  linked: { ar: 'تم ربط الطالب', en: 'Student linked' },
+  noCourses: { ar: 'لم تنشئ أي مقرر بعد — ابدأ بمقرر جديد.', en: 'No courses yet — start with a new course.' },
+  unlinked: { ar: 'تم فصل الطالب', en: 'Student unlinked' },
   cancel: { ar: 'إلغاء', en: 'Cancel' },
   add: { ar: 'إضافة', en: 'Add' },
   delete: { ar: 'حذف', en: 'Delete' },
@@ -150,6 +158,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [lang]);
   const t = (k: Key) => dict[k][lang];
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
+}
+
+export function translate(key: Key, lang?: Lang) {
+  const stored = typeof localStorage !== 'undefined' ? (localStorage.getItem('lang') as Lang | null) : null;
+  return dict[key][lang ?? stored ?? 'ar'];
 }
 
 export const useLang = () => useContext(Ctx);

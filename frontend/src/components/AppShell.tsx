@@ -147,6 +147,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
               <button
                 type="button"
                 aria-label={user.name}
+                title={user.name}
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex min-h-11 min-w-11 items-center justify-center rounded-xl p-1 hover:bg-line/50"

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { GraduationCap, Link2, Unlink } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
+import { Button, Card, ConfirmDialog, EmptyState, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
 import type { ParentChild as Child, StudentGrades as Grades } from '../../../../shared/api';
 
 export default function ParentDashboard() {
@@ -12,6 +13,7 @@ export default function ParentDashboard() {
   const qc = useQueryClient();
   const [phone, setPhone] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<Child | null>(null);
 
   const children = useQuery({
     queryKey: ['parent-students'],
@@ -21,13 +23,17 @@ export default function ParentDashboard() {
     mutationFn: () => api('/api/parent/link', { body: { phoneNumber: phone.trim() } }),
     onSuccess: () => {
       setPhone('');
+      toast.success(t('linked'));
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
   });
   const unlink = useMutation({
     mutationFn: (studentId: string) =>
       api(`/api/parent/students/${studentId}`, { method: 'DELETE' }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['parent-students'] }),
+    onSuccess: () => {
+      toast.success(t('unlinked'));
+      void qc.invalidateQueries({ queryKey: ['parent-students'] });
+    },
   });
 
   return (
@@ -62,9 +68,7 @@ export default function ParentDashboard() {
                 <h2 className="grow text-lg font-bold">{child.name}</h2>
                 <Button
                   variant="ghost"
-                  onClick={() => {
-                    if (window.confirm(t('unlinkChild') + '?')) unlink.mutate(child.id);
-                  }}
+                  onClick={() => setUnlinkTarget(child)}
                 >
                   <Unlink size={16} /> {t('unlinkChild')}
                 </Button>
@@ -93,9 +97,19 @@ export default function ParentDashboard() {
               </div>
             </Card>
           ))}
-          {children.data?.length === 0 && <p className="text-ink-soft">{t('noChildren')}</p>}
+          {children.data?.length === 0 && <EmptyState title={t('noChildren')} icon={GraduationCap} />}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(unlinkTarget)}
+        onOpenChange={(next) => !next && setUnlinkTarget(null)}
+        title={`${t('unlinkChild')} ${unlinkTarget?.name ?? ''}?`}
+        confirmLabel={t('unlinkChild')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => unlinkTarget && unlink.mutate(unlinkTarget.id)}
+      />
     </Page>
   );
 }

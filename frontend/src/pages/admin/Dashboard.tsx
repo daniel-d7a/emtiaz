@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang, type Key } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
+import { Badge, Button, Card, ConfirmDialog, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
 
 type Overview = Record<string, number>;
 type TeacherRow = {
@@ -53,6 +54,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(20);
   const [auditAction, setAuditAction] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const changeSearch = (v: string) => { setSearch(v); setLimit(20); };
 
   const overview = useQuery(adminOverviewQuery);
@@ -99,23 +101,30 @@ export default function AdminDashboard() {
   const setStatus = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api(`/api/admin/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidateAll();
+    },
   });
   const updateSettings = useMutation({
     mutationFn: (patch: Partial<NotificationSettings>) =>
       api('/api/admin/notification-settings', { method: 'PATCH', body: patch }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['notification-settings'] }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      void qc.invalidateQueries({ queryKey: ['notification-settings'] });
+    },
   });
   const monthlySummary = useMutation({
     mutationFn: () => api<{ parents: number }>('/api/admin/notifications/monthly-summary', { method: 'POST' }),
+    onSuccess: () => toast.success(t('sent')),
   });
   const deleteUser = useMutation({
     mutationFn: (id: string) => api(`/api/admin/users/${id}`, { method: 'DELETE' }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidateAll();
+    },
   });
-  const confirmDelete = (u: { id: string; name: string }) => {
-    if (window.confirm(`${t('delete')} ${u.name}?`)) deleteUser.mutate(u.id);
-  };
 
   return (
     <Page title={t('dashboard')}>
@@ -130,10 +139,7 @@ export default function AdminDashboard() {
             ['generalCourses', overview.data.generalCourses],
             ['activeGroups', overview.data.activeGroups],
           ].map(([key, value]) => (
-            <Card key={key as string}>
-              <p className="text-3xl font-extrabold text-primary">{value}</p>
-              <p className="text-sm text-ink-soft">{t(key as Key)}</p>
-            </Card>
+            <StatCard key={key as string} label={t(key as Key)} value={value} />
           ))}
         </div>
       ) : <Loading />}
@@ -170,7 +176,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       aria-label={`${t('delete')} ${u.name}`}
-                      onClick={() => confirmDelete(u)}
+                      onClick={() => setDeleteTarget(u)}
                       className="text-ink-soft hover:text-secondary"
                       title={t('delete')}
                     >
@@ -289,7 +295,7 @@ export default function AdminDashboard() {
           students={students}
           invalidate={invalidateAll}
           setStatus={setStatus}
-          onDelete={confirmDelete}
+          onDelete={setDeleteTarget}
           search={search}
           setSearch={changeSearch}
           limit={limit}
@@ -331,9 +337,9 @@ export default function AdminDashboard() {
                   <div>
                     <p className="font-semibold">
                       {c.title}{' '}
-                      <span className={`ms-1 rounded-full px-2 text-xs ${c.courseType === 'ACADEMIC' ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}>
+                      <Badge tone={c.courseType === 'ACADEMIC' ? 'primary' : 'secondary'} className="ms-1">
                         {c.courseType === 'ACADEMIC' ? t('academic') : t('general')}
-                      </span>
+                      </Badge>
                     </p>
                     <p className="text-sm text-ink-soft">{c.teacherName}</p>
                     <div className="flex flex-wrap gap-2 pt-1">
@@ -355,6 +361,15 @@ export default function AdminDashboard() {
           )}
         </Card>
       )}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(next) => !next && setDeleteTarget(null)}
+        title={`${t('delete')} ${deleteTarget?.name ?? ''}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => deleteTarget && deleteUser.mutate(deleteTarget.id)}
+      />
     </Page>
   );
 }
@@ -380,6 +395,7 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
   const { t } = useLang();
   const qc = useQueryClient();
   const [name, setName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const list = useQuery({
     queryKey: [kind],
     queryFn: () => api<Array<{ id: string; name: string }>>(`/api/admin/taxonomy/${kind}`),
@@ -387,11 +403,18 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
   const invalidate = () => void qc.invalidateQueries({ queryKey: [kind] });
   const add = useMutation({
     mutationFn: () => api(`/api/admin/taxonomy/${kind}`, { body: { name } }),
-    onSuccess: () => { setName(''); invalidate(); },
+    onSuccess: () => {
+      setName('');
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
   const del = useMutation({
     mutationFn: (id: string) => api(`/api/admin/taxonomy/${kind}/${id}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+    },
   });
 
   return (
@@ -409,13 +432,22 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
         {list.data?.map((g) => (
           <li key={g.id} className="flex items-center justify-between py-2">
             <span className="font-semibold">{g.name}</span>
-            <button onClick={() => del.mutate(g.id)} className="text-ink-soft hover:text-secondary">
+            <button onClick={() => setDeleteTarget({ id: g.id, name: g.name })} aria-label={`${t('delete')} ${g.name}`} title={t('delete')} className="text-ink-soft hover:text-secondary">
               <Trash2 size={14} />
             </button>
           </li>
         ))}
         {list.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
       </ul>
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(next) => !next && setDeleteTarget(null)}
+        title={`${t('delete')} ${deleteTarget?.name ?? ''}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => deleteTarget && del.mutate(deleteTarget.id)}
+      />
     </Card>
   );
 }
@@ -449,7 +481,10 @@ function StudentsTab({
   const enroll = useMutation({
     mutationFn: ({ studentId, groupId }: { studentId: string; groupId: string }) =>
       api(`/api/admin/students/${studentId}/enroll`, { body: { groupId } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
 
   return (

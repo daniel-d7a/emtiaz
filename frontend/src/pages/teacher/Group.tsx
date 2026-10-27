@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Download, Lock, MessageCircle, Plus, Trash2, Unlock } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
+import { Button, Card, ConfirmDialog, ErrorBox, IconButton, Input, Loading, Page } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   TeacherGradebook as Gradebook,
@@ -41,7 +42,10 @@ export function PacingTab({ groupId }: { groupId: string }) {
   const setAccess = useMutation({
     mutationFn: ({ lessonId, isUnlocked }: { lessonId: string; isUnlocked: boolean }) =>
       api(`/api/teacher/groups/${groupId}/lessons/${lessonId}/access`, { body: { isUnlocked } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
 
   if (isLoading) return <Loading />;
@@ -53,7 +57,7 @@ export function PacingTab({ groupId }: { groupId: string }) {
       data.lessons
         .filter((l) => l.unlocked !== unlock)
         .map((l) => api(`/api/teacher/groups/${groupId}/lessons/${l.id}/access`, { body: { isUnlocked: unlock } })),
-    ).then(invalidate);
+    ).then(invalidate).catch((e: unknown) => toast.error((e as Error).message || t('errorOccurred')));
 
   return (
     <Card>
@@ -128,13 +132,21 @@ export function GradebookTab({ groupId }: { groupId: string }) {
     URL.revokeObjectURL(url);
   };
   const [colTitle, setColTitle] = useState('');
+  const [deleteColumn, setDeleteColumn] = useState<{ id: string; title: string } | null>(null);
   const addCol = useMutation({
     mutationFn: () => api(`/api/teacher/groups/${groupId}/gradebook/columns`, { body: { title: colTitle } }),
-    onSuccess: () => { setColTitle(''); invalidate(); },
+    onSuccess: () => {
+      setColTitle('');
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
   const delCol = useMutation({
     mutationFn: (columnId: string) => api(`/api/teacher/groups/${groupId}/gradebook/columns/${columnId}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+    },
   });
   const setCell = useMutation({
     mutationFn: (v: { studentId: string; columnId: string; score: number | null }) =>
@@ -166,7 +178,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
               {data.manualColumns.map((c) => (
                 <th key={c.id} className="py-2 pe-2 text-start text-ink-soft">
                   {c.title}
-                  <button aria-label={`${t('delete')} ${c.title}`} onClick={() => delCol.mutate(c.id)} className="ms-1 text-ink-soft hover:text-secondary">
+                  <button aria-label={`${t('delete')} ${c.title}`} title={t('delete')} onClick={() => setDeleteColumn({ id: c.id, title: c.title })} className="ms-1 text-ink-soft hover:text-secondary">
                     <Trash2 size={12} />
                   </button>
                 </th>
@@ -214,6 +226,15 @@ export function GradebookTab({ groupId }: { groupId: string }) {
         </div>
         {addCol.error && <ErrorBox error={addCol.error} />}
       </Card>
+      <ConfirmDialog
+        open={Boolean(deleteColumn)}
+        onOpenChange={(next) => !next && setDeleteColumn(null)}
+        title={`${t('delete')} ${deleteColumn?.title ?? ''}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => deleteColumn && delCol.mutate(deleteColumn.id)}
+      />
     </div>
   );
 }
@@ -235,6 +256,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
   const [okMsg, setOkMsg] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [announceMsg, setAnnounceMsg] = useState('');
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const announce = useMutation({
     mutationFn: () =>
       api<{ sent: number }>(`/api/teacher/groups/${groupId}/announce`, {
@@ -243,6 +265,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
     onSuccess: (res) => {
       setAnnouncement('');
       setAnnounceMsg(`${res.sent} notified`);
+      toast.success(t('sent'));
     },
   });
   const doBulk = useMutation({
@@ -263,17 +286,24 @@ export function RosterTab({ groupId }: { groupId: string }) {
     onSuccess: (res: Array<{ created: boolean; enrolled: boolean }>) => {
       setOkMsg(`${res.filter((r) => r.enrolled).length} enrolled / ${res.filter((r) => r.created).length} new`);
       setBulk('');
+      toast.success(t('saved'));
       invalidate();
     },
   });
   const remove = useMutation({
     mutationFn: (studentId: string) => api(`/api/teacher/groups/${groupId}/students/${studentId}`, { method: 'DELETE' }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+    },
   });
   const move = useMutation({
     mutationFn: ({ studentId, toGroupId }: { studentId: string; toGroupId: string }) =>
       api(`/api/teacher/groups/${groupId}/students/${studentId}/move`, { body: { toGroupId } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
   });
 
   if (isLoading) return <Loading />;
@@ -312,11 +342,20 @@ export function RosterTab({ groupId }: { groupId: string }) {
           <h3 className="font-bold">{data.group.name}</h3>
           <div className="flex items-center gap-2 text-sm">
             <span dir="ltr" className="rounded bg-background px-2 py-1 font-bold">{data.group.joinCode}</span>
-            <Copy size={14} className="cursor-pointer" onClick={() => navigator.clipboard.writeText(window.location.origin + '/join/' + data.group.joinCode).catch(() => {})} />
+            <IconButton
+              label={t('copyWhatsapp')}
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.origin + '/join/' + data.group.joinCode)
+                  .then(() => toast.success(t('copied')))
+                  .catch(() => toast.error(t('errorOccurred')));
+              }}
+            >
+              <Copy size={16} />
+            </IconButton>
             <a href={inviteUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-semibold text-primary" onClick={(e) => e.stopPropagation()}>
               <MessageCircle size={14} /> WhatsApp
             </a>
-            <button onClick={exportRoster} className="flex items-center gap-1 font-semibold text-primary" aria-label={t('download')}>
+            <button onClick={exportRoster} className="flex items-center gap-1 font-semibold text-primary" aria-label={t('download')} title={t('download')}>
               <Download size={14} /> CSV
             </button>
           </div>
@@ -365,7 +404,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
                     ))}
                   </select>
                 )}
-                <button aria-label={`${t('delete')} ${s.name}`} onClick={() => remove.mutate(s.studentId)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+                <button aria-label={`${t('delete')} ${s.name}`} onClick={() => setRemoveTarget({ id: s.studentId, name: s.name })} className="text-ink-soft hover:text-secondary" title={t('delete')}>
                   <Trash2 size={14} />
                 </button>
               </span>
@@ -389,6 +428,15 @@ export function RosterTab({ groupId }: { groupId: string }) {
           {okMsg && <span className="text-sm font-semibold text-primary">{okMsg}</span>}
         </div>
       </Card>
+      <ConfirmDialog
+        open={Boolean(removeTarget)}
+        onOpenChange={(next) => !next && setRemoveTarget(null)}
+        title={`${t('delete')} ${removeTarget?.name ?? ''}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => removeTarget && remove.mutate(removeTarget.id)}
+      />
     </div>
   );
 }
