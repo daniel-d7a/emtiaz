@@ -94,7 +94,6 @@ async function makeCurriculum(courseId: string, title: string, defs: Array<{ tit
       await db.insert(quizQuestions).values([
         { quizId: quiz.id, questionType: 'MCQ', prompt: 'What is the S.I unit of speed?', options: ['km/h', 'm/s', 'N', 'J'], correctAnswer: 'm/s', explanation: 'speed is m/s', points: 1, displayOrder: 0 },
         { quizId: quiz.id, questionType: 'TRUE_FALSE', prompt: 'Gravity accelerates objects at 9.8 m/s² on Earth', options: null, correctAnswer: 'true', explanation: 'g = 9.8', points: 1, displayOrder: 1 },
-        { quizId: quiz.id, questionType: 'SHORT_ANSWER', prompt: 'Formula for distance with constant speed v and time t?', options: null, correctAnswer: 'vt', explanation: 'd = vt', points: 2, displayOrder: 2 },
       ]);
     }
   }

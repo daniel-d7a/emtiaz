@@ -7,7 +7,7 @@ import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../../components/ui';
 
 type Question = {
-  questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
+  questionType: 'MCQ' | 'TRUE_FALSE';
   prompt: string;
   options: string[];
   correctAnswer: string;
@@ -327,7 +327,6 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
             >
               <option value="MCQ">MCQ</option>
               <option value="TRUE_FALSE">True/False</option>
-              <option value="SHORT_ANSWER">Short answer</option>
             </select>
             <Input
               value={q.prompt}
@@ -379,17 +378,6 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
                 </button>
               ))}
             </div>
-          )}
-          {q.questionType === 'SHORT_ANSWER' && (
-            <Input
-              label="correct answer"
-              value={q.correctAnswer}
-              onChange={(e) => {
-                const next = [...questions];
-                next[qi] = { ...q, correctAnswer: e.target.value };
-                setQuestions(next);
-              }}
-            />
           )}
           {q.questionType === 'MCQ' && (
             <Input

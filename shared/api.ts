@@ -1,6 +1,6 @@
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
 export type CourseType = 'ACADEMIC' | 'GENERAL';
-export type QuestionType = 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
+export type QuestionType = 'MCQ' | 'TRUE_FALSE';
 export type AttachmentType =
   | 'PDF'
   | 'DOC'

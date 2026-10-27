@@ -133,8 +133,7 @@ export async function seedWorld() {
   const { rows: qRows } = await testPool.query(
     `INSERT INTO quiz_questions (quiz_id, question_type, prompt, options, correct_answer, explanation, points, display_order) VALUES
       ($1,'MCQ','What is S.I unit of speed?', '["km/h","m/s","N","J"]','m/s','speed is m/s',1,0),
-      ($1,'TRUE_FALSE','Gravity accelerates objects at 9.8 m/s2 on Earth', NULL,'true','g=9.8',1,1),
-      ($1,'SHORT_ANSWER','Formula for distance with constant speed v and time t?',NULL,'vt','d=vt',2,2) RETURNING id`,
+      ($1,'TRUE_FALSE','Gravity accelerates objects at 9.8 m/s2 on Earth', NULL,'true','g=9.8',1,1) RETURNING id`,
     [quiz],
   );
 

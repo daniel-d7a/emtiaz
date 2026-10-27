@@ -97,7 +97,7 @@ export const UpdateLessonDto = z
 // ---------- quizzes ----------
 export const QuizQuestionDto = z
   .object({
-    questionType: z.enum(['MCQ', 'TRUE_FALSE', 'SHORT_ANSWER']),
+    questionType: z.enum(['MCQ', 'TRUE_FALSE']),
     prompt: safeText(1000),
     options: z.array(z.string().min(1).max(100)).min(2).optional().nullable(),
     correctAnswer: z.string().min(1).max(200),

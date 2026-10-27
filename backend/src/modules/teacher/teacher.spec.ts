@@ -182,7 +182,7 @@ describe('Phase 4: teacher endpoints', () => {
             options: ['1', '2', '3'],
             correctAnswer: '2',
           },
-          { questionType: 'SHORT_ANSWER', prompt: 'derive y=mx+c', correctAnswer: 'y=mx+c' },
+          { questionType: 'MCQ', prompt: 'y intercept of y=2x+3?', options: ['2','3'], correctAnswer: '3' },
           { questionType: 'TRUE_FALSE', prompt: '2 is prime', correctAnswer: 'true' },
           { questionType: 'MCQ', prompt: '2*3?', options: ['6','7'], correctAnswer: '6', points: 2 },
         ],
@@ -200,7 +200,7 @@ describe('Phase 4: teacher endpoints', () => {
       expect(modQuiz.status).toBe(201);
       const courseQuiz = await t.post(`/api/teacher/courses/${courseId}/quiz`).send({
         title: 'Course final',
-        questions: [{ questionType: 'SHORT_ANSWER', prompt: 'x?', correctAnswer: 'y' }],
+        questions: [{ questionType: 'TRUE_FALSE', prompt: 'x is a variable', correctAnswer: 'true' }],
       });
       expect(courseQuiz.status).toBe(201);
 

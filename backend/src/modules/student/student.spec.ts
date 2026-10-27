@@ -135,13 +135,12 @@ describe('Phase 3: student endpoints', () => {
     const answers: Record<string, string> = {};
     answers[world.questionIds[0]] = 'm/s'; // correct
     answers[world.questionIds[1]] = 'true'; // correct
-    answers[world.questionIds[2]] = 'vt'; // correct (case/whitespace normalized)
     const res = await s1
       .post(`/api/student/quizzes/${world.quiz}/submit`)
       .send({ groupId: world.group1, answers });
     expect(res.status).toBe(201);
-    expect(res.body.maxScore).toBe(4);
-    expect(res.body.score).toBe(4);
+    expect(res.body.maxScore).toBe(2);
+    expect(res.body.score).toBe(2);
     expect(res.body.result.every((r: any) => r.correct)).toBe(true);
 
     const wrong = await s1
@@ -160,7 +159,7 @@ describe('Phase 3: student endpoints', () => {
     const res3 = await s1.get(`/api/student/groups/${world.group1}/grades`);
     expect(res3.status).toBe(200);
     expect(res3.body.quizzes).toHaveLength(1);
-    expect(res3.body.quizzes[0].score).toBe(4);
+    expect(res3.body.quizzes[0].score).toBe(2);
   });
 
   it('serves and grades a module quiz through the group', async () => {
@@ -169,7 +168,7 @@ describe('Phase 3: student endpoints', () => {
       [world.moduleId],
     );
     const { rows: questionRows } = await testPool.query(
-      `INSERT INTO quiz_questions (quiz_id, question_type, prompt, correct_answer, points) VALUES ($1,'SHORT_ANSWER','Capital of Oman?','Muscat',2) RETURNING id`,
+      `INSERT INTO quiz_questions (quiz_id, question_type, prompt, correct_answer, points) VALUES ($1,'TRUE_FALSE','Muscat is the capital of Oman','true',2) RETURNING id`,
       [quizRows[0].id],
     );
     const got = await s1.get(`/api/student/groups/${world.group1}/quizzes/${quizRows[0].id}`);
@@ -178,7 +177,7 @@ describe('Phase 3: student endpoints', () => {
 
     const submitted = await s1
       .post(`/api/student/quizzes/${quizRows[0].id}/submit`)
-      .send({ groupId: world.group1, answers: { [questionRows[0].id]: 'muscat' } });
+      .send({ groupId: world.group1, answers: { [questionRows[0].id]: 'true' } });
     expect(submitted.status).toBe(201);
     expect(submitted.body.score).toBe(2);
 

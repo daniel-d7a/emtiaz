@@ -32,7 +32,7 @@ export const genJoinCode = () =>
 type QuizPayload = {
   title: string;
   questions: Array<{
-    questionType: 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER';
+    questionType: 'MCQ' | 'TRUE_FALSE';
     prompt: string;
     options?: string[] | null;
     correctAnswer: string;
