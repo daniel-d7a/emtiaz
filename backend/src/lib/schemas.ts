@@ -171,6 +171,13 @@ export const UpdateGroupDto = z.object({
     .optional(),
   whatsappMessage: z.string().trim().max(500).nullable().optional(),
 });
+export const SearchStudentsDto = z.object({
+  phone: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/\D/g, ''))
+    .pipe(z.string().min(4).max(20)),
+});
 export const SetLessonAccessDto = z
   .object({
     isUnlocked: z.boolean().optional(),

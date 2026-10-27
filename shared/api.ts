@@ -355,6 +355,12 @@ export type TeacherPacing = {
   quizzes: PacingQuiz[];
 };
 
+export type StudentSearchResult = {
+  id: string;
+  name: string;
+  phoneNumber: string | null;
+};
+
 export type RosterStudent = {
   studentId: string;
   name: string;

@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, BarChart3, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, UserPlus, Users } from 'lucide-react';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
   useReactTable, type ColumnDef, type PaginationState, type SortingState,
@@ -9,10 +9,11 @@ import {
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Select } from '../../components/ui';
+import { Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   Group,
+  StudentSearchResult,
   TeacherGradebook as Gradebook,
   TeacherPacing as Pacing,
   TeacherRoster as Roster,
@@ -471,7 +472,10 @@ export function RosterTab({ groupId }: { groupId: string }) {
   const [okMsg, setOkMsg] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [announceMsg, setAnnounceMsg] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
+  const [moveTarget, setMoveTarget] = useState<{ id: string; name: string } | null>(null);
+  const [moveTo, setMoveTo] = useState('');
   const announce = useMutation({
     mutationFn: () =>
       api<{ sent: number }>(`/api/teacher/groups/${groupId}/announce`, {
@@ -516,6 +520,8 @@ export function RosterTab({ groupId }: { groupId: string }) {
     mutationFn: ({ studentId, toGroupId }: { studentId: string; toGroupId: string }) =>
       api(`/api/teacher/groups/${groupId}/students/${studentId}/move`, { body: { toGroupId } }),
     onSuccess: () => {
+      setMoveTarget(null);
+      setMoveTo('');
       toast.success(t('saved'));
       invalidate();
     },
@@ -603,7 +609,13 @@ export function RosterTab({ groupId }: { groupId: string }) {
         </div>
       </Card>
       <Card>
-        <ul className="flex flex-col divide-y divide-line">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-bold">{t('students')}</h3>
+          <Button className="!min-h-10 !px-3 !text-sm" onClick={() => setAddOpen(true)}>
+            <UserPlus className="inline" size={16} /> {t('addStudent')}
+          </Button>
+        </div>
+        <ul className="mt-3 flex flex-col divide-y divide-line">
           {data.students.map((s) => (
             <li key={s.studentId} className="flex items-center justify-between py-2">
               <span className="font-semibold">
@@ -613,20 +625,22 @@ export function RosterTab({ groupId }: { groupId: string }) {
               </span>
               <span className="flex items-center gap-2 text-xs">
                 {siblingGroups.length > 0 && (
-                  <select
-                    className="rounded border border-line px-2 py-1 text-xs"
-                    defaultValue=""
-                    onChange={(e) => e.target.value && move.mutate({ studentId: s.studentId, toGroupId: e.target.value })}
+                  <IconButton
+                    label={`${t('moveStudent')} ${s.name}`}
+                    onClick={() => {
+                      setMoveTarget({ id: s.studentId, name: s.name });
+                      setMoveTo('');
+                    }}
                   >
-                    <option value="">{t('moveTo')}</option>
-                    {siblingGroups.map((g) => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
+                    <ArrowRightLeft size={14} />
+                  </IconButton>
                 )}
-                <button aria-label={`${t('delete')} ${s.name}`} onClick={() => setRemoveTarget({ id: s.studentId, name: s.name })} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+                <IconButton
+                  label={`${t('revokeAccess')} ${s.name}`}
+                  onClick={() => setRemoveTarget({ id: s.studentId, name: s.name })}
+                >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </span>
             </li>
           ))}
@@ -648,16 +662,148 @@ export function RosterTab({ groupId }: { groupId: string }) {
           {okMsg && <span className="text-sm font-semibold text-primary">{okMsg}</span>}
         </div>
       </Card>
+      <AddStudentDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        groupId={groupId}
+        enrolledIds={new Set(data.students.map((student) => student.studentId))}
+        onEnrolled={invalidate}
+      />
+      <Dialog
+        open={Boolean(moveTarget)}
+        onOpenChange={(next) => !next && setMoveTarget(null)}
+        title={`${t('moveStudent')} ${moveTarget?.name ?? ''}`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setMoveTarget(null)}>{t('cancel')}</Button>
+            <Button
+              disabled={!moveTo || move.isPending}
+              onClick={() =>
+                moveTarget && move.mutate({ studentId: moveTarget.id, toGroupId: moveTo })
+              }
+            >
+              {t('save')}
+            </Button>
+          </>
+        }
+      >
+        <Select label={t('moveTo')} value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+          <option value="">—</option>
+          {siblingGroups.map((group) => (
+            <option key={group.id} value={group.id}>{group.name}</option>
+          ))}
+        </Select>
+        {move.error && <div className="mt-3"><ErrorBox error={move.error} /></div>}
+      </Dialog>
       <ConfirmDialog
         open={Boolean(removeTarget)}
         onOpenChange={(next) => !next && setRemoveTarget(null)}
-        title={`${t('delete')} ${removeTarget?.name ?? ''}?`}
-        confirmLabel={t('delete')}
+        title={`${t('revokeAccess')} ${removeTarget?.name ?? ''}?`}
+        description={t('revokeAccessHint')}
+        confirmLabel={t('revokeAccess')}
         cancelLabel={t('cancel')}
         destructive
         onConfirm={() => removeTarget && remove.mutate(removeTarget.id)}
       />
     </div>
+  );
+}
+
+function AddStudentDialog({
+  open, onOpenChange, groupId, enrolledIds, onEnrolled,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  groupId: string;
+  enrolledIds: Set<string>;
+  onEnrolled: () => void;
+}) {
+  const { t } = useLang();
+  const [phone, setPhone] = useState('');
+  const [debounced, setDebounced] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(phone.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [phone]);
+
+  useEffect(() => {
+    if (open) return;
+    setPhone('');
+    setDebounced('');
+  }, [open]);
+
+  const digits = debounced.replace(/\D/g, '');
+  const search = useQuery({
+    queryKey: ['teacher-student-search', debounced],
+    queryFn: () =>
+      api<StudentSearchResult[]>(
+        `/api/teacher/students/search?phone=${encodeURIComponent(debounced)}`,
+      ),
+    enabled: open && digits.length >= 4,
+  });
+  const add = useMutation({
+    mutationFn: (student: StudentSearchResult) =>
+      api(`/api/teacher/groups/${groupId}/roster/bulk`, {
+        body: {
+          students: [{ name: student.name, phoneNumber: student.phoneNumber ?? '' }],
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      onEnrolled();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('addStudent')}
+      footer={<Button variant="ghost" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>}
+    >
+      <Input
+        label={t('searchByPhone')}
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        dir="ltr"
+        inputMode="tel"
+        placeholder="+968 9xxx xxxx"
+        autoFocus
+      />
+      {digits.length < 4 ? (
+        <p className="mt-3 text-sm text-ink-soft">{t('phoneSearchHint')}</p>
+      ) : search.isLoading ? (
+        <div className="mt-3"><Loading /></div>
+      ) : search.error ? (
+        <div className="mt-3"><ErrorBox error={search.error} /></div>
+      ) : !search.data?.length ? (
+        <p className="mt-3 text-sm text-ink-soft">{t('noResults')}</p>
+      ) : (
+        <ul className="mt-3 flex flex-col divide-y divide-line">
+          {search.data.map((student) => {
+            const enrolled = enrolledIds.has(student.id);
+            return (
+              <li key={student.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{student.name}</span>
+                  <span dir="ltr" className="block text-sm text-ink-soft">{student.phoneNumber}</span>
+                </span>
+                <Button
+                  variant="ghost"
+                  className="!min-h-9 shrink-0 !px-3 !text-sm"
+                  disabled={enrolled || add.isPending}
+                  onClick={() => add.mutate(student)}
+                >
+                  {enrolled ? t('enrolled') : t('add')}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Dialog>
   );
 }
 

@@ -413,6 +413,26 @@ describe('Phase 4: teacher endpoints', () => {
       expect(res.body.students.some((x: any) => x.studentId === s1.id)).toBe(true);
     });
 
+    it('searches students by partial phone and rejects short terms', async () => {
+      const res = await t.get('/api/teacher/students/search').query({ phone: '+968 9000 0002' });
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0]).toMatchObject({
+        id: world.s1.id,
+        name: STUDENT1.name,
+        phoneNumber: STUDENT1.phoneNumber,
+      });
+
+      const short = await t.get('/api/teacher/students/search').query({ phone: '900' });
+      expect(short.status).toBe(400);
+
+      const student = await login(server, STUDENT1.email, STUDENT1.password);
+      const forbidden = await student.session
+        .get('/api/teacher/students/search')
+        .query({ phone: '90000002' });
+      expect(forbidden.status).toBe(403);
+    });
+
     it('bulk adds students by phone, creating users whose later login works', async () => {
       const res = await t
         .post(`/api/teacher/groups/${newGroupId}/roster/bulk`)

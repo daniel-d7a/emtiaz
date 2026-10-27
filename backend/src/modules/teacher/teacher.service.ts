@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, eq, ilike, inArray, ne, or } from 'drizzle-orm';
+import { and, asc, count, countDistinct, eq, ilike, inArray, isNull, ne, or } from 'drizzle-orm';
 import { db } from '../../db';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -1017,6 +1017,26 @@ export class TeacherService {
       ...parentIds.map((id) => this.notifications.sendInApp(id, text, 'PARENT')),
     ]);
     return { sent: studentIds.length + parentIds.length };
+  }
+
+  async searchStudents(phone: string) {
+    return db
+      .select({
+        id: users.id,
+        name: users.name,
+        phoneNumber: users.phoneNumber,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'STUDENT'),
+          eq(users.isActive, true),
+          isNull(users.deletedAt),
+          ilike(users.phoneNumber, `%${phone}%`),
+        ),
+      )
+      .orderBy(asc(users.name))
+      .limit(10);
   }
 
   async bulkAddStudents(

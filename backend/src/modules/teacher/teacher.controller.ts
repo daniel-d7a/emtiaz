@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -25,6 +26,7 @@ import {
   GradeCellDto,
   IdListDto,
   ReorderModuleItemsDto,
+  SearchStudentsDto,
   SetLessonAccessDto,
   ToGroupDto,
   UpdateCourseDto,
@@ -243,6 +245,15 @@ export class TeacherController {
     dto: { isHidden: boolean },
   ) {
     return this.teachers.setQuizVisibility(req.user!, groupId, quizId, dto.isHidden);
+  }
+
+  @Get('api/teacher/students/search')
+  @Roles('TEACHER')
+  searchStudents(
+    @Query(new ZodBodyPipe(SearchStudentsDto))
+    dto: z.infer<typeof SearchStudentsDto>,
+  ) {
+    return this.teachers.searchStudents(dto.phone);
   }
 
   @Get('api/teacher/groups/:groupId/roster')
