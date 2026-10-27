@@ -25,8 +25,9 @@ export async function api<T = any>(
 }
 
 export const authApi = {
-  session: (): Promise<Session> => fetch(`${BASE}/api/auth/get-session`, { credentials: 'include' })
-    .then((r) => (r.ok ? r.json() : null)),
+  session: (): Promise<Session> =>
+    fetch(`${BASE}/api/auth/get-session`, { credentials: 'include', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null)),
   login: (email: string, password: string) =>
     api('/api/auth/sign-in/email', { body: { email, password } }),
   logout: () => api('/api/auth/sign-out', { body: {} }),

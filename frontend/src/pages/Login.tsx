@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearch, createRoute } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../lib/api';
+import { sessionQuery } from '../lib/session';
 import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input } from '../components/ui';
 
@@ -31,6 +32,7 @@ export default function Login() {
     try {
       const res = await authApi.login(email, password);
       qc.clear();
+      qc.setQueryData(sessionQuery.queryKey, { user: res.user });
       go(res.user.role);
     } catch (e) {
       setError(e as Error);

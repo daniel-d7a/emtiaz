@@ -4,7 +4,7 @@ import { GraduationCap, LogOut } from 'lucide-react';
 import { authApi } from '../lib/api';
 import { NotificationBell } from '../components/NotificationBell';
 import { useLang } from '../lib/i18n';
-import { useSession } from '../lib/session';
+import { sessionQuery, useSession } from '../lib/session';
 
 function TopBar() {
   const { t, lang, setLang } = useLang();
@@ -42,6 +42,7 @@ function TopBar() {
             onClick={async () => {
               await authApi.logout();
               qc.clear();
+              qc.setQueryData(sessionQuery.queryKey, null);
               navigate({ to: '/login' });
             }}
             className="flex items-center gap-1 rounded-lg px-3 py-2 hover:bg-line/60"
@@ -52,7 +53,7 @@ function TopBar() {
         {data?.user && data.user.role !== 'ADMIN' && (
           <Link to="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 font-semibold hover:bg-line/60" title={t('name')}>
             {data.user.image ? (
-              <img src="/api/me/avatar" alt="" className="h-7 w-7 rounded-full border border-line object-cover" />
+              <img src={`/api/me/avatar?v=${encodeURIComponent(data.user.image)}`} alt="" className="h-7 w-7 rounded-full border border-line object-cover" />
             ) : null}
             {data.user.name.split(' ')[0]}
           </Link>
