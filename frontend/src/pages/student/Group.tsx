@@ -214,7 +214,7 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
     queryFn: () =>
       quizId
         ? api<QuizPayload>(`/api/student/groups/${groupId}/quizzes/${quizId}`)
-        : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`),
+        : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz?groupId=${groupId}`),
     enabled: !!(quizId || lessonId),
   });
 

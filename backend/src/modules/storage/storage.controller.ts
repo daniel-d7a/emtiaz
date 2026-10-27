@@ -226,7 +226,15 @@ export class StorageController {
           inArray(groupLessonAccess.groupId, relevant.map((e) => e.group.id)),
         ),
       );
-    const unlocked = relevant.some(
+    const visible = relevant.filter(
+      (enrollment) =>
+        !overrides.find(
+          (override) =>
+            override.groupId === enrollment.group.id && override.isHidden,
+        ),
+    );
+    if (!visible.length) throw new ForbiddenException('Lesson is hidden for your group');
+    const unlocked = visible.some(
       (e) =>
         overrides.find((o) => o.groupId === e.group.id)?.isUnlocked ??
         e.group.unlockAllByDefault,

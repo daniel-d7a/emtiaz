@@ -24,10 +24,12 @@ import {
   CreateCourseDto,
   GradeCellDto,
   IdListDto,
+  ReorderModuleItemsDto,
+  SetLessonAccessDto,
   ToGroupDto,
   UpdateCourseDto,
+  UpdateGroupDto,
   UpdateLessonDto,
-  ReorderModuleItemsDto,
   UpdateModuleDto,
   UpsertQuizDto,
 } from '../../lib/schemas';
@@ -202,6 +204,17 @@ export class TeacherController {
     return this.teachers.addGroup(req.user!, courseId, dto.name);
   }
 
+  @Patch('api/teacher/groups/:groupId')
+  @Roles('TEACHER')
+  updateGroup(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Body(new ZodBodyPipe(UpdateGroupDto))
+    dto: z.infer<typeof UpdateGroupDto>,
+  ) {
+    return this.teachers.updateGroup(req.user!, groupId, dto);
+  }
+
   @Get('api/teacher/groups/:groupId/pacing')
   @Roles('TEACHER')
   pacing(@Req() req: Request, @Param('groupId') groupId: string) {
@@ -214,15 +227,22 @@ export class TeacherController {
     @Req() req: Request,
     @Param('groupId') groupId: string,
     @Param('lessonId') lessonId: string,
-    @Body(new ZodBodyPipe(z.object({ isUnlocked: z.boolean() })))
-    dto: { isUnlocked: boolean },
+    @Body(new ZodBodyPipe(SetLessonAccessDto))
+    dto: z.infer<typeof SetLessonAccessDto>,
   ) {
-    return this.teachers.setLessonAccess(
-      req.user!,
-      groupId,
-      lessonId,
-      dto.isUnlocked,
-    );
+    return this.teachers.setLessonAccess(req.user!, groupId, lessonId, dto);
+  }
+
+  @Patch('api/teacher/groups/:groupId/quizzes/:quizId/visibility')
+  @Roles('TEACHER')
+  setQuizVisibility(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('quizId') quizId: string,
+    @Body(new ZodBodyPipe(z.object({ isHidden: z.boolean() })))
+    dto: { isHidden: boolean },
+  ) {
+    return this.teachers.setQuizVisibility(req.user!, groupId, quizId, dto.isHidden);
   }
 
   @Get('api/teacher/groups/:groupId/roster')

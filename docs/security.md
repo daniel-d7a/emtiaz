@@ -64,6 +64,10 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 - Lesson access requires enrollment in that course and an unlocked lesson for
   at least one of the student's groups. `group_lesson_access` overrides the
   group's `unlock_all_by_default`.
+- A hidden lesson is absent from curriculum, lesson views, completion writes,
+  and progress totals. A hidden quiz is absent from curriculum and rejected by
+  direct reads and submissions for that group; `group_quiz_access` stores only
+  per-group visibility, never quiz content.
 - Lesson completion is an upsert only after the enrollment + unlock check.
   Uncompleting is allowed for the student's own completion row.
 - Direct quiz reads resolve the quiz's course (lesson, module, or course quiz),
@@ -83,8 +87,8 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 - Parents are read-only and must have a `parent_students` row. They cannot call
   student write endpoints, curriculum, lessons, quizzes, or attachments. Child
   attendance and delivered reports are returned only for linked students.
-- Student progress is computed from unlocked lessons only, so locking a lesson
-  cannot produce progress above 100%.
+- Student progress is computed from visible, unlocked lessons only, so locking
+  or hiding a lesson cannot produce progress above 100%.
 
 ## Storage
 

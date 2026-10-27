@@ -10,6 +10,7 @@ import {
   categories,
   courses,
   groupLessonAccess,
+  groupQuizAccess,
   groupStudents,
   groups,
   lessonAttachments,
@@ -91,7 +92,15 @@ export class StudentService {
           inArray(groupLessonAccess.groupId, relevant.map((e) => e.group.id)),
         ),
       );
-    return relevant.some(
+    const visible = relevant.filter(
+      (enrollment) =>
+        !overrides.find(
+          (override) =>
+            override.groupId === enrollment.group.id && override.isHidden,
+        ),
+    );
+    if (!visible.length) throw new ForbiddenException('Lesson is hidden for your group');
+    return visible.some(
       (e) =>
         overrides.find((o) => o.groupId === e.group.id)?.isUnlocked ??
         e.group.unlockAllByDefault,
@@ -151,7 +160,16 @@ export class StudentService {
       );
 
     return enrolled.map((r) => {
-      const courseLessons = lessonRows.filter((l) => l.courseId === r.course.id);
+      const courseLessons = lessonRows.filter(
+        (lesson) =>
+          lesson.courseId === r.course.id &&
+          !accessRows.some(
+            (access) =>
+              access.groupId === r.group.id &&
+              access.lessonId === lesson.lessonId &&
+              access.isHidden,
+          ),
+      );
       const isUnlocked = (lessonId: string) => {
         const row = accessRows.find(
           (a) => a.groupId === r.group.id && a.lessonId === lessonId,
@@ -257,8 +275,24 @@ export class StudentService {
       .select()
       .from(groupLessonAccess)
       .where(eq(groupLessonAccess.groupId, groupId));
+    const hiddenQuizRows = await db
+      .select({ quizId: groupQuizAccess.quizId })
+      .from(groupQuizAccess)
+      .where(
+        and(
+          eq(groupQuizAccess.groupId, groupId),
+          eq(groupQuizAccess.isHidden, true),
+        ),
+      );
+    const hiddenQuizIds = new Set(hiddenQuizRows.map((row) => row.quizId));
+    const visibleLessons = allLessons.filter(
+      (lesson) =>
+        !accessRows.some(
+          (access) => access.lessonId === lesson.id && access.isHidden,
+        ),
+    );
 
-    const lessonIds = allLessons.map((l) => l.id);
+    const lessonIds = visibleLessons.map((l) => l.id);
     const attachments = lessonIds.length
       ? await db
           .select()
@@ -298,7 +332,9 @@ export class StudentService {
       attemptRows
         .filter((a) => quizId && a.quizId === quizId)
         .sort((a, b) => b.score - a.score)[0] ?? null;
-    const courseQuiz = quizRows.find((q) => q.courseId === group.courseId);
+    const courseQuiz = quizRows.find(
+      (q) => q.courseId === group.courseId && !hiddenQuizIds.has(q.id),
+    );
     const [course] = await db
       .select()
       .from(courses)
@@ -325,16 +361,20 @@ export class StudentService {
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
       quiz: courseQuiz ? { ...courseQuiz, bestAttempt: bestFor(courseQuiz.id) } : null,
       modules: mods.map((m) => {
-        const moduleQuiz = quizRows.find((q) => q.moduleId === m.id);
+        const moduleQuiz = quizRows.find(
+          (q) => q.moduleId === m.id && !hiddenQuizIds.has(q.id),
+        );
         return {
           ...m,
           quiz: moduleQuiz
             ? { ...moduleQuiz, bestAttempt: bestFor(moduleQuiz.id) }
             : null,
-          lessons: allLessons
+          lessons: visibleLessons
             .filter((l) => l.moduleId === m.id)
             .map((l) => {
-              const quiz = quizRows.find((q) => q.lessonId === l.id);
+              const quiz = quizRows.find(
+                (q) => q.lessonId === l.id && !hiddenQuizIds.has(q.id),
+              );
               return {
                 ...l,
                 unlocked: isUnlocked(l.id),
@@ -413,23 +453,26 @@ export class StudentService {
     };
   }
 
-  async getQuizByLesson(studentId: string, lessonId: string) {
+  async getQuizByLesson(studentId: string, lessonId: string, groupId?: string) {
     const { enrollments } = await this.lessonEnrollments(studentId, lessonId);
-    if (!(await this.lessonUnlocked(enrollments, lessonId))) {
+    if (!(await this.lessonUnlocked(enrollments, lessonId, groupId))) {
       throw new ForbiddenException('Lesson is locked for your group');
     }
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId));
     if (!quiz) return { quiz: null };
-    return this.getQuiz(studentId, quiz.id);
+    return this.getQuiz(studentId, quiz.id, groupId);
   }
 
-  async getQuiz(studentId: string, quizId: string) {
+  async getQuiz(studentId: string, quizId: string, groupId?: string) {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
-    await this.assertQuizAccess(studentId, quiz);
+    const enrollments = await this.assertQuizAccess(studentId, quiz, groupId);
+    if (await this.quizHidden(quizId, enrollments, groupId)) {
+      throw new ForbiddenException('Quiz is hidden for your group');
+    }
     if (quiz.lessonId) {
       const { enrollments } = await this.lessonEnrollments(studentId, quiz.lessonId);
-      if (!(await this.lessonUnlocked(enrollments, quiz.lessonId))) {
+      if (!(await this.lessonUnlocked(enrollments, quiz.lessonId, groupId))) {
         throw new ForbiddenException('Lesson is locked for your group');
       }
     }
@@ -471,6 +514,18 @@ export class StudentService {
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
     await this.assertQuizInGroupCourse(quiz, groupId);
+    const [hidden] = await db
+      .select({ id: groupQuizAccess.id })
+      .from(groupQuizAccess)
+      .where(
+        and(
+          eq(groupQuizAccess.groupId, groupId),
+          eq(groupQuizAccess.quizId, quizId),
+          eq(groupQuizAccess.isHidden, true),
+        ),
+      )
+      .limit(1);
+    if (hidden) throw new ForbiddenException('Quiz is hidden for your group');
     if (quiz.lessonId) {
       const { enrollments } = await this.lessonEnrollments(studentId, quiz.lessonId);
       if (!(await this.lessonUnlocked(enrollments, quiz.lessonId, groupId))) {
@@ -519,6 +574,7 @@ export class StudentService {
   private async assertQuizAccess(
     studentId: string,
     quiz: typeof quizzes.$inferSelect,
+    groupId?: string,
   ) {
     let courseId = quiz.courseId;
     if (quiz.moduleId) {
@@ -543,12 +599,42 @@ export class StudentService {
         ),
       );
     if (!enrollments.length) throw new ForbiddenException('Not enrolled in this course');
+    if (groupId && !enrollments.some((row) => row.group.id === groupId)) {
+      throw new ForbiddenException('Not enrolled in this group');
+    }
     if (
       quiz.lessonId &&
-      !(await this.lessonUnlocked(enrollments, quiz.lessonId))
+      !(await this.lessonUnlocked(enrollments, quiz.lessonId, groupId))
     ) {
       throw new ForbiddenException('Lesson is locked for your group');
     }
+    return enrollments;
+  }
+
+  private async quizHidden(
+    quizId: string,
+    enrollments: Array<{ group: typeof groups.$inferSelect }>,
+    groupId?: string,
+  ) {
+    const relevant = groupId
+      ? enrollments.filter((row) => row.group.id === groupId)
+      : enrollments;
+    if (!relevant.length) return true;
+    const rows = await db
+      .select()
+      .from(groupQuizAccess)
+      .where(
+        and(
+          eq(groupQuizAccess.quizId, quizId),
+          inArray(groupQuizAccess.groupId, relevant.map((row) => row.group.id)),
+        ),
+      );
+    if (groupId) {
+      return rows.some((row) => row.groupId === groupId && row.isHidden);
+    }
+    return relevant.every((row) =>
+      rows.some((access) => access.groupId === row.group.id && access.isHidden),
+    );
   }
 
   private async assertQuizInGroupCourse(
@@ -584,7 +670,7 @@ export class StudentService {
         throw new ForbiddenException('Lesson is locked for your group');
       }
     }
-    const payload = await this.getQuiz(studentId, quizId);
+    const payload = await this.getQuiz(studentId, quizId, groupId);
     const attempt = await this.attemptResult(studentId, groupId, quizId);
     return { ...payload, attempt };
   }
@@ -651,6 +737,16 @@ export class StudentService {
         and(eq(quizAttempts.studentId, studentId), eq(quizAttempts.groupId, groupId)),
       );
 
+    const hiddenQuizRows = await db
+      .select({ quizId: groupQuizAccess.quizId })
+      .from(groupQuizAccess)
+      .where(
+        and(
+          eq(groupQuizAccess.groupId, groupId),
+          eq(groupQuizAccess.isHidden, true),
+        ),
+      );
+    const hiddenQuizIds = new Set(hiddenQuizRows.map((row) => row.quizId));
     const cols = await db
       .select()
       .from(manualGradeColumns)
@@ -663,7 +759,7 @@ export class StudentService {
 
     return {
       quizzes: Object.values(
-        attempts.reduce<Record<string, any>>((acc, r) => {
+        attempts.filter((row) => !hiddenQuizIds.has(row.quizId)).reduce<Record<string, any>>((acc, r) => {
           if (!acc[r.quizId] || acc[r.quizId].score < r.score) {
             acc[r.quizId] = {
               quizId: r.quizId,

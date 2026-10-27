@@ -172,6 +172,8 @@ export const groups = pgTable('groups', {
   name: text('name').notNull(), // e.g., "Sun/Tue 4PM Batch"
   joinCode: text('join_code').notNull().unique(), // e.g., "OM4829"
   days: text('days'),
+  time: text('time'),
+  whatsappMessage: text('whatsapp_message'),
   unlockAllByDefault: boolean('unlock_all_by_default').notNull().default(true),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -209,6 +211,7 @@ export const groupLessonAccess = pgTable(
       .notNull()
       .references(() => lessons.id, { onDelete: 'cascade' }),
     isUnlocked: boolean('is_unlocked').notNull().default(true),
+    isHidden: boolean('is_hidden').notNull().default(false),
   },
   (table) => ({
     uniqueGroupLesson: uniqueIndex('unique_group_lesson_idx').on(
@@ -216,6 +219,27 @@ export const groupLessonAccess = pgTable(
       table.lessonId,
     ),
     lessonIdx: index('group_lesson_lesson_idx').on(table.lessonId),
+  }),
+);
+
+export const groupQuizAccess = pgTable(
+  'group_quiz_access',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    quizId: uuid('quiz_id')
+      .notNull()
+      .references(() => quizzes.id, { onDelete: 'cascade' }),
+    isHidden: boolean('is_hidden').notNull().default(false),
+  },
+  (table) => ({
+    uniqueGroupQuiz: uniqueIndex('unique_group_quiz_idx').on(
+      table.groupId,
+      table.quizId,
+    ),
+    quizIdx: index('group_quiz_quiz_idx').on(table.quizId),
   }),
 );
 

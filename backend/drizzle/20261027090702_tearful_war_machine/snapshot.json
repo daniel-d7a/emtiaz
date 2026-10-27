@@ -1,0 +1,402 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "4514f29e-aec2-4d42-8fdd-d48d862eccf6",
+  "prevIds": [
+    "a557c675-caa8-492f-9a4a-b5f1c070075a"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_quiz_access"
+      ],
+      "writes": [
+        "s|tbl|public.group_quiz_access",
+        "n|tbl|public.group_quiz_access",
+        "e|tbl|public.group_quiz_access",
+        "n|rel|public.group_quiz_access",
+        "n|type|public.group_quiz_access",
+        "n|rel|public.group_quiz_access_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "group_lesson_access",
+        "is_hidden"
+      ],
+      "writes": [
+        "s|col|public.group_lesson_access.is_hidden",
+        "n|col|public.group_lesson_access.is_hidden",
+        "e|col|public.group_lesson_access.is_hidden"
+      ],
+      "reads": [
+        "n|tbl|public.group_lesson_access",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "groups",
+        "time"
+      ],
+      "writes": [
+        "s|col|public.groups.time",
+        "n|col|public.groups.time",
+        "e|col|public.groups.time"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "groups",
+        "whatsapp_message"
+      ],
+      "writes": [
+        "s|col|public.groups.whatsapp_message",
+        "n|col|public.groups.whatsapp_message",
+        "e|col|public.groups.whatsapp_message"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_quiz_access",
+        "unique_group_quiz_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_group_quiz_idx",
+        "n|idx|public.unique_group_quiz_idx",
+        "e|idx|public.unique_group_quiz_idx",
+        "n|rel|public.unique_group_quiz_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_quiz_access",
+        "n|sch|public",
+        "n|col|public.group_quiz_access.group_id",
+        "n|col|public.group_quiz_access.quiz_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_quiz_access",
+        "group_quiz_quiz_idx"
+      ],
+      "writes": [
+        "s|idx|public.group_quiz_quiz_idx",
+        "n|idx|public.group_quiz_quiz_idx",
+        "e|idx|public.group_quiz_quiz_idx",
+        "n|rel|public.group_quiz_quiz_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_quiz_access",
+        "n|sch|public",
+        "n|col|public.group_quiz_access.quiz_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_quiz_access"
+      ],
+      "writes": [
+        "s|fk|public.group_quiz_access.group_quiz_access_group_id_groups_id_fkey",
+        "n|fk|public.group_quiz_access.group_quiz_access_group_id_groups_id_fkey",
+        "e|fk|public.group_quiz_access.group_quiz_access_group_id_groups_id_fkey",
+        "n|con|public.group_quiz_access.group_quiz_access_group_id_groups_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_quiz_access",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.group_quiz_access.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_quiz_access"
+      ],
+      "writes": [
+        "s|fk|public.group_quiz_access.group_quiz_access_quiz_id_quizzes_id_fkey",
+        "n|fk|public.group_quiz_access.group_quiz_access_quiz_id_quizzes_id_fkey",
+        "e|fk|public.group_quiz_access.group_quiz_access_quiz_id_quizzes_id_fkey",
+        "n|con|public.group_quiz_access.group_quiz_access_quiz_id_quizzes_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_quiz_access",
+        "n|sch|public",
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "n|col|public.group_quiz_access.quiz_id",
+        "n|col|public.quizzes.id",
+        "e|uniqueness|public.quizzes.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "group_quiz_access",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_lesson_access",
+        "name": "is_hidden",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "group_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "quiz_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "is_hidden",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "groups",
+        "name": "time",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "groups",
+        "name": "whatsapp_message",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "unique_group_quiz_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "quiz_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "group_quiz_quiz_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "quiz_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "group_quiz_access_group_id_groups_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "group_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "groups",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "group_quiz_access_quiz_id_quizzes_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "quiz_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "quizzes",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_quiz_access",
+        "name": "group_quiz_access_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

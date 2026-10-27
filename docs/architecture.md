@@ -41,7 +41,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 |---|---|
 | `onboarding` | Role signup, `GET/PATCH /api/me`, avatar URL, categories, health |
 | `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades, parent-code rotation |
-| `teacher` | Home stats, course/module/lesson CRUD, quizzes, groups (with days), pacing, roster, announcements, gradebook |
+| `teacher` | Home stats, course/module/lesson CRUD, quizzes, group settings/pacing/visibility, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
 | `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
@@ -63,10 +63,12 @@ row. Role-specific fields live on the same row (`landing_*` for teachers,
 Core relationships:
 
 - `courses.teacher_id → user.id`
-- `groups.course_id → courses.id`; `groups.days` holds the display schedule
+- `groups.course_id → courses.id`; `groups` holds the display schedule
+  (`days`, `time`), join code, status, and WhatsApp join message
 - `group_students(group_id, student_id)` — enrollment, unique pair
-- `group_lesson_access(group_id, lesson_id, is_unlocked)` — per-group pacing;
-  absence falls back to `groups.unlock_all_by_default`
+- `group_lesson_access(group_id, lesson_id, is_unlocked, is_hidden)` — per-group
+  pacing and visibility; absence falls back to `groups.unlock_all_by_default`
+- `group_quiz_access(group_id, quiz_id, is_hidden)` — per-group quiz visibility
 - `parent_students(parent_id, student_id)` — many-to-many, unique pair
 - `lesson_attachments.lesson_id`, optional `group_id` for group-only files
 - `quizzes` target exactly one of lesson, module, or course

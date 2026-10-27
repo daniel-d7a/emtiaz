@@ -50,8 +50,12 @@ export class StudentController {
 
   @Get('api/student/lessons/:lessonId/quiz')
   @Roles('STUDENT')
-  quizByLesson(@Req() req: Request, @Param('lessonId') lessonId: string) {
-    return this.students.getQuizByLesson(req.user!.id, lessonId);
+  quizByLesson(
+    @Req() req: Request,
+    @Param('lessonId') lessonId: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.students.getQuizByLesson(req.user!.id, lessonId, groupId);
   }
 
   @Get('api/student/lessons/:lessonId/view')
@@ -66,8 +70,12 @@ export class StudentController {
 
   @Get('api/student/quizzes/:quizId')
   @Roles('STUDENT')
-  quiz(@Req() req: Request, @Param('quizId') quizId: string) {
-    return this.students.getQuiz(req.user!.id, quizId);
+  quiz(
+    @Req() req: Request,
+    @Param('quizId') quizId: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.students.getQuiz(req.user!.id, quizId, groupId);
   }
 
   @Get('api/student/groups/:groupId/quizzes/:quizId')

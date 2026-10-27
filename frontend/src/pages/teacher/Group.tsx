@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { createRoute, useParams } from '@tanstack/react-router';
+import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ArrowUpDown, Copy, Download, Lock, MessageCircle, Plus, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, Users } from 'lucide-react';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
   useReactTable, type ColumnDef, type PaginationState, type SortingState,
@@ -9,31 +9,66 @@ import {
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page } from '../../components/ui';
+import { Button, Card, ConfirmDialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
+  Group,
   TeacherGradebook as Gradebook,
   TeacherPacing as Pacing,
   TeacherRoster as Roster,
 } from '../../../../shared/api';
 
+export type GroupTab = 'pacing' | 'gradebook' | 'roster' | 'stats' | 'settings';
+const GROUP_TABS: GroupTab[] = ['pacing', 'gradebook', 'roster', 'stats', 'settings'];
+
 export default function TeacherGroup() {
   const { groupId } = useParams({ from: '/teacher/groups/$groupId' });
+  const { tab: searchTab } = useSearch({ from: '/teacher/groups/$groupId' });
+  const tab = searchTab ?? 'pacing';
   const { t } = useLang();
-  const [tab, setTab] = useState<'pacing' | 'gradebook' | 'roster'>('pacing');
+  const navigate = useNavigate();
+  const pacing = useQuery(pacingQuery(groupId));
 
   return (
-    <Page title={t('pacing')}>
-      <div className="mb-5 flex flex-wrap gap-2">
-        {(['pacing', 'gradebook', 'roster'] as const).map((k) => (
-          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 text-sm ${tab === k ? 'bg-primary text-white' : 'border border-line'}`}>
-            {k === 'pacing' ? t('pacing') : k === 'gradebook' ? t('gradebook') : t('roster')}
+    <Page title={pacing.data?.group.name ?? t('groups')}>
+      <div role="tablist" aria-label={t('groups')} className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1">
+        {GROUP_TABS.map((key) => (
+          <button
+            key={key}
+            role="tab"
+            id={`group-tab-${key}`}
+            aria-selected={tab === key}
+            aria-controls={`group-panel-${key}`}
+            onClick={() =>
+              navigate({
+                to: '/teacher/groups/$groupId',
+                params: { groupId },
+                search: { tab: key },
+              })
+            }
+            className={`min-h-10 shrink-0 rounded-lg px-3 py-2 text-sm font-semibold ${
+              tab === key ? 'bg-primary text-white' : 'text-ink-soft hover:bg-primary-light'
+            }`}
+          >
+            {key === 'pacing'
+              ? t('pacing')
+              : key === 'gradebook'
+                ? t('gradebook')
+                : key === 'roster'
+                  ? t('roster')
+                  : key === 'stats'
+                    ? t('stats')
+                    : t('settings')}
           </button>
         ))}
       </div>
-      {tab === 'pacing' && <PacingTab groupId={groupId} />}
-      {tab === 'gradebook' && <GradebookTab groupId={groupId} />}
-      {tab === 'roster' && <RosterTab groupId={groupId} />}
+      <div role="tabpanel" id={`group-panel-${tab}`} aria-labelledby={`group-tab-${tab}`}>
+        {tab === 'pacing' && <PacingTab groupId={groupId} />}
+        {tab === 'gradebook' && <GradebookTab groupId={groupId} />}
+        {tab === 'roster' && <RosterTab groupId={groupId} />}
+        {tab === 'stats' && <StatsTab />}
+        {tab === 'settings' && <SettingsTab groupId={groupId} />}
+      </div>
     </Page>
   );
 }
@@ -44,60 +79,162 @@ export function PacingTab({ groupId }: { groupId: string }) {
   const { data, isLoading, error } = useQuery(pacingQuery(groupId));
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['pacing', groupId] });
   const setAccess = useMutation({
-    mutationFn: ({ lessonId, isUnlocked }: { lessonId: string; isUnlocked: boolean }) =>
-      api(`/api/teacher/groups/${groupId}/lessons/${lessonId}/access`, { body: { isUnlocked } }),
+    mutationFn: ({ lessonId, ...body }: { lessonId: string; isUnlocked?: boolean; isHidden?: boolean }) =>
+      api(`/api/teacher/groups/${groupId}/lessons/${lessonId}/access`, { body }),
     onSuccess: () => {
       toast.success(t('saved'));
       invalidate();
     },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const setQuizHidden = useMutation({
+    mutationFn: ({ quizId, isHidden }: { quizId: string; isHidden: boolean }) =>
+      api(`/api/teacher/groups/${groupId}/quizzes/${quizId}/visibility`, { body: { isHidden } }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const flipAll = useMutation({
+    mutationFn: (isUnlocked: boolean) =>
+      Promise.all(
+        (data?.lessons ?? [])
+          .filter((lesson) => lesson.unlocked !== isUnlocked)
+          .map((lesson) =>
+            api(`/api/teacher/groups/${groupId}/lessons/${lesson.id}/access`, {
+              body: { isUnlocked },
+            }),
+          ),
+      ),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} />;
   if (!data) return null;
 
-  const flipAll = (unlock: boolean) =>
-    Promise.all(
-      data.lessons
-        .filter((l) => l.unlocked !== unlock)
-        .map((l) => api(`/api/teacher/groups/${groupId}/lessons/${l.id}/access`, { body: { isUnlocked: unlock } })),
-    ).then(invalidate).catch((e: unknown) => toast.error((e as Error).message || t('errorOccurred')));
+  const copy = (value: string) =>
+    navigator.clipboard.writeText(value).then(
+      () => toast.success(t('copied')),
+      () => toast.error(t('errorOccurred')),
+    );
+  const joinUrl = `${window.location.origin}/join/${data.group.joinCode}`;
+  const scopeLabel = (scope: 'course' | 'module' | 'lesson') =>
+    scope === 'course' ? t('finalQuiz') : scope === 'module' ? t('modules') : t('lessons');
 
   return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between text-sm">
-        <span className="font-semibold">{t('joinCode')}:</span>
-        <span dir="ltr" className="flex items-center gap-2 rounded bg-background px-2 py-1 font-bold">
-          {data.group.joinCode}
-          <Copy
-            size={14}
-            className="cursor-pointer"
-            onClick={() => navigator.clipboard.writeText(`https://emtiaz.om/join?code=${data.group.joinCode}`).catch(() => {})}
-          />
-        </span>
-      </div>
-      <div className="mb-2 flex gap-2">
-        <button onClick={() => flipAll(true)} className="rounded-lg bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark">{t('releaseAll')}</button>
-        <button onClick={() => flipAll(false)} className="rounded-lg border border-line px-3 py-1 text-xs font-bold text-ink-soft">{t('lockAll')}</button>
-      </div>
-      <ul className="flex flex-col divide-y divide-line">
-        {data.lessons.map((l) => (
-          <li key={l.id} className="flex items-center justify-between py-2">
-            <span className="font-semibold">
-              {l.title}
-              {l.overridden && <span className="ms-2 rounded bg-secondary-light px-1.5 text-xs text-secondary">{t('released')}</span>}
-            </span>
-            <button
-              onClick={() => setAccess.mutate({ lessonId: l.id, isUnlocked: !l.unlocked })}
-              className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${l.unlocked ? 'bg-primary-light text-primary-dark' : 'bg-line text-ink-soft'}`}
-            >
-              {l.unlocked ? <Unlock size={12} /> : <Lock size={12} />}
-              {l.unlocked ? t('unlocked') : t('locked')}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </Card>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-bold">{data.group.name}</h3>
+            <p className="text-sm text-ink-soft">
+              {[data.group.days, data.group.time].filter(Boolean).join(' · ') || '—'}
+            </p>
+          </div>
+          <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-bold text-primary-dark">
+            {data.group.isActive ? t('active') : t('suspended')}
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span dir="ltr" className="rounded bg-background px-3 py-2 font-bold">{data.group.joinCode}</span>
+          <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => copy(data.group.joinCode)}>
+            <Copy className="inline" size={15} /> {t('copyJoinCode')}
+          </Button>
+          <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => copy(joinUrl)}>
+            <Link2 className="inline" size={15} /> {t('copyJoinLink')}
+          </Button>
+          <a href={joinUrl} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 truncate text-sm font-semibold text-primary underline">
+            {joinUrl}
+          </a>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-bold">{t('lessons')}</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => flipAll.mutate(true)} disabled={flipAll.isPending}>
+              <Unlock className="inline" size={15} /> {t('releaseAll')}
+            </Button>
+            <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => flipAll.mutate(false)} disabled={flipAll.isPending}>
+              <Lock className="inline" size={15} /> {t('lockAll')}
+            </Button>
+          </div>
+        </div>
+        {flipAll.error && <div className="mt-2"><ErrorBox error={flipAll.error} /></div>}
+        {data.lessons.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-soft">—</p>
+        ) : (
+          <ul className="mt-3 flex flex-col divide-y divide-line">
+            {data.lessons.map((lesson) => (
+              <li key={lesson.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className={`min-w-0 font-semibold ${lesson.hidden ? 'text-ink-soft line-through' : ''}`}>
+                  {lesson.title}
+                  {lesson.hidden && <span className="ms-2 rounded bg-line px-1.5 text-xs no-underline">{t('hidden')}</span>}
+                  {lesson.overridden && lesson.unlocked && !lesson.hidden && <span className="ms-2 rounded bg-secondary-light px-1.5 text-xs text-secondary">{t('released')}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAccess.mutate({ lessonId: lesson.id, isHidden: !lesson.hidden })}
+                    disabled={setAccess.isPending}
+                    className="flex min-h-8 items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs font-bold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50"
+                  >
+                    {lesson.hidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                    {lesson.hidden ? t('show') : t('hide')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccess.mutate({ lessonId: lesson.id, isUnlocked: !lesson.unlocked })}
+                    disabled={setAccess.isPending}
+                    className={`flex min-h-8 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold disabled:opacity-50 ${lesson.unlocked ? 'bg-primary-light text-primary-dark' : 'bg-line text-ink-soft'}`}
+                  >
+                    {lesson.unlocked ? <Unlock size={12} /> : <Lock size={12} />}
+                    {lesson.unlocked ? t('unlocked') : t('locked')}
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card>
+        <h3 className="font-bold">{t('quizzes')}</h3>
+        {data.quizzes.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-soft">—</p>
+        ) : (
+          <ul className="mt-3 flex flex-col divide-y divide-line">
+            {data.quizzes.map((quiz) => (
+              <li key={quiz.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className={`flex min-w-0 items-center gap-2 font-semibold ${quiz.hidden ? 'text-ink-soft line-through' : ''}`}>
+                  <NotebookPen size={15} className="shrink-0 text-primary" />
+                  <span className="min-w-0 truncate">{quiz.title}</span>
+                  <span className="shrink-0 text-xs font-normal text-ink-soft no-underline">
+                    {quiz.contextTitle} · {scopeLabel(quiz.scope)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuizHidden.mutate({ quizId: quiz.id, isHidden: !quiz.hidden })}
+                  disabled={setQuizHidden.isPending}
+                  className="flex min-h-8 shrink-0 items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs font-bold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50"
+                >
+                  {quiz.hidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                  {quiz.hidden ? t('show') : t('hide')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
   );
 }
 
@@ -135,23 +272,6 @@ export function GradebookTab({ groupId }: { groupId: string }) {
     a.click();
     URL.revokeObjectURL(url);
   };
-  const [colTitle, setColTitle] = useState('');
-  const [deleteColumn, setDeleteColumn] = useState<{ id: string; title: string } | null>(null);
-  const addCol = useMutation({
-    mutationFn: () => api(`/api/teacher/groups/${groupId}/gradebook/columns`, { body: { title: colTitle } }),
-    onSuccess: () => {
-      setColTitle('');
-      toast.success(t('saved'));
-      invalidate();
-    },
-  });
-  const delCol = useMutation({
-    mutationFn: (columnId: string) => api(`/api/teacher/groups/${groupId}/gradebook/columns/${columnId}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      toast.success(t('deleted'));
-      invalidate();
-    },
-  });
   const setCell = useMutation({
     mutationFn: (v: { studentId: string; columnId: string; score: number | null }) =>
       api(`/api/teacher/groups/${groupId}/gradebook/cell`, { body: v }),
@@ -183,19 +303,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
     for (const c of data.manualColumns) {
       cols.push({
         id: `manual-${c.id}`,
-        header: () => (
-          <span className="inline-flex items-center gap-1">
-            {c.title}
-            <button
-              aria-label={`${t('delete')} ${c.title}`}
-              title={t('delete')}
-              onClick={() => setDeleteColumn({ id: c.id, title: c.title })}
-              className="text-ink-soft hover:text-secondary"
-            >
-              <Trash2 size={12} />
-            </button>
-          </span>
-        ),
+        header: c.title,
         accessorFn: (s) => manualScore(s.id, c.id),
         enableSorting: false,
         cell: ({ row }) => (
@@ -236,16 +344,21 @@ export function GradebookTab({ groupId }: { groupId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <Card className="!p-0">
-        <div className="p-3">
-          <Input
-            label={t('search')}
-            value={globalFilter}
-            onChange={(e) => {
-              setGlobalFilter(e.target.value);
-              setPagination((p) => ({ ...p, pageIndex: 0 }));
-            }}
-            placeholder={t('roster')}
-          />
+        <div className="flex flex-wrap items-end gap-2 p-3">
+          <div className="min-w-0 grow">
+            <Input
+              label={t('search')}
+              value={globalFilter}
+              onChange={(e) => {
+                setGlobalFilter(e.target.value);
+                setPagination((p) => ({ ...p, pageIndex: 0 }));
+              }}
+              placeholder={t('roster')}
+            />
+          </div>
+          <Button variant="ghost" onClick={exportCsv}>
+            <Download className="inline" size={16} /> {t('exportCsv')}
+          </Button>
         </div>
         <div className="max-h-[70vh] overflow-auto border-y border-line">
           <table className="w-full border-separate border-spacing-0 text-sm">
@@ -337,29 +450,6 @@ export function GradebookTab({ groupId }: { groupId: string }) {
           </div>
         </div>
       </Card>
-      <Card>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="grow">
-            <Input label={t('addGradeColumn')} value={colTitle} onChange={(e) => setColTitle(e.target.value)} placeholder={t('addGradeColumn')} />
-          </div>
-          <Button onClick={() => addCol.mutate()} disabled={!colTitle}>
-            <Plus className="inline" size={16} /> {t('add')}
-          </Button>
-          <Button variant="ghost" onClick={exportCsv}>
-            <Download className="inline" size={16} /> {t('exportCsv')}
-          </Button>
-        </div>
-        {addCol.error && <ErrorBox error={addCol.error} />}
-      </Card>
-      <ConfirmDialog
-        open={Boolean(deleteColumn)}
-        onOpenChange={(next) => !next && setDeleteColumn(null)}
-        title={`${t('delete')} ${deleteColumn?.title ?? ''}?`}
-        confirmLabel={t('delete')}
-        cancelLabel={t('cancel')}
-        destructive
-        onConfirm={() => deleteColumn && delCol.mutate(deleteColumn.id)}
-      />
     </div>
   );
 }
@@ -439,7 +529,12 @@ export function RosterTab({ groupId }: { groupId: string }) {
     .find((c) => c.id === data.group.courseId)
     ?.groups?.filter((g) => g.id !== groupId) ?? [];
   const inviteUrl = `https://wa.me/?text=${encodeURIComponent(
-    t('joinMessage') + data.group.joinCode + '\n' + window.location.origin + '/join/' + data.group.joinCode,
+    (data.group.whatsappMessage || t('joinMessage')) +
+      data.group.joinCode +
+      '\n' +
+      window.location.origin +
+      '/join/' +
+      data.group.joinCode,
   )}`;
   const exportRoster = () => {
     const rows = [
@@ -566,6 +661,195 @@ export function RosterTab({ groupId }: { groupId: string }) {
   );
 }
 
+export function StatsTab() {
+  const { t } = useLang();
+  return (
+    <Card>
+      <EmptyState icon={BarChart3} title={t('stats')} description={t('statsEmpty')} />
+    </Card>
+  );
+}
+
+export function SettingsTab({ groupId }: { groupId: string }) {
+  const { t } = useLang();
+  const pacing = useQuery(pacingQuery(groupId));
+  const gradebook = useQuery({
+    queryKey: ['gradebook', groupId],
+    queryFn: () => api<Gradebook>(`/api/teacher/groups/${groupId}/gradebook`),
+  });
+
+  if (pacing.isLoading) return <Loading />;
+  if (pacing.error) return <ErrorBox error={pacing.error} />;
+  if (!pacing.data) return null;
+  const group = pacing.data.group;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <GroupSettingsForm
+        key={[group.id, group.name, group.days, group.time, group.isActive, group.joinCode, group.whatsappMessage].join('|')}
+        group={group}
+        groupId={groupId}
+      />
+      <Card>
+        <h3 className="font-bold">{t('gradeColumns')}</h3>
+        {gradebook.isLoading ? (
+          <div className="mt-3"><Loading /></div>
+        ) : gradebook.error ? (
+          <div className="mt-3"><ErrorBox error={gradebook.error} /></div>
+        ) : (
+          <GradeColumns groupId={groupId} columns={gradebook.data?.manualColumns ?? []} />
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [name, setName] = useState(group.name);
+  const [days, setDays] = useState(group.days ?? '');
+  const [time, setTime] = useState(group.time ?? '');
+  const [joinCode, setJoinCode] = useState(group.joinCode);
+  const [whatsappMessage, setWhatsappMessage] = useState(group.whatsappMessage ?? '');
+  const [isActive, setIsActive] = useState(group.isActive);
+  const save = useMutation({
+    mutationFn: () =>
+      api<Group>(`/api/teacher/groups/${groupId}`, {
+        method: 'PATCH',
+        body: {
+          name,
+          days: days.trim() || null,
+          time: time.trim() || null,
+          joinCode: joinCode.trim(),
+          whatsappMessage: whatsappMessage.trim() || null,
+          isActive,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      void qc.invalidateQueries({ queryKey: ['pacing', groupId] });
+      void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const joinUrl = `${window.location.origin}/join/${joinCode.trim()}`;
+
+  return (
+    <Card>
+      <h3 className="font-bold">{t('settings')}</h3>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
+        <Input label={t('days')} value={days} onChange={(e) => setDays(e.target.value)} />
+        <Input label={t('time')} value={time} onChange={(e) => setTime(e.target.value)} />
+        <Select label={t('status')} value={isActive ? 'active' : 'suspended'} onChange={(e) => setIsActive(e.target.value === 'active')}>
+          <option value="active">{t('active')}</option>
+          <option value="suspended">{t('suspended')}</option>
+        </Select>
+        <Input
+          label={t('joinCode')}
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value)}
+          dir="ltr"
+        />
+      </div>
+      <p className="mt-2 text-xs text-ink-soft">{t('groupNameFallback')}</p>
+      <label className="mt-3 block">
+        <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('whatsappMessage')}</span>
+        <textarea
+          value={whatsappMessage}
+          onChange={(e) => setWhatsappMessage(e.target.value)}
+          className="min-h-24 w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
+          placeholder={t('joinMessage')}
+        />
+      </label>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button onClick={() => save.mutate()} disabled={save.isPending || !joinCode.trim()}>
+          {t('save')}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            navigator.clipboard.writeText(joinUrl).then(
+              () => toast.success(t('copied')),
+              () => toast.error(t('errorOccurred')),
+            )
+          }
+        >
+          <Copy className="inline" size={16} /> {t('copyJoinLink')}
+        </Button>
+        <a href={joinUrl} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 truncate text-sm font-semibold text-primary underline">
+          {joinUrl}
+        </a>
+      </div>
+      {save.error && <div className="mt-3"><ErrorBox error={save.error} /></div>}
+    </Card>
+  );
+}
+
+function GradeColumns({ groupId, columns }: { groupId: string; columns: Gradebook['manualColumns'] }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [deleteColumn, setDeleteColumn] = useState<{ id: string; title: string } | null>(null);
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ['gradebook', groupId] });
+  const add = useMutation({
+    mutationFn: () => api(`/api/teacher/groups/${groupId}/gradebook/columns`, { body: { title } }),
+    onSuccess: () => {
+      setTitle('');
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const remove = useMutation({
+    mutationFn: (columnId: string) => api(`/api/teacher/groups/${groupId}/gradebook/columns/${columnId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      setDeleteColumn(null);
+      toast.success(t('deleted'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+
+  return (
+    <>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <div className="min-w-0 grow">
+          <Input label={t('addGradeColumn')} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('addGradeColumn')} />
+        </div>
+        <Button onClick={() => add.mutate()} disabled={!title.trim() || add.isPending}>
+          <Plus className="inline" size={16} /> {t('add')}
+        </Button>
+      </div>
+      {columns.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-soft">{t('noGradeColumns')}</p>
+      ) : (
+        <ul className="mt-3 flex flex-col divide-y divide-line">
+          {columns.map((column) => (
+            <li key={column.id} className="flex items-center justify-between gap-2 py-2">
+              <span className="font-semibold">{column.title}</span>
+              <IconButton label={`${t('delete')} ${column.title}`} onClick={() => setDeleteColumn({ id: column.id, title: column.title })}>
+                <Trash2 size={14} />
+              </IconButton>
+            </li>
+          ))}
+        </ul>
+      )}
+      {add.error && <div className="mt-3"><ErrorBox error={add.error} /></div>}
+      <ConfirmDialog
+        open={Boolean(deleteColumn)}
+        onOpenChange={(next) => !next && setDeleteColumn(null)}
+        title={`${t('delete')} ${deleteColumn?.title ?? ''}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => deleteColumn && remove.mutate(deleteColumn.id)}
+      />
+    </>
+  );
+}
+
 import { rootRoute } from '../../routes/__root';
 import { requireRole } from '../../lib/session';
 import { queryClient } from '../../lib/queryClient';
@@ -579,6 +863,9 @@ export const teacherGroupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/teacher/groups/$groupId',
   beforeLoad: () => requireRole('TEACHER'),
+  validateSearch: (search: Record<string, unknown>): { tab?: GroupTab } => ({
+    tab: GROUP_TABS.includes(search.tab as GroupTab) ? (search.tab as GroupTab) : undefined,
+  }),
   loader: ({ params }) => queryClient.ensureQueryData(pacingQuery(params.groupId)),
   component: TeacherGroup,
 });

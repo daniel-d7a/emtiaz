@@ -277,6 +277,49 @@ describe('Phase 3: student endpoints', () => {
     );
   });
 
+  it('hides lessons and quizzes hidden by the teacher', async () => {
+    await testPool.query(
+      `INSERT INTO group_lesson_access (group_id, lesson_id, is_unlocked, is_hidden)
+       VALUES ($1,$2,true,true)
+       ON CONFLICT (group_id, lesson_id)
+       DO UPDATE SET is_hidden = true`,
+      [world.group1, world.lesson1],
+    );
+    const { rows: moduleQuizRows } = await testPool.query(
+      `SELECT id FROM quizzes WHERE module_id=$1 AND title='Module check'`,
+      [world.moduleId],
+    );
+    await testPool.query(
+      `INSERT INTO group_quiz_access (group_id, quiz_id, is_hidden)
+       VALUES ($1,$2,true),($1,$3,true)`,
+      [world.group1, world.quiz, moduleQuizRows[0].id],
+    );
+
+    const curriculum = await s1.get(`/api/student/groups/${world.group1}/curriculum`);
+    const lessonIds = curriculum.body.modules.flatMap((m: any) =>
+      m.lessons.map((lesson: any) => lesson.id),
+    );
+    expect(lessonIds).not.toContain(world.lesson1);
+    expect(curriculum.body.modules[0].quiz).toBeNull();
+
+    expect(
+      (await s1.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`)).status,
+    ).toBe(403);
+    expect((await s1.get(`/api/student/quizzes/${world.quiz}`)).status).toBe(403);
+    expect(
+      (await s1.get(`/api/student/groups/${world.group1}/quizzes/${world.quiz}`)).status,
+    ).toBe(403);
+    const grades = await s1.get(`/api/student/groups/${world.group1}/grades`);
+    expect(grades.body.quizzes.some((quiz: any) => quiz.quizId === world.quiz)).toBe(false);
+    expect(
+      (
+        await s1
+          .post(`/api/student/quizzes/${world.quiz}/submit`)
+          .send({ groupId: world.group1, answers: { [world.questionIds[0]]: 'm/s' } })
+      ).status,
+    ).toBe(403);
+  });
+
   it('teachers cannot access student endpoints', async () => {
     const t = (await login(server, TEACHER.email, TEACHER.password)).session;
     const res = await t.get('/api/student/groups');

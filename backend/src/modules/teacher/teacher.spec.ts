@@ -335,6 +335,43 @@ describe('Phase 4: teacher endpoints', () => {
       newGroupId = res.body.id;
     });
 
+    it('falls back to a generated name when the group name is blank', async () => {
+      const res = await t
+        .post(`/api/teacher/courses/${world.courseId}/groups`)
+        .send({ name: '   ' });
+      expect(res.status).toBe(201);
+      expect(res.body.name).toMatch(/^Physics 10-\d+$/);
+    });
+
+    it('updates group settings and rejects duplicate join codes', async () => {
+      const res = await t
+        .patch(`/api/teacher/groups/${newGroupId}`)
+        .send({
+          name: 'Evening batch A',
+          days: 'Sun, Tue',
+          time: '6:00 PM',
+          isActive: false,
+          joinCode: 'OMNEW001',
+          whatsappMessage: 'Join the evening batch',
+        });
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        name: 'Evening batch A',
+        days: 'Sun, Tue',
+        time: '6:00 PM',
+        isActive: false,
+        joinCode: 'OMNEW001',
+        whatsappMessage: 'Join the evening batch',
+      });
+
+      const duplicate = await t
+        .patch(`/api/teacher/groups/${newGroupId}`)
+        .send({ joinCode: 'OM111111' });
+      expect(duplicate.status).toBe(400);
+
+      await t.patch(`/api/teacher/groups/${newGroupId}`).send({ isActive: true });
+    });
+
     it('pacing shows all course lessons with unlock flags', async () => {
       const res = await t.get(`/api/teacher/groups/${newGroupId}/pacing`);
       expect(res.status).toBe(200);
@@ -407,6 +444,34 @@ describe('Phase 4: teacher endpoints', () => {
         [bulk.rows[0].id],
       );
       expect(inbox.rows[0]?.message).toContain('تم تسجيلك');
+    });
+
+    it('hides lessons from pacing and roster totals', async () => {
+      const before = (await t.get(`/api/teacher/groups/${newGroupId}/roster`)).body;
+      const res = await t
+        .patch(`/api/teacher/groups/${newGroupId}/lessons/${world.lesson2}/access`)
+        .send({ isHidden: true });
+      expect(res.status).toBe(200);
+
+      const pacing = (await t.get(`/api/teacher/groups/${newGroupId}/pacing`)).body;
+      expect(pacing.lessons.find((l: any) => l.id === world.lesson2).hidden).toBe(true);
+
+      const after = (await t.get(`/api/teacher/groups/${newGroupId}/roster`)).body;
+      expect(after.students[0].totalLessons).toBe(
+        before.students[0].totalLessons - 1,
+      );
+    });
+
+    it('hides quizzes in pacing', async () => {
+      const res = await t
+        .patch(`/api/teacher/groups/${newGroupId}/quizzes/${world.quiz}/visibility`)
+        .send({ isHidden: true });
+      expect(res.status).toBe(200);
+      const pacing = (await t.get(`/api/teacher/groups/${newGroupId}/pacing`)).body;
+      const quiz = pacing.quizzes.find((q: any) => q.id === world.quiz);
+      expect(quiz.hidden).toBe(true);
+      expect(quiz.scope).toBe('lesson');
+      expect(quiz.contextTitle).toBe('L1 Motion');
     });
 
     it('announces to enrolled students', async () => {

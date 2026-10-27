@@ -154,12 +154,30 @@ export const UpsertQuizDto = z.object({
 });
 
 // ---------- groups & roster ----------
-export const AddGroupDto = z
+export const AddGroupDto = z.object({
+  name: z.string().trim().max(120).default(''),
+});
+export const UpdateGroupDto = z.object({
+  name: z.string().trim().max(120).optional(),
+  days: z.string().trim().max(200).nullable().optional(),
+  time: z.string().trim().max(120).nullable().optional(),
+  isActive: z.boolean().optional(),
+  joinCode: z
+    .string()
+    .trim()
+    .min(3)
+    .max(32)
+    .regex(/^[A-Za-z0-9_-]+$/, 'must be letters, numbers, - or _')
+    .optional(),
+  whatsappMessage: z.string().trim().max(500).nullable().optional(),
+});
+export const SetLessonAccessDto = z
   .object({
-    name: safeText(120),
-    unlockAllByDefault: z.boolean().optional(),
-    notes: optText(2000).nullable(),
-    joinCode: z.string().trim().optional(),
+    isUnlocked: z.boolean().optional(),
+    isHidden: z.boolean().optional(),
+  })
+  .refine((dto) => dto.isUnlocked !== undefined || dto.isHidden !== undefined, {
+    message: 'isUnlocked or isHidden is required',
   });
 export const BulkStudentsDto = z
   .object({

@@ -55,8 +55,9 @@ export default function TeacherCourseGroups() {
             <div className="grow">
               <Input label={t('newGroup')} value={name} onChange={(event) => setName(event.target.value)} />
             </div>
-            <Button onClick={() => add.mutate()} disabled={!name.trim() || add.isPending}>{t('add')}</Button>
+            <Button onClick={() => add.mutate()} disabled={add.isPending}>{t('add')}</Button>
           </div>
+          <p className="mt-2 text-xs text-ink-soft">{t('groupNameFallback')}</p>
           {add.error && <div className="mt-2"><ErrorBox error={add.error} /></div>}
         </Card>
       )}
@@ -104,7 +105,7 @@ export default function TeacherCourseGroups() {
                         <IconButton
                           label={t('copyJoinLink')}
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/join?code=${group.joinCode}`).then(
+                            navigator.clipboard.writeText(`${window.location.origin}/join/${group.joinCode}`).then(
                               () => toast.success(t('copied')),
                               () => toast.error(t('errorOccurred')),
                             );

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, count, countDistinct, eq, ilike, inArray, ne, or } from 'drizzle-orm';
 import { db } from '../../db';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -14,6 +14,7 @@ import {
   courses,
   grades,
   groupLessonAccess,
+  groupQuizAccess,
   groupStudents,
   groups,
   lessonAttachments,
@@ -670,12 +671,34 @@ export class TeacherService {
     return row;
   }
 
+  private async fallbackGroupName(courseId: string, groupId?: string) {
+    const [course] = await db
+      .select({ title: courses.title })
+      .from(courses)
+      .where(eq(courses.id, courseId));
+    const rows = await db
+      .select({ id: groups.id, name: groups.name })
+      .from(groups)
+      .where(eq(groups.courseId, courseId));
+    const index = groupId ? rows.findIndex((row) => row.id === groupId) : -1;
+    let n = index >= 0 ? index + 1 : rows.length + 1;
+    const used = new Set(
+      rows.filter((row) => row.id !== groupId).map((row) => row.name),
+    );
+    let name = `${course?.title ?? ''}-${n}`;
+    while (used.has(name)) {
+      n += 1;
+      name = `${course?.title ?? ''}-${n}`;
+    }
+    return name;
+  }
+
   async addGroup(
     user: { id: string; role: string },
     courseId: string,
     name: string,
   ) {
-    await this.assertCourseAccess(user, courseId);
+    const course = await this.assertCourseAccess(user, courseId);
     let joinCode = genJoinCode();
     // collision-safe loop
     for (let i = 0; i < 5; i++) {
@@ -689,13 +712,61 @@ export class TeacherService {
     }
     const [group] = await db
       .insert(groups)
-      .values({ courseId, name, joinCode })
+      .values({
+        courseId,
+        name: name.trim() || (await this.fallbackGroupName(course.id)),
+        joinCode,
+      })
       .returning();
     return group;
   }
 
-  async groupPacing(user: { id: string; role: string }, groupId: string) {
+  async updateGroup(
+    user: { id: string; role: string },
+    groupId: string,
+    dto: {
+      name?: string;
+      days?: string | null;
+      time?: string | null;
+      isActive?: boolean;
+      joinCode?: string;
+      whatsappMessage?: string | null;
+    },
+  ) {
     const { course } = await this.assertOwnsGroup(user, groupId);
+    const patch: Partial<typeof groups.$inferInsert> = {};
+    if (dto.name !== undefined) {
+      patch.name =
+        dto.name.trim() || (await this.fallbackGroupName(course.id, groupId));
+    }
+    if (dto.days !== undefined) patch.days = dto.days?.trim() || null;
+    if (dto.time !== undefined) patch.time = dto.time?.trim() || null;
+    if (dto.isActive !== undefined) patch.isActive = dto.isActive;
+    if (dto.whatsappMessage !== undefined) {
+      patch.whatsappMessage = dto.whatsappMessage?.trim() || null;
+    }
+    if (dto.joinCode !== undefined) {
+      const joinCode = dto.joinCode.trim().toUpperCase();
+      const duplicate = await db
+        .select({ id: groups.id })
+        .from(groups)
+        .where(and(eq(groups.joinCode, joinCode), ne(groups.id, groupId)))
+        .limit(1);
+      if (duplicate.length) {
+        throw new BadRequestException('Join code is already in use');
+      }
+      patch.joinCode = joinCode;
+    }
+    const [updated] = await db
+      .update(groups)
+      .set(patch)
+      .where(eq(groups.id, groupId))
+      .returning();
+    return updated;
+  }
+
+  async groupPacing(user: { id: string; role: string }, groupId: string) {
+    const { course, group } = await this.assertOwnsGroup(user, groupId);
     const mods = await db
       .select()
       .from(modules)
@@ -712,19 +783,65 @@ export class TeacherService {
       .select()
       .from(groupLessonAccess)
       .where(eq(groupLessonAccess.groupId, groupId));
-    const group = (
-      await db.select().from(groups).where(eq(groups.id, groupId))
-    )[0];
+    const lessonIds = allLessons.map((lesson) => lesson.id);
+    const modIds = mods.map((module) => module.id);
+    const quizTargets = [
+      eq(quizzes.courseId, course.id),
+      ...(modIds.length ? [inArray(quizzes.moduleId, modIds)] : []),
+      ...(lessonIds.length ? [inArray(quizzes.lessonId, lessonIds)] : []),
+    ];
+    const quizRows = await db.select().from(quizzes).where(or(...quizTargets));
+    const quizAccessRows = quizRows.length
+      ? await db
+          .select()
+          .from(groupQuizAccess)
+          .where(
+            and(
+              eq(groupQuizAccess.groupId, groupId),
+              inArray(groupQuizAccess.quizId, quizRows.map((quiz) => quiz.id)),
+            ),
+          )
+      : [];
+    const orderedQuizzes: Array<{
+      quiz: typeof quizRows[number];
+      scope: 'course' | 'module' | 'lesson';
+      contextTitle: string;
+    }> = [];
+    const courseQuiz = quizRows.find((quiz) => quiz.courseId === course.id);
+    if (courseQuiz) {
+      orderedQuizzes.push({ quiz: courseQuiz, scope: 'course', contextTitle: course.title });
+    }
+    for (const mod of mods) {
+      const moduleQuiz = quizRows.find((quiz) => quiz.moduleId === mod.id);
+      if (moduleQuiz) {
+        orderedQuizzes.push({ quiz: moduleQuiz, scope: 'module', contextTitle: mod.title });
+      }
+      for (const lesson of allLessons.filter((row) => row.moduleId === mod.id)) {
+        const lessonQuiz = quizRows.find((quiz) => quiz.lessonId === lesson.id);
+        if (lessonQuiz) {
+          orderedQuizzes.push({ quiz: lessonQuiz, scope: 'lesson', contextTitle: lesson.title });
+        }
+      }
+    }
     return {
       group,
-      lessons: allLessons.map((l) => {
-        const row = accessRows.find((a) => a.lessonId === l.id);
+      lessons: allLessons.map((lesson) => {
+        const row = accessRows.find((access) => access.lessonId === lesson.id);
         return {
-          ...l,
+          ...lesson,
           unlocked: row ? row.isUnlocked : group.unlockAllByDefault,
           overridden: !!row,
+          hidden: row?.isHidden ?? false,
         };
       }),
+      quizzes: orderedQuizzes.map(({ quiz, scope, contextTitle }) => ({
+        ...quiz,
+        scope,
+        contextTitle,
+        hidden:
+          quizAccessRows.find((access) => access.quizId === quiz.id)?.isHidden ??
+          false,
+      })),
     };
   }
 
@@ -732,9 +849,9 @@ export class TeacherService {
     user: { id: string; role: string },
     groupId: string,
     lessonId: string,
-    isUnlocked: boolean,
+    dto: { isUnlocked?: boolean; isHidden?: boolean },
   ) {
-    const { course } = await this.assertOwnsGroup(user, groupId);
+    const { course, group } = await this.assertOwnsGroup(user, groupId);
     const lesson = (
       await db.select().from(lessons).where(eq(lessons.id, lessonId))
     )[0];
@@ -746,12 +863,64 @@ export class TeacherService {
     if (mod.courseId !== course.id) {
       throw new ForbiddenException('Lesson not in this course');
     }
+    const [existing] = await db
+      .select()
+      .from(groupLessonAccess)
+      .where(
+        and(
+          eq(groupLessonAccess.groupId, groupId),
+          eq(groupLessonAccess.lessonId, lessonId),
+        ),
+      );
+    const isUnlocked =
+      dto.isUnlocked ?? existing?.isUnlocked ?? group.unlockAllByDefault;
+    const isHidden = dto.isHidden ?? existing?.isHidden ?? false;
     await db
       .insert(groupLessonAccess)
-      .values({ groupId, lessonId, isUnlocked })
+      .values({ groupId, lessonId, isUnlocked, isHidden })
       .onConflictDoUpdate({
         target: [groupLessonAccess.groupId, groupLessonAccess.lessonId],
-        set: { isUnlocked },
+        set: { isUnlocked, isHidden },
+      });
+    return { ok: true };
+  }
+
+  async setQuizVisibility(
+    user: { id: string; role: string },
+    groupId: string,
+    quizId: string,
+    isHidden: boolean,
+  ) {
+    const { course } = await this.assertOwnsGroup(user, groupId);
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    let courseId = quiz.courseId;
+    if (quiz.moduleId) {
+      const [mod] = await db
+        .select({ courseId: modules.courseId })
+        .from(modules)
+        .where(eq(modules.id, quiz.moduleId));
+      courseId = mod?.courseId ?? null;
+    } else if (quiz.lessonId) {
+      const [lesson] = await db
+        .select({ moduleId: lessons.moduleId })
+        .from(lessons)
+        .where(eq(lessons.id, quiz.lessonId));
+      const [mod] = lesson
+        ? await db
+            .select({ courseId: modules.courseId })
+            .from(modules)
+            .where(eq(modules.id, lesson.moduleId))
+        : [];
+      courseId = mod?.courseId ?? null;
+    }
+    if (courseId !== course.id) throw new ForbiddenException('Quiz not in this course');
+    await db
+      .insert(groupQuizAccess)
+      .values({ groupId, quizId, isHidden })
+      .onConflictDoUpdate({
+        target: [groupQuizAccess.groupId, groupQuizAccess.quizId],
+        set: { isHidden },
       });
     return { ok: true };
   }
@@ -787,19 +956,25 @@ export class TeacherService {
             ),
           )
       : [];
-    const unlocked = courseLessons.filter((l) => {
-      const row = access.find((a) => a.lessonId === l.id);
+    const visibleLessons = courseLessons.filter(
+      (lesson) =>
+        !access.find(
+          (row) => row.lessonId === lesson.id && row.isHidden,
+        ),
+    );
+    const unlocked = visibleLessons.filter((lesson) => {
+      const row = access.find((accessRow) => accessRow.lessonId === lesson.id);
       return row ? row.isUnlocked : group.unlockAllByDefault;
     });
     const completions =
-      roster.length && courseLessons.length
+      roster.length && visibleLessons.length
         ? await db
             .select({ studentId: lessonCompletions.studentId, lessonId: lessonCompletions.lessonId })
             .from(lessonCompletions)
             .where(
               and(
                 inArray(lessonCompletions.studentId, roster.map((r) => r.studentId)),
-                inArray(lessonCompletions.lessonId, courseLessons.map((l) => l.id)),
+                inArray(lessonCompletions.lessonId, visibleLessons.map((l) => l.id)),
               ),
             )
         : [];

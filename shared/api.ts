@@ -150,6 +150,8 @@ export type Group = {
   name: string;
   joinCode: string;
   days: string | null;
+  time: string | null;
+  whatsappMessage: string | null;
   unlockAllByDefault: boolean;
   isActive: boolean;
   createdAt: string;
@@ -338,11 +340,19 @@ export type TeacherCourse = Course & {
 export type PacingLesson = Lesson & {
   unlocked: boolean;
   overridden: boolean;
+  hidden: boolean;
+};
+
+export type PacingQuiz = Quiz & {
+  hidden: boolean;
+  scope: 'course' | 'module' | 'lesson';
+  contextTitle: string;
 };
 
 export type TeacherPacing = {
   group: Group;
   lessons: PacingLesson[];
+  quizzes: PacingQuiz[];
 };
 
 export type RosterStudent = {
