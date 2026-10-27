@@ -10,24 +10,28 @@ Expo ships breaking changes every SDK release. APIs you remember are likely rena
 
 ## Commands
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+This project uses npm (no `bun.lock`).
 
 ```bash
 npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
+npm run start               # expo start
+npm run dev:tunnel          # Expo Go + compose tunnel (API on :3100)
+npm run typecheck           # tsc --noEmit
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
-Run lint and typecheck before declaring any task done.
+Run `npm run typecheck` before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+This app uses **React Navigation native stacks**, not Expo Router (ADR-0013).
+
+- `App.tsx` renders one stack per role: Student (`Courses → Group → Lesson → Quiz`), Teacher (`TeacherHome → TeacherGroup`), Parent (`ParentHome`), plus `Profile` and `Notifications`.
+- Screens live in `src/screens/` and take callbacks (`onBack`, `onOpen…`); the stack wrapper calls `navigation.navigate` / `goBack`.
+- Add a screen by extending `RootStackParamList` and adding a `Stack.Screen` to the role stack that needs it.
+- Deep links are not configured; WhatsApp invites open the web app.
+- Use the `emtiaz-mobile` skill for the project-specific contract.
 
 ## Building with EAS
 
