@@ -23,11 +23,22 @@ import {
   quizzes,
   users,
 } from '../../db/schema';
+import { StorageService } from '../storage/storage.service';
 
 const norm = (s: string) => s.trim().toLowerCase();
 
 @Injectable()
 export class StudentService {
+  constructor(private readonly storage: StorageService) {}
+
+  private async signedBanner(key: string | null): Promise<string | null> {
+    if (!key) return null;
+    try {
+      return await this.storage.presignedGet(key);
+    } catch {
+      return null;
+    }
+  }
 
   private async assertEnrolled(studentId: string, groupId: string) {
     const rows = await db
@@ -92,7 +103,12 @@ export class StudentService {
       .select({
         group: groups,
         course: courses,
-        teacher: { name: users.name, subject: categories.name },
+        teacher: {
+          name: users.name,
+          subject: categories.name,
+          theme: users.landingTheme,
+          banner: users.landingBanner,
+        },
       })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
@@ -105,6 +121,10 @@ export class StudentService {
 
     const groupIds = enrolled.map((r) => r.group.id);
     const coursesIds = [...new Set(enrolled.map((r) => r.course.id))];
+    const bannerKeys = [...new Set(enrolled.map((r) => r.teacher.banner).filter((k): k is string => !!k))];
+    const bannerUrls = new Map(
+      await Promise.all(bannerKeys.map(async (key) => [key, await this.signedBanner(key)] as const)),
+    );
     const lessonRows = await db
       .select({ lessonId: lessons.id, courseId: modules.courseId })
       .from(lessons)
@@ -142,8 +162,15 @@ export class StudentService {
       );
       const total = unlockedIds.size;
       const done = completions.filter((c) => unlockedIds.has(c.lessonId)).length;
+      const { teacher, ...rest } = r;
       return {
-        ...r,
+        ...rest,
+        teacher: {
+          name: teacher.name,
+          subject: teacher.subject,
+          theme: teacher.theme,
+          bannerUrl: teacher.banner ? bannerUrls.get(teacher.banner) ?? null : null,
+        },
         progress: total === 0 ? 0 : Math.round((done / total) * 100),
         completedLessons: done,
         totalLessons: total,
@@ -246,11 +273,22 @@ export class StudentService {
         .filter((a) => quizId && a.quizId === quizId)
         .sort((a, b) => b.score - a.score)[0] ?? null;
     const courseQuiz = quizRows.find((q) => q.courseId === group.courseId);
+    const [course] = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, group.courseId));
+    const [teacher] = await db
+      .select({ name: users.name, theme: users.landingTheme, banner: users.landingBanner })
+      .from(users)
+      .where(eq(users.id, course.teacherId));
 
     return {
-      course: (
-        await db.select().from(courses).where(eq(courses.id, group.courseId))
-      )[0],
+      course,
+      teacher: {
+        name: teacher?.name ?? '',
+        theme: teacher?.theme ?? null,
+        bannerUrl: await this.signedBanner(teacher?.banner ?? null),
+      },
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
       quiz: courseQuiz ? { ...courseQuiz, bestAttempt: bestFor(courseQuiz.id) } : null,
       modules: mods.map((m) => {

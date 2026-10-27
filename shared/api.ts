@@ -1,6 +1,15 @@
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
 export type CourseType = 'ACADEMIC' | 'GENERAL';
 export type QuestionType = 'MCQ' | 'TRUE_FALSE';
+export type TeacherTheme = {
+  layout: 'banner' | 'split';
+  primary: string;
+  secondary: string;
+  marquee: string;
+  arabicFont: 'cairo' | 'readex' | 'tajawal';
+  englishFont: 'dm-sans' | 'inter' | 'cairo';
+};
+
 export type AttachmentType =
   | 'PDF'
   | 'DOC'
@@ -21,6 +30,8 @@ export type User = {
   role: Role;
   landingSlug: string | null;
   landingBio: string | null;
+  landingBanner: string | null;
+  landingTheme: TeacherTheme | null;
   landingPublished: boolean;
   isActive: boolean;
   subjectCategoryId: string | null;
@@ -42,7 +53,11 @@ export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
   >;
 
 export type Session = { user: SessionUser; session?: unknown } | null;
-export type MeResponse = { user: User; avatarUrl: string | null };
+export type MeResponse = {
+  user: User;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+};
 
 export type TaxonomyItem = {
   id: string;
@@ -136,7 +151,12 @@ export type QuizWithAttempt = Quiz & {
 export type StudentGroup = {
   group: Group;
   course: Course;
-  teacher: { name: string; subject: string | null };
+  teacher: {
+    name: string;
+    subject: string | null;
+    theme: TeacherTheme | null;
+    bannerUrl: string | null;
+  };
   progress: number;
   completedLessons: number;
   totalLessons: number;
@@ -157,6 +177,7 @@ export type StudentModule = Module & {
 
 export type StudentCurriculum = {
   course: Course;
+  teacher: { name: string; theme: TeacherTheme | null; bannerUrl: string | null };
   group: Pick<Group, 'id' | 'name' | 'joinCode'>;
   quiz: QuizWithAttempt | null;
   modules: StudentModule[];

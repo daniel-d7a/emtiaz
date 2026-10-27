@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Injectable, Module, Param, Post, Req } from '@nestjs/common';
-import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto } from '../../lib/schemas';
+import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request } from 'express';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -42,6 +42,17 @@ export class StorageController {
       method: 'PUT',
       maxBytes: 100 * 1024 * 1024,
     };
+  }
+
+  @Roles('TEACHER')
+  @Post('api/storage/banner')
+  async bannerUpload(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(BannerUploadDto))
+    dto: z.infer<typeof BannerUploadDto>,
+  ) {
+    const objectKey = StorageService.buildBannerKey(req.user!.id, dto.fileName);
+    return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
   }
 
   @Roles('TEACHER', 'STUDENT', 'ADMIN')

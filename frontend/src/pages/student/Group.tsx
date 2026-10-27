@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Loading, Page } from '../../components/ui';
+import { ThemeHero, ThemeSurface } from '../../components/TeacherTheme';
 import type {
   QuizPayload,
   QuizSubmission,
@@ -36,6 +37,7 @@ export default function StudentGroup() {
   });
 
   return (
+    <ThemeSurface theme={data?.teacher.theme}>
     <Page
       title={data ? data.group.name : '…'}
       right={
@@ -49,7 +51,13 @@ export default function StudentGroup() {
         <ErrorBox error={error} />
       ) : data ? (
         <div className="flex flex-col gap-6">
-          <p className="text-sm text-ink-soft">{data.course.title}</p>
+          <ThemeHero
+            theme={data.teacher.theme}
+            bannerUrl={data.teacher.bannerUrl}
+            name={data.teacher.name}
+            subject={data.course.title}
+          />
+          <p className="text-sm text-ink-soft">{data.group.name}</p>
           {/* lesson modules only on the lessons tab */}
       {tab === 'lessons' && data.quiz && (
         <section>
@@ -136,6 +144,7 @@ export default function StudentGroup() {
         <Link to="/student/dashboard" className="text-sm text-primary underline">{t('myCourses')}</Link>
       </p>
     </Page>
+    </ThemeSurface>
   );
 }
 

@@ -19,17 +19,28 @@ afterAll(async () => {
 describe('public teacher landing', () => {
   it('serves a published teacher page without private fields', async () => {
     const teacher = (await login(server, TEACHER.email, TEACHER.password)).session;
+    const theme = {
+      layout: 'split',
+      primary: '#1D4ED8',
+      secondary: '#B45309',
+      marquee: 'Welcome to physics',
+      arabicFont: 'tajawal',
+      englishFont: 'inter',
+    };
     const set = await teacher.patch('/api/me').send({
       landingSlug: 'salim-physics',
       landingBio: 'Physics for everyone',
+      landingTheme: theme,
       landingPublished: true,
     });
     expect(set.status).toBe(200);
+    expect(set.body.landingTheme).toEqual(theme);
 
     const page = await request(server).get('/api/public/teachers/salim-physics');
     expect(page.status).toBe(200);
     expect(page.body.teacher.name).toBe(TEACHER.name);
     expect(page.body.teacher.bio).toBe('Physics for everyone');
+    expect(page.body.teacher.theme).toEqual(theme);
     expect(page.body.teacher.email).toBeUndefined();
     expect(page.body.courses.map((c: any) => c.title)).toContain('Physics 10');
 
@@ -50,6 +61,20 @@ describe('public teacher landing', () => {
   it('rejects invalid slugs and non-teacher pages', async () => {
     const teacher = (await login(server, TEACHER.email, TEACHER.password)).session;
     expect((await teacher.patch('/api/me').send({ landingSlug: 'Bad Slug!' })).status).toBe(400);
+    expect(
+      (
+        await teacher.patch('/api/me').send({
+          landingTheme: {
+            layout: 'split',
+            primary: 'teal',
+            secondary: '#B45309',
+            marquee: '',
+            arabicFont: 'tajawal',
+            englishFont: 'inter',
+          },
+        })
+      ).status,
+    ).toBe(400);
 
     const student = (await login(server, STUDENT1.email, STUDENT1.password)).session;
     expect((await student.patch('/api/me').send({ landingSlug: 'aisha' })).status).toBe(400);

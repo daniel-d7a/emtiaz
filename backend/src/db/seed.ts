@@ -142,7 +142,19 @@ async function seedDemo() {
   await db.update(users).set({ subjectCategoryId: (await getOrCreateCategory('Sciences')).id }).where(eq(users.id, teacher1));
   await db
     .update(users)
-    .set({ landingSlug: 'salim', landingBio: 'Physics teacher in Muscat.', landingPublished: true })
+    .set({
+      landingSlug: 'salim',
+      landingBio: 'Physics teacher in Muscat.',
+      landingPublished: true,
+      landingTheme: {
+        layout: 'split',
+        primary: '#0F766E',
+        secondary: '#EA580C',
+        marquee: 'فيزياء أوضح — Physics made simple',
+        arabicFont: 'cairo',
+        englishFont: 'dm-sans',
+      },
+    })
     .where(eq(users.id, teacher1));
   const teacher2 = await signUp('Fatma Al Hinai', 'fatma@teacher.om', DEMO_PASSWORD, 'TEACHER', {
     phoneNumber: '+96894000002',

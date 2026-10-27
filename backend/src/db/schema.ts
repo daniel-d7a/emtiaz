@@ -29,6 +29,15 @@ export const attachmentTypeEnum = pgEnum('attachment_type', [
 ]);
 export const questionTypeEnum = pgEnum('question_type', ['MCQ', 'TRUE_FALSE']);
 
+export type TeacherTheme = {
+  layout: 'banner' | 'split';
+  primary: string;
+  secondary: string;
+  marquee: string;
+  arabicFont: 'cairo' | 'readex' | 'tajawal';
+  englishFont: 'dm-sans' | 'inter' | 'cairo';
+};
+
 // ==========================================
 // 2. TAXONOMY TABLES (Grades & Categories)
 // ==========================================
@@ -57,6 +66,8 @@ export const users = pgTable('user', {
   role: roleEnum('role').notNull().default('STUDENT'),
   landingSlug: text('landing_slug').unique(),
   landingBio: text('landing_bio'),
+  landingBanner: text('landing_banner'),
+  landingTheme: jsonb('landing_theme').$type<TeacherTheme>(),
   landingPublished: boolean('landing_published').notNull().default(false),
   isActive: boolean('is_active').notNull().default(true),
   subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),

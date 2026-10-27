@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Readex+Pro:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Inter:wght@400;600;700&family=Readex+Pro:wght@400;600;700&family=Tajawal:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -32,6 +32,24 @@ button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]) {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+@keyframes marquee-ltr {
+  from { transform: translateX(100%); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes marquee-rtl {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.marquee-track {
+  animation: marquee-ltr 18s linear infinite;
+}
+
+html[dir="rtl"] .marquee-track {
+  animation-name: marquee-rtl;
 }
 
 @keyframes page-fade {

@@ -6,13 +6,18 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, EmptyState, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
-import type { TeacherCourse as Course } from '../../../../shared/api';
+import type { MeResponse, TeacherCourse as Course } from '../../../../shared/api';
+import { ThemeStrip, ThemeSurface } from '../../components/TeacherTheme';
 
 export default function TeacherDashboard() {
   const { t } = useLang();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data, isLoading, error } = useQuery(teacherCoursesQuery);
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<MeResponse>('/api/me'),
+  });
   const { data: grades } = useQuery({
     queryKey: ['grades-list'],
     queryFn: () => api<Array<{ id: string; name: string }>>('/api/admin/taxonomy/grades'),
@@ -60,6 +65,8 @@ export default function TeacherDashboard() {
 
   return (
     <Page title={t('myWorkspace')}>
+      <ThemeSurface theme={me?.user.landingTheme}>
+      <ThemeStrip theme={me?.user.landingTheme} bannerUrl={me?.bannerUrl ?? null} />
       <div className="mb-5 flex items-center justify-between">
         <h2 className="text-lg font-bold">{t('courses')}</h2>
         <Button onClick={() => setShowForm(!showForm)}>
@@ -149,6 +156,7 @@ export default function TeacherDashboard() {
           )}
         </div>
       )}
+      </ThemeSurface>
     </Page>
   );
 }

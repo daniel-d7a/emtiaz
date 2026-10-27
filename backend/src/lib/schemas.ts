@@ -29,6 +29,15 @@ const phoneNumber = z
 const phone = phoneNumber.optional();
 const safeText = (max = 300) => z.string().trim().min(1).max(max);
 const optText = (max = 2000) => z.string().trim().max(max).optional();
+const themeColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #RRGGBB colour');
+const TeacherThemeDto = z.object({
+  layout: z.enum(['banner', 'split']),
+  primary: themeColor,
+  secondary: themeColor,
+  marquee: z.string().trim().max(200),
+  arabicFont: z.enum(['cairo', 'readex', 'tajawal']),
+  englishFont: z.enum(['dm-sans', 'inter', 'cairo']),
+});
 
 // ---------- onboarding ----------
 export const TeacherSignupDto = z.object({
@@ -69,6 +78,8 @@ export const UpdateMeDto = z
       })
       .optional(),
     landingBio: optText(500),
+    landingBanner: z.string().trim().max(512).nullable().optional(),
+    landingTheme: TeacherThemeDto.optional(),
     landingPublished: z.boolean().optional(),
   });
 
@@ -143,6 +154,7 @@ export const AvatarUploadDto = z.object({
   mimeType: z.string().regex(/^image\//, 'must be an image'),
   fileSizeBytes: z.number().int().min(1).max(2 * 1024 * 1024),
 });
+export const BannerUploadDto = AvatarUploadDto;
 export const PresignedUploadDto = z
   .object({
     courseId: uuid,

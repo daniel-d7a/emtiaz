@@ -44,8 +44,8 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `teacher` | Course/module/lesson CRUD, quizzes, groups, pacing, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress and grades |
-| `public` | Published teacher landing data/avatar, sitemap, robots |
-| `storage` | Presigned uploads, attachment records/downloads, avatars |
+| `public` | Published teacher landing data/avatar/banner, sitemap, robots |
+| `storage` | Presigned uploads, attachment records/downloads, avatars, banners |
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
 
 Global providers in `app.module.ts`: Redis-backed throttler (when configured),
@@ -134,6 +134,13 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
   audit).
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
+- Teachers own a theme in `user.landing_theme` (layout, two colours, marquee,
+  Arabic/English fonts) plus a banner key. `ThemeSurface`/`ThemeHero`
+  (`frontend/src/components/TeacherTheme.tsx`) apply it to the public page,
+  teacher dashboard, and student group view. Missing or invalid values fall back
+  to `DESIGN.md` defaults via `normalizeTheme`.
+- The profile page is an update flow split into account and public-page
+  columns; the public-page column is a live theme preview.
 
 ## Mobile app
 

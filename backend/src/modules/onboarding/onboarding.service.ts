@@ -99,6 +99,8 @@ export class OnboardingService {
       image: string | null;
       landingSlug: string;
       landingBio: string;
+      landingBanner: string | null;
+      landingTheme: schema.TeacherTheme;
       landingPublished: boolean;
     }>,
   ) {
@@ -118,13 +120,25 @@ export class OnboardingService {
       allowed.image = image;
     }
     if (
-      (dto.landingSlug !== undefined || dto.landingBio !== undefined || dto.landingPublished !== undefined) &&
+      (dto.landingSlug !== undefined ||
+        dto.landingBio !== undefined ||
+        dto.landingBanner !== undefined ||
+        dto.landingTheme !== undefined ||
+        dto.landingPublished !== undefined) &&
       user.role !== 'TEACHER'
     ) {
       throw new BadRequestException('landing pages are only available to teachers');
     }
     if (dto.landingSlug !== undefined) allowed.landingSlug = dto.landingSlug.trim().toLowerCase() || null;
     if (dto.landingBio !== undefined) allowed.landingBio = dto.landingBio.trim() || null;
+    if (dto.landingBanner !== undefined) {
+      const banner = dto.landingBanner?.trim() || null;
+      if (banner && !banner.startsWith(`banners/${userId}/`)) {
+        throw new BadRequestException('banner must be your own uploaded image');
+      }
+      allowed.landingBanner = banner;
+    }
+    if (dto.landingTheme !== undefined) allowed.landingTheme = dto.landingTheme;
     if (dto.landingPublished !== undefined) allowed.landingPublished = dto.landingPublished;
     if (!Object.keys(allowed).length) return user;
     const [updated] = await db
@@ -145,13 +159,37 @@ export class OnboardingService {
     ) {
       await this.storage.deleteObject(oldImage);
     }
+    const oldBanner = user.landingBanner;
+    if (
+      allowed.landingBanner !== undefined &&
+      oldBanner &&
+      oldBanner.startsWith(`banners/${userId}/`) &&
+      oldBanner !== updated.landingBanner
+    ) {
+      await this.storage.deleteObject(oldBanner);
+    }
     return updated;
   }
 
   async me(userId: string) {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new NotFoundException('User not found');
-    return { user, avatarUrl: await this.avatarUrl(userId) };
+    return {
+      user,
+      avatarUrl: await this.avatarUrl(userId),
+      bannerUrl: await this.bannerUrl(userId),
+    };
+  }
+
+  /** Signed URL for the caller's public banner, or null when unset/unconfigured. */
+  async bannerUrl(userId: string): Promise<string | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user?.landingBanner) return null;
+    try {
+      return await this.storage.presignedGet(user.landingBanner);
+    } catch {
+      return null;
+    }
   }
 
   /** Signed URL for the caller's avatar, or null when unset/unconfigured. */

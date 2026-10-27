@@ -45,13 +45,13 @@ alone never grants access to another user's course, group, or child.
 | Submit a quiz | no | no | enrolled + group course | no |
 | Read own grades | no | no | enrolled | no |
 | Read a linked child's progress/grades | no | no | no | linked |
-| Link/unlink a child by code | no | no | no | yes |
-| Rotate own parent code | no | no | yes | no |
+| Link/unlink a child by registered phone | no | no | no | yes |
 | Download lesson attachment | yes | owner | enrolled + unlocked | no |
 | Upload/manage attachments | no | owner | no | no |
 | Upload own avatar | yes | yes | yes | yes |
+| Upload own banner | no | yes | no | no |
 | Read own inbox / mark read | yes | yes | yes | yes |
-| Public teacher page/avatar, sitemap, robots | public | public | public | public |
+| Public teacher page/avatar/banner, sitemap, robots | public | public | public | public |
 
 \* Admin endpoints are read-only for courses/groups; admin does not call the
 teacher endpoints. Admin can download any attachment and manually enroll a
@@ -74,7 +74,7 @@ student.
   only to that group; both still require the lesson to be unlocked.
 - Teachers can only attach objects under
   `courses/<courseId>/lessons/<lessonId>/` for a course they own. Avatar keys
-  must stay under `avatars/<userId>/`.
+  must stay under `avatars/<userId>/`; banner keys under `banners/<userId>/`.
 - Parents are read-only and must have a `parent_students` row. They cannot call
   student write endpoints, curriculum, lessons, quizzes, or attachments.
 - Student progress is computed from unlocked lessons only, so locking a lesson
@@ -88,8 +88,8 @@ student.
   classified from the declared MIME type.
 - Replaced/cleared avatars are deleted best-effort. Objects uploaded but never
   attached still need a bucket lifecycle rule.
-- Public teacher avatars are served through a published-teacher check, not a
-  public bucket listing.
+- Public teacher avatars and banners are served through a published-teacher
+  check, not a public bucket listing.
 
 ## Exports
 

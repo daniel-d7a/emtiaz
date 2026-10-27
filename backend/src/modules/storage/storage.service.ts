@@ -57,6 +57,11 @@ export class StorageService {
     return `avatars/${userId}/${randomUUID()}-${safeName}`;
   }
 
+  static buildBannerKey(userId: string, fileName: string) {
+    const safeName = fileName.replace(/[^\w.\-]/g, '_');
+    return `banners/${userId}/${randomUUID()}-${safeName}`;
+  }
+
   static fileTypeFor(mimeType: string | undefined): 'PDF' | 'DOC' | 'AUDIO' | 'IMAGE' | 'ARCHIVE' | 'LINK' | 'VIDEO' {
     const m = mimeType ?? '';
     if (m.includes('pdf')) return 'PDF';

@@ -35,6 +35,30 @@ export class PublicController {
   }
 
   @Public()
+  @Get('api/public/teachers/:slug/banner')
+  async banner(@Param('slug') slug: string, @Res() res: Response) {
+    const [teacher] = await db
+      .select({ banner: users.landingBanner })
+      .from(users)
+      .where(
+        and(
+          eq(users.landingSlug, slug.trim().toLowerCase()),
+          eq(users.landingPublished, true),
+          eq(users.role, 'TEACHER'),
+          eq(users.isActive, true),
+          isNull(users.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!teacher?.banner) throw new NotFoundException('No banner');
+    try {
+      res.redirect(302, await this.storage.presignedGet(teacher.banner));
+    } catch {
+      throw new NotFoundException('No banner');
+    }
+  }
+
+  @Public()
   @Get('sitemap.xml')
   async sitemap(@Res() res: Response) {
     const teachers = await db
@@ -78,6 +102,8 @@ export class PublicController {
         bio: users.landingBio,
         subject: categories.name,
         avatar: users.image,
+        theme: users.landingTheme,
+        banner: users.landingBanner,
       })
       .from(users)
       .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
@@ -104,7 +130,15 @@ export class PublicController {
       .where(and(eq(courses.teacherId, teacher.id), eq(courses.isPublished, true)))
       .orderBy(asc(courses.title));
 
-    const { id: _id, ...publicTeacher } = teacher;
-    return { teacher: publicTeacher, courses: list };
+    const { id: _id, banner, ...publicTeacher } = teacher;
+    let bannerUrl: string | null = null;
+    if (banner) {
+      try {
+        bannerUrl = await this.storage.presignedGet(banner);
+      } catch {
+        bannerUrl = null;
+      }
+    }
+    return { teacher: { ...publicTeacher, bannerUrl }, courses: list };
   }
 }
