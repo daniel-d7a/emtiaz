@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { GraduationCap, Link2, Unlink } from 'lucide-react';
@@ -11,7 +14,6 @@ import type { ParentChild as Child, StudentGrades as Grades } from '../../../../
 export default function ParentDashboard() {
   const { t } = useLang();
   const qc = useQueryClient();
-  const [phone, setPhone] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [unlinkTarget, setUnlinkTarget] = useState<Child | null>(null);
 
@@ -19,10 +21,17 @@ export default function ParentDashboard() {
     queryKey: ['parent-students'],
     queryFn: () => api<Child[]>('/api/parent/students'),
   });
+  const schema = z.object({
+    phoneNumber: z.string().trim().min(8, t('phoneInvalid')).regex(/^[+\d\s()-]+$/, t('phoneInvalid')),
+  });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<{ phoneNumber: string }>({
+    resolver: zodResolver(schema),
+    defaultValues: { phoneNumber: '' },
+  });
   const link = useMutation({
-    mutationFn: () => api('/api/parent/link', { body: { phoneNumber: phone.trim() } }),
+    mutationFn: (phoneNumber: string) => api('/api/parent/link', { body: { phoneNumber } }),
     onSuccess: () => {
-      setPhone('');
+      reset();
       toast.success(t('linked'));
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
@@ -39,23 +48,28 @@ export default function ParentDashboard() {
   return (
     <Page title={t('myChildren')}>
       <Card className="mb-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="grow">
-            <Input
-              label={t('studentPhone')}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+968…"
-              dir="ltr"
-              maxLength={20}
-            />
-            <p className="mt-1 text-xs text-ink-soft">{t('studentPhoneHint')}</p>
+        <form
+          onSubmit={handleSubmit(({ phoneNumber }) => link.mutate(phoneNumber.trim()))}
+          noValidate
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="grow">
+              <Input
+                label={t('studentPhone')}
+                error={errors.phoneNumber?.message}
+                placeholder="+968…"
+                dir="ltr"
+                maxLength={20}
+                {...register('phoneNumber')}
+              />
+              <p className="mt-1 text-xs text-ink-soft">{t('studentPhoneHint')}</p>
+            </div>
+            <Button type="submit" disabled={link.isPending}>
+              <Link2 className="inline" size={18} /> {t('linkChild')}
+            </Button>
           </div>
-          <Button onClick={() => link.mutate()} disabled={phone.trim().length < 8 || link.isPending}>
-            <Link2 className="inline" size={18} /> {t('linkChild')}
-          </Button>
-        </div>
-        {link.error && <div className="mt-2"><ErrorBox error={link.error} /></div>}
+          {link.error && <div className="mt-2"><ErrorBox error={link.error} /></div>}
+        </form>
       </Card>
 
       {unlink.error && <ErrorBox error={unlink.error} />}

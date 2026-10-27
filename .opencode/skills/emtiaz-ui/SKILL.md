@@ -11,7 +11,20 @@ Arabic is the source language and RTL is the default. Read `DESIGN.md` and `PROD
 
 React 18 + Vite + Tailwind v4 + TanStack Router (code-based routes in `frontend/src/router.tsx`) + TanStack Query. No Zustand. Use the primitives in `frontend/src/components/ui/` and export new ones from `ui/index.ts`.
 
-Conventions still to adopt from `notes.md`: `react-hook-form` + zod for every form, `sonner` toasts, `@tanstack/react-table` for directories and gradebook, custom dialogs instead of `window.confirm`.
+Forms use `react-hook-form` + zod. Directories and the gradebook use `@tanstack/react-table`. Toasts use `sonner`; destructive actions use `ConfirmDialog`, never `window.confirm`.
+
+## Forms
+
+- Define a zod schema in the component (messages from `t()`), then `useForm({ resolver: zodResolver(schema) })`. No per-field `useState`.
+- Spread `register('field')` onto `Input`; pass `error={errors.field?.message}`. Submit through `handleSubmit`, set `type="submit"` and disable while `mutation.isPending`.
+- Keep server errors in an `ErrorBox`; the global mutation cache already raises an error toast.
+
+## Tables
+
+- Use `@tanstack/react-table`: `getCoreRowModel`, `getFilteredRowModel`, `getSortedRowModel`, `getPaginationRowModel`.
+- Wrap in `Card className="!p-0"` with a `max-h-[70vh] overflow-auto` region for two-axis scroll.
+- Make every `th` `sticky top-0`; make the first `th`/`td` `sticky start-0` with an opaque background and `min-w-40`.
+- Add a global filter `Input`, clickable sort headers with `aria-sort`, and previous/next pagination.
 
 ## Rules
 

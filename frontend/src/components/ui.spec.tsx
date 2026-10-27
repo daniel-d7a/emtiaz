@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { Button, ConfirmDialog, ErrorBox, Input, Progress } from './ui';
+
+afterEach(cleanup);
 
 describe('UI primitives', () => {
   it('Button renders and can be disabled', () => {
@@ -12,6 +14,11 @@ describe('UI primitives', () => {
   it('Input renders with visible label', () => {
     render(<Input label="Phone number" value="" onChange={() => {}} />);
     expect(screen.getByText('Phone number')).toBeTruthy();
+  });
+
+  it('Input announces an inline error', () => {
+    render(<Input label="Phone number" value="" onChange={() => {}} error="Enter a valid phone number" />);
+    expect(screen.getByRole('alert').textContent).toContain('Enter a valid phone number');
   });
 
   it('ErrorBox is announced as an alert', () => {

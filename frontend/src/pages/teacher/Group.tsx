@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Download, Lock, MessageCircle, Plus, Trash2, Unlock } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, Download, Lock, MessageCircle, Plus, Trash2, Unlock, Users } from 'lucide-react';
+import {
+  flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
+  useReactTable, type ColumnDef, type PaginationState, type SortingState,
+} from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, ErrorBox, IconButton, Input, Loading, Page } from '../../components/ui';
+import { Button, Card, ConfirmDialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   TeacherGradebook as Gradebook,
@@ -153,64 +157,185 @@ export function GradebookTab({ groupId }: { groupId: string }) {
       api(`/api/teacher/groups/${groupId}/gradebook/cell`, { body: v }),
     onSuccess: invalidate,
   });
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 12 });
+  const manualScore = (studentId: string, columnId: string) =>
+    data?.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? null;
+  const columns = useMemo<ColumnDef<Gradebook['students'][number]>[]>(() => {
+    if (!data) return [];
+    const cols: ColumnDef<Gradebook['students'][number]>[] = [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: t('roster'),
+        cell: ({ getValue }) => <span className="font-semibold">{String(getValue())}</span>,
+      },
+    ];
+    for (const c of data.quizColumns) {
+      cols.push({
+        id: `quiz-${c.quizId}`,
+        header: `${c.lessonTitle} (${c.maxScore})`,
+        accessorFn: (s) => data.quizCells[`${s.id}:${c.quizId}`] ?? null,
+        cell: ({ getValue }) => <span className="font-bold text-primary">{(getValue() as number | null) ?? '—'}</span>,
+      });
+    }
+    for (const c of data.manualColumns) {
+      cols.push({
+        id: `manual-${c.id}`,
+        header: () => (
+          <span className="inline-flex items-center gap-1">
+            {c.title}
+            <button
+              aria-label={`${t('delete')} ${c.title}`}
+              title={t('delete')}
+              onClick={() => setDeleteColumn({ id: c.id, title: c.title })}
+              className="text-ink-soft hover:text-secondary"
+            >
+              <Trash2 size={12} />
+            </button>
+          </span>
+        ),
+        accessorFn: (s) => manualScore(s.id, c.id),
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className="w-16 rounded border border-line px-2 py-1 text-sm"
+            defaultValue={manualScore(row.original.id, c.id) ?? ''}
+            onBlur={(e) => {
+              const raw = e.target.value.trim();
+              setCell.mutate({ studentId: row.original.id, columnId: c.id, score: raw === '' ? null : Number(raw) });
+            }}
+          />
+        ),
+      });
+    }
+    return cols;
+  }, [data, t]);
+  const table = useReactTable({
+    data: data?.students ?? [],
+    columns,
+    state: { sorting, globalFilter, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: (value) => {
+      setGlobalFilter(value);
+      setPagination((p) => ({ ...p, pageIndex: 0 }));
+    },
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+  });
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} />;
   if (!data) return null;
 
-  const cellAt = (studentId: string, columnId: string, kind: 'quiz' | 'manual') =>
-    kind === 'quiz'
-      ? data.quizCells[`${studentId}:${columnId}`]
-      : data.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? null;
-
   return (
     <div className="flex flex-col gap-4">
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-start">
-              <th className="py-2 pe-4 text-start font-bold">{t('roster')}</th>
-              {data.quizColumns.map((c) => (
-                <th key={c.quizId} className="py-2 pe-4 text-start text-ink-soft">
-                  {c.lessonTitle} <span dir="rtl" className="text-xs">({c.maxScore})</span>
-                </th>
+      <Card className="!p-0">
+        <div className="p-3">
+          <Input
+            label={t('search')}
+            value={globalFilter}
+            onChange={(e) => {
+              setGlobalFilter(e.target.value);
+              setPagination((p) => ({ ...p, pageIndex: 0 }));
+            }}
+            placeholder={t('roster')}
+          />
+        </div>
+        <div className="max-h-[70vh] overflow-auto border-y border-line">
+          <table className="w-full border-separate border-spacing-0 text-sm">
+            <thead className="bg-surface">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      aria-sort={
+                        header.column.getIsSorted() === 'asc'
+                          ? 'ascending'
+                          : header.column.getIsSorted() === 'desc' ? 'descending' : undefined
+                      }
+                      className={`sticky top-0 z-20 whitespace-nowrap border-b border-line bg-surface px-3 py-2 text-start ${
+                        header.column.id === 'name' ? 'start-0 z-30 min-w-40' : ''
+                      }`}
+                    >
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="inline-flex items-center gap-1 font-bold"
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getIsSorted() === 'asc' ? (
+                            <ArrowUp size={13} />
+                          ) : header.column.getIsSorted() === 'desc' ? (
+                            <ArrowDown size={13} />
+                          ) : (
+                            <ArrowUpDown size={13} className="text-ink-soft" />
+                          )}
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </th>
+                  ))}
+                </tr>
               ))}
-              {data.manualColumns.map((c) => (
-                <th key={c.id} className="py-2 pe-2 text-start text-ink-soft">
-                  {c.title}
-                  <button aria-label={`${t('delete')} ${c.title}`} title={t('delete')} onClick={() => setDeleteColumn({ id: c.id, title: c.title })} className="ms-1 text-ink-soft hover:text-secondary">
-                    <Trash2 size={12} />
-                  </button>
-                </th>
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="border-b border-line/60">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={`border-b border-line/60 px-3 py-2 ${
+                        cell.column.id === 'name' ? 'sticky start-0 z-10 min-w-40 bg-surface font-semibold' : ''
+                      }`}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.students.map((s) => (
-              <tr key={s.id} className="border-b border-line/60">
-                <td className="py-2 pe-4 font-semibold">{s.name}</td>
-                {data.quizColumns.map((c) => (
-                  <td key={c.quizId} className="py-2 pe-4 font-bold text-primary">
-                    {cellAt(s.id, c.quizId, 'quiz') ?? '—'}
-                  </td>
-                ))}
-                {data.manualColumns.map((c) => (
-                  <td key={c.id} className="py-1 pe-2">
-                    <input
-                      className="w-16 rounded border border-line px-2 py-1 text-sm"
-                      defaultValue={cellAt(s.id, c.id, 'manual') ?? ''}
-                      onBlur={(e) => {
-                        const raw = e.target.value.trim();
-                        setCell.mutate({ studentId: s.id, columnId: c.id, score: raw === '' ? null : Number(raw) });
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {data.students.length === 0 && <tr><td className="py-3 text-ink-soft">—</td></tr>}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+          {table.getRowModel().rows.length === 0 && (
+            <div className="p-3">
+              <EmptyState
+                title={data.students.length === 0 ? t('noStudentsRoster') : t('noResults')}
+                icon={Users}
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+          <span className="text-ink-soft">
+            {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              className="!min-h-9 !px-3"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              {t('previous')}
+            </Button>
+            <Button
+              variant="ghost"
+              className="!min-h-9 !px-3"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              {t('next')}
+            </Button>
+          </div>
+        </div>
       </Card>
       <Card>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
