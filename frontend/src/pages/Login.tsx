@@ -21,7 +21,7 @@ export default function Login() {
     const home = {
       TEACHER: '/teacher/dashboard',
       ADMIN: '/admin/dashboard',
-      PARENT: '/parent/dashboard',
+      PARENT: '/parent/children',
     } as const;
     navigate({ to: home[role as keyof typeof home] ?? '/student/dashboard' });
   };

@@ -329,6 +329,25 @@ export const lessonCompletions = pgTable(
   }),
 );
 
+export const lessonAttendance = pgTable(
+  'lesson_attendance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    lessonId: uuid('lesson_id')
+      .notNull()
+      .references(() => lessons.id, { onDelete: 'cascade' }),
+    studentId: text('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    isPresent: boolean('is_present').notNull().default(true),
+    markedAt: timestamp('marked_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('unique_lesson_attendance_idx').on(table.lessonId, table.studentId),
+    index('attendance_student_idx').on(table.studentId),
+  ],
+);
+
 // ==========================================
 // 8. CUSTOM GROUP GRADEBOOK (MANUAL MARKINGS)
 // ==========================================
@@ -377,6 +396,22 @@ export const parentStudents = pgTable(
     uniqueIndex('parent_students_pair').on(t.parentId, t.studentId),
     index('parent_students_student_idx').on(t.studentId),
   ],
+);
+
+export const parentReports = pgTable(
+  'parent_reports',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    parentId: text('parent_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    studentId: text('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    message: text('message').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('parent_reports_child_idx').on(t.parentId, t.studentId, t.createdAt)],
 );
 
 export const notificationSettings = pgTable('notification_settings', {

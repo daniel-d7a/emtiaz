@@ -16,7 +16,7 @@ type NavTarget =
   | '/student/dashboard'
   | '/student/courses'
   | '/teacher/dashboard'
-  | '/parent/dashboard'
+  | '/parent/children'
   | '/admin/dashboard'
   | '/profile';
 
@@ -25,7 +25,7 @@ type NavItem = { to: NavTarget; label: Key; icon: LucideIcon };
 const ROLE_HOME: Record<SessionUser['role'], NavTarget> = {
   STUDENT: '/student/dashboard',
   TEACHER: '/teacher/dashboard',
-  PARENT: '/parent/dashboard',
+  PARENT: '/parent/children',
   ADMIN: '/admin/dashboard',
 };
 
@@ -42,7 +42,7 @@ const ROLE_NAV: Record<SessionUser['role'], NavItem[]> = {
     { to: '/student/courses', label: 'browseCourses', icon: BookOpen },
   ],
   TEACHER: [{ to: '/teacher/dashboard', label: 'myWorkspace', icon: LayoutDashboard }],
-  PARENT: [{ to: '/parent/dashboard', label: 'myChildren', icon: Users }],
+  PARENT: [{ to: '/parent/children', label: 'myChildren', icon: Users }],
   ADMIN: [{ to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard }],
 };
 

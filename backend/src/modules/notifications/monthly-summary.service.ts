@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { and, eq, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../../db';
-import { parentStudents, users } from '../../db/schema';
+import { parentReports, parentStudents, users } from '../../db/schema';
 import { StudentService } from '../student/student.service';
 import { NotificationsService } from './notifications.service';
 import { Redis } from 'ioredis';
@@ -90,19 +90,27 @@ export class MonthlySummaryService implements OnModuleInit, OnModuleDestroy {
     for (const children of byParent.values()) {
       const first = children[0];
       const parts: string[] = [];
+      const reports: Array<{ parentId: string; studentId: string; message: string }> = [];
       for (const child of children) {
         try {
           const groups = await this.students.myGroups(child.studentId);
           const avg = groups.length
             ? Math.round(groups.reduce((sum, g) => sum + g.progress, 0) / groups.length)
             : 0;
+          const summary = `ملخص امتياز الشهري — ${child.studentName}: ${avg}%`;
           parts.push(`${child.studentName}: ${avg}%`);
+          reports.push({ parentId: child.parentId, studentId: child.studentId, message: summary });
         } catch (e) {
           this.logger.error({ err: e }, 'monthly summary progress failed');
         }
       }
       if (!parts.length) continue;
       const message = `ملخص امتياز الشهري — ${parts.join(' · ')}`;
+      try {
+        await db.insert(parentReports).values(reports);
+      } catch (e) {
+        this.logger.error({ err: e }, 'monthly report save failed');
+      }
       await Promise.all([
         this.notifications.sendInApp(first.parentId, message, 'PARENT'),
         this.notifications.sendEmail(

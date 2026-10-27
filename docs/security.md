@@ -77,7 +77,8 @@ student.
   `courses/<courseId>/cover/` for a course they own. Avatar keys must stay under
   `avatars/<userId>/`; banner keys under `banners/<userId>/`.
 - Parents are read-only and must have a `parent_students` row. They cannot call
-  student write endpoints, curriculum, lessons, quizzes, or attachments.
+  student write endpoints, curriculum, lessons, quizzes, or attachments. Child
+  attendance and delivered reports are returned only for linked students.
 - Student progress is computed from unlocked lessons only, so locking a lesson
   cannot produce progress above 100%.
 

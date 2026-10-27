@@ -14,7 +14,7 @@ import { teacherDashboardRoute } from './pages/teacher/Dashboard';
 import { teacherCurriculumRoute } from './pages/teacher/Curriculum';
 import { teacherGroupRoute } from './pages/teacher/Group';
 import { adminDashboardRoute } from './pages/admin/Dashboard';
-import { parentDashboardRoute } from './pages/parent/Dashboard';
+import { parentChildrenRoute } from './pages/parent/Children';
 import { teacherLandingRoute } from './pages/public/Teacher';
 import { publicCourseRoute } from './pages/public/Course';
 import { publicCoursesRoute } from './pages/public/Courses';
@@ -42,7 +42,7 @@ const routeTree = rootRoute.addChildren([
   teacherCurriculumRoute,
   teacherGroupRoute,
   adminDashboardRoute,
-  parentDashboardRoute,
+  parentChildrenRoute,
   teacherLandingRoute,
   publicCourseRoute,
   publicCoursesRoute,

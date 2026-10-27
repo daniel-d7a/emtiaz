@@ -5,6 +5,7 @@ import {
   STUDENT2,
   closeApp,
   getApp,
+  getUserByEmail,
   login,
   seedWorld,
   testPool,
@@ -46,11 +47,24 @@ describe('parent role', () => {
     expect(link.status).toBe(201);
     expect(link.body.id).toBe(world.s1.id);
 
+    const parentUser = await getUserByEmail(PARENT.email);
+    await testPool.query(
+      `INSERT INTO lesson_attendance (lesson_id, student_id, is_present) VALUES ($1,$2,true),($3,$2,false)`,
+      [world.lesson1, world.s1.id, world.lesson2],
+    );
+    await testPool.query(
+      `INSERT INTO parent_reports (parent_id, student_id, message) VALUES ($1,$2,'Monthly report')`,
+      [parentUser.id, world.s1.id],
+    );
+
     const students = await parent.get('/api/parent/students');
     expect(students.status).toBe(200);
     expect(students.body).toHaveLength(1);
     expect(students.body[0].name).toBe(STUDENT1.name);
     expect(students.body[0].groups[0].group.id).toBe(world.group1);
+    expect(students.body[0].groups[0].attendance).toEqual({ present: 1, total: 2, percent: 50 });
+    expect(students.body[0].groups[0].averageGrade).toBe(0);
+    expect(students.body[0].reports[0].message).toBe('Monthly report');
 
     const grades = await parent.get(
       `/api/parent/students/${world.s1.id}/groups/${world.group1}/grades`,

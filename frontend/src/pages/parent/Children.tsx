@@ -7,12 +7,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { GraduationCap, Link2, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
-import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, EmptyState, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
+import { formatDateTime, useLang } from '../../lib/i18n';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
 import type { ParentChild as Child, StudentGrades as Grades } from '../../../../shared/api';
 
-export default function ParentDashboard() {
-  const { t } = useLang();
+export default function ParentChildren() {
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState<string | null>(null);
   const [unlinkTarget, setUnlinkTarget] = useState<Child | null>(null);
@@ -46,7 +46,7 @@ export default function ParentDashboard() {
   });
 
   return (
-    <Page title={t('myChildren')}>
+    <Page title={t('myChildren')} right={<Badge>{t('readOnly')}</Badge>} wide>
       <Card className="mb-6">
         <form
           onSubmit={handleSubmit(({ phoneNumber }) => link.mutate(phoneNumber.trim()))}
@@ -98,20 +98,48 @@ export default function ParentDashboard() {
                           <p className="font-semibold">{g.course.title}</p>
                           <p className="text-xs text-ink-soft">{g.group.name} · {g.teacher.name}</p>
                         </div>
-                        <Button variant="ghost" onClick={() => setOpen(open === key ? null : key)}>
-                          {t('viewGrades')}
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone="primary">{t('progress')}: {g.progress}%</Badge>
+                          <Badge>{t('attendance')}: {g.attendance.percent}%</Badge>
+                          <Badge tone="secondary">{t('averageGrade')}: {g.averageGrade}%</Badge>
+                          <Button variant="ghost" onClick={() => setOpen(open === key ? null : key)}>
+                            {open === key ? t('hideGrades') : t('viewGrades')}
+                          </Button>
+                        </div>
                       </div>
                       <Progress value={g.progress} />
-                      <p className="mt-1 text-xs text-ink-soft">{t('progress')}: {g.progress}%</p>
+                      <p className="mt-1 text-xs text-ink-soft">
+                        {t('progress')}: {g.completedLessons}/{g.totalLessons} {t('lessons')}
+                      </p>
                       {open === key && <ChildGrades studentId={child.id} groupId={g.group.id} />}
                     </div>
                   );
                 })}
               </div>
+              <div className="mt-4 border-t border-line pt-3">
+                <h3 className="mb-2 text-sm font-bold">{t('deliveredReports')}</h3>
+                {child.reports.length === 0 ? (
+                  <p className="text-sm text-ink-soft">{t('noReports')}</p>
+                ) : (
+                  <ul className="flex flex-col gap-2 text-sm">
+                    {child.reports.map((report) => (
+                      <li key={report.id} className="rounded-lg bg-background p-2">
+                        <p>{report.message}</p>
+                        <p className="mt-1 text-xs text-ink-soft">{formatDateTime(report.createdAt, lang)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </Card>
           ))}
-          {children.data?.length === 0 && <EmptyState title={t('noChildren')} icon={GraduationCap} />}
+          {children.data?.length === 0 && (
+            <EmptyState
+              title={t('noChildren')}
+              description={t('linkChildHint')}
+              icon={GraduationCap}
+            />
+          )}
         </div>
       )}
 
@@ -173,9 +201,9 @@ function ChildGrades({ studentId, groupId }: { studentId: string; groupId: strin
 import { rootRoute } from '../../routes/__root';
 import { requireRole } from '../../lib/session';
 
-export const parentDashboardRoute = createRoute({
+export const parentChildrenRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/parent/dashboard',
+  path: '/parent/children',
   beforeLoad: () => requireRole('PARENT'),
-  component: ParentDashboard,
+  component: ParentChildren,
 });

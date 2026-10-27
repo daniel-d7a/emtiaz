@@ -1,0 +1,583 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "f8343e67-1f91-4f03-bec8-6f48e5a55690",
+  "prevIds": [
+    "c38806bd-1357-4917-b59c-69b1820776e8"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_attendance"
+      ],
+      "writes": [
+        "s|tbl|public.lesson_attendance",
+        "n|tbl|public.lesson_attendance",
+        "e|tbl|public.lesson_attendance",
+        "n|rel|public.lesson_attendance",
+        "n|type|public.lesson_attendance",
+        "n|rel|public.lesson_attendance_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "parent_reports"
+      ],
+      "writes": [
+        "s|tbl|public.parent_reports",
+        "n|tbl|public.parent_reports",
+        "e|tbl|public.parent_reports",
+        "n|rel|public.parent_reports",
+        "n|type|public.parent_reports",
+        "n|rel|public.parent_reports_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lesson_attendance",
+        "unique_lesson_attendance_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_lesson_attendance_idx",
+        "n|idx|public.unique_lesson_attendance_idx",
+        "e|idx|public.unique_lesson_attendance_idx",
+        "n|rel|public.unique_lesson_attendance_idx"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attendance",
+        "n|sch|public",
+        "n|col|public.lesson_attendance.lesson_id",
+        "n|col|public.lesson_attendance.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "lesson_attendance",
+        "attendance_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.attendance_student_idx",
+        "n|idx|public.attendance_student_idx",
+        "e|idx|public.attendance_student_idx",
+        "n|rel|public.attendance_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attendance",
+        "n|sch|public",
+        "n|col|public.lesson_attendance.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "parent_reports",
+        "parent_reports_child_idx"
+      ],
+      "writes": [
+        "s|idx|public.parent_reports_child_idx",
+        "n|idx|public.parent_reports_child_idx",
+        "e|idx|public.parent_reports_child_idx",
+        "n|rel|public.parent_reports_child_idx"
+      ],
+      "reads": [
+        "n|tbl|public.parent_reports",
+        "n|sch|public",
+        "n|col|public.parent_reports.parent_id",
+        "n|col|public.parent_reports.student_id",
+        "n|col|public.parent_reports.created_at"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_attendance"
+      ],
+      "writes": [
+        "s|fk|public.lesson_attendance.lesson_attendance_lesson_id_lessons_id_fkey",
+        "n|fk|public.lesson_attendance.lesson_attendance_lesson_id_lessons_id_fkey",
+        "e|fk|public.lesson_attendance.lesson_attendance_lesson_id_lessons_id_fkey",
+        "n|con|public.lesson_attendance.lesson_attendance_lesson_id_lessons_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attendance",
+        "n|sch|public",
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.lesson_attendance.lesson_id",
+        "n|col|public.lessons.id",
+        "e|uniqueness|public.lessons.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "lesson_attendance"
+      ],
+      "writes": [
+        "s|fk|public.lesson_attendance.lesson_attendance_student_id_user_id_fkey",
+        "n|fk|public.lesson_attendance.lesson_attendance_student_id_user_id_fkey",
+        "e|fk|public.lesson_attendance.lesson_attendance_student_id_user_id_fkey",
+        "n|con|public.lesson_attendance.lesson_attendance_student_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attendance",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.lesson_attendance.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "parent_reports"
+      ],
+      "writes": [
+        "s|fk|public.parent_reports.parent_reports_parent_id_user_id_fkey",
+        "n|fk|public.parent_reports.parent_reports_parent_id_user_id_fkey",
+        "e|fk|public.parent_reports.parent_reports_parent_id_user_id_fkey",
+        "n|con|public.parent_reports.parent_reports_parent_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.parent_reports",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.parent_reports.parent_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "parent_reports"
+      ],
+      "writes": [
+        "s|fk|public.parent_reports.parent_reports_student_id_user_id_fkey",
+        "n|fk|public.parent_reports.parent_reports_student_id_user_id_fkey",
+        "e|fk|public.parent_reports.parent_reports_student_id_user_id_fkey",
+        "n|con|public.parent_reports.parent_reports_student_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.parent_reports",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.parent_reports.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "lesson_attendance",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "parent_reports",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "lesson_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "student_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "is_present",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "true",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "marked_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "parent_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "student_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "message",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "unique_lesson_attendance_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "lesson_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "attendance_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "parent_reports_child_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "parent_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "lesson_attendance_lesson_id_lessons_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "lesson_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "lessons",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "lesson_attendance_student_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "student_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "parent_reports_parent_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "parent_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "parent_reports_student_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "student_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attendance",
+        "name": "lesson_attendance_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_reports",
+        "name": "parent_reports_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

@@ -43,7 +43,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades, parent-code rotation |
 | `teacher` | Course/module/lesson CRUD, quizzes, groups, pacing, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
-| `parent` | Link/unlink children by student phone, read-only progress and grades |
+| `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
 | `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
 | `storage` | Presigned uploads, attachment records/downloads, avatars, banners |
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
@@ -72,6 +72,8 @@ Core relationships:
 - `quizzes` target exactly one of lesson, module, or course
 - `quiz_attempts(student_id, group_id, quiz_id)` — best score feeds the gradebook
 - `lesson_completions(lesson_id, student_id)` — unique pair
+- `lesson_attendance(lesson_id, student_id, is_present)` — unique pair
+- `parent_reports(parent_id, student_id, message)` — delivered monthly summaries
 - `manual_grade_columns` + `manual_grade_values` — teacher-entered columns
 - `inbox_notifications.user_id`, `notifications`, `audit_logs.actor_id`
 - `notification_settings` — single global row (`id = 'global'`)
@@ -118,7 +120,8 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
   parents.
 - Manual/bulk enrollment and moves notify the student and linked parents.
 - Monthly parent summary runs on the 1st, with a Redis `SET NX` lock so only
-  one replica sends it. It uses in-app, email, and WhatsApp adapters.
+  one replica sends it. It uses in-app, email, and WhatsApp adapters and stores
+  one delivered report per child in `parent_reports`.
 - WhatsApp/email adapters are selected by environment; without provider
   configuration they fall back to mock senders. Notification failures are
   logged and never fail the primary action.
@@ -130,7 +133,7 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
 - TanStack Query owns server state; there is no Zustand store.
 - Pages: home, public course catalogue, login/register, join, profile,
   student home/catalogue/group/lesson/quiz, teacher dashboard/course/group/
-  public landing/public course, parent home, dashboard, admin dashboard
+  public landing/public course, parent children/profile, admin dashboard
   (teachers, students, parents, courses, notifications, taxonomy, audit).
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
@@ -149,7 +152,7 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
 - Student: home, groups, join, curriculum, lesson, quiz, profile, notifications.
 - Teacher: course/group summaries, pacing, roster, announcements, profile,
   notifications.
-- Parent: link/unlink children, progress, grades, notifications.
+- Parent: link/unlink children, progress, attendance, grades, delivered reports, notifications.
 - Admin remains web-only.
 - API base derives from Metro `hostUri` in development; release builds need a
   hardcoded production URL in `mobile/src/api.ts`.

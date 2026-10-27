@@ -390,13 +390,21 @@ export type TeacherGradebook = {
   manualCells: ManualGradeCell[];
 };
 
+export type ParentAttendance = { present: number; total: number; percent: number };
+export type ParentChildGroup = StudentGroup & {
+  attendance: ParentAttendance;
+  averageGrade: number;
+};
+export type ParentReport = { id: string; message: string; createdAt: string };
+
 export type ParentChild = {
   id: string;
   name: string;
   email: string;
   phoneNumber: string | null;
   gradeId: string | null;
-  groups: StudentGroup[];
+  groups: ParentChildGroup[];
+  reports: ParentReport[];
 };
 
 export type InboxItem = {

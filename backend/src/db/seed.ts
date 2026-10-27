@@ -8,7 +8,9 @@ import {
   groupStudents,
   groups,
   lessonCompletions,
+  lessonAttendance,
   lessons,
+  parentReports,
   parentStudents,
   modules,
   notificationSettings,
@@ -150,6 +152,42 @@ async function seed() {
   process.exit(0);
 }
 
+async function ensureParentExtras(parentId: string, studentId: string) {
+  const [report] = await db
+    .select({ id: parentReports.id })
+    .from(parentReports)
+    .where(eq(parentReports.parentId, parentId))
+    .limit(1);
+  if (!report) {
+    await db.insert(parentReports).values({
+      parentId,
+      studentId,
+      message: 'ملخص امتياز الشهري — Student 1: 50%',
+    });
+  }
+
+  const lessonRows = await db
+    .select({ id: lessons.id })
+    .from(lessons)
+    .innerJoin(modules, eq(lessons.moduleId, modules.id))
+    .innerJoin(groups, eq(modules.courseId, groups.courseId))
+    .innerJoin(groupStudents, eq(groups.id, groupStudents.groupId))
+    .where(eq(groupStudents.studentId, studentId))
+    .limit(2);
+  if (lessonRows.length) {
+    await db
+      .insert(lessonAttendance)
+      .values(
+        lessonRows.map((lesson, i) => ({
+          lessonId: lesson.id,
+          studentId,
+          isPresent: i === 0,
+        })),
+      )
+      .onConflictDoNothing();
+  }
+}
+
 /** Demo world: 2 teachers × (1 academic + 1 general) course, shared students, groups, lessons, one quiz. */
 async function seedDemo() {
   if (process.env.SEED_DEMO === '0') return;
@@ -206,6 +244,7 @@ async function seedDemo() {
 
   const [anyCourse] = await db.select({ id: courses.id }).from(courses).limit(1);
   if (anyCourse) {
+    await ensureParentExtras(parentId, studentIds[0]);
     console.log('Demo users ensured; course/group data present — skipping rest.');
     return;
   }
@@ -261,6 +300,7 @@ async function seedDemo() {
 
   // a bit of progress so the student dashboard looks alive
   await db.insert(lessonCompletions).values({ lessonId: physicsLessons[0], studentId: studentIds[0] });
+  await ensureParentExtras(parentId, studentIds[0]);
 
   console.log(
     `Demo seeded (${DEMO_PASSWORD} everywhere):\n` +

@@ -1,7 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../../db';
-import { parentStudents, users } from '../../db/schema';
+import {
+  lessonAttendance,
+  lessons,
+  modules,
+  parentReports,
+  parentStudents,
+  users,
+} from '../../db/schema';
 import { normalizePhone } from '../../lib/phone';
 import { StudentService } from '../student/student.service';
 
@@ -54,11 +61,72 @@ export class ParentService {
       .where(and(eq(parentStudents.parentId, parentId), isNull(users.deletedAt)));
 
     return Promise.all(
-      rows.map(async (student) => ({
-        ...student,
-        groups: await this.students.myGroups(student.id),
-      })),
+      rows.map(async (student) => {
+        const groups = await this.students.myGroups(student.id);
+        const [reports, withAttendance] = await Promise.all([
+          db
+            .select({
+              id: parentReports.id,
+              message: parentReports.message,
+              createdAt: parentReports.createdAt,
+            })
+            .from(parentReports)
+            .where(
+              and(
+                eq(parentReports.parentId, parentId),
+                eq(parentReports.studentId, student.id),
+              ),
+            )
+            .orderBy(desc(parentReports.createdAt))
+            .limit(5),
+          Promise.all(
+            groups.map(async (group) => ({
+              ...group,
+              attendance: await this.attendance(student.id, group.course.id),
+              averageGrade: await this.averageGrade(student.id, group.group.id),
+            })),
+          ),
+        ]);
+        return { ...student, groups: withAttendance, reports };
+      }),
     );
+  }
+
+  private async averageGrade(studentId: string, groupId: string) {
+    const grades = await this.students.myGrades(studentId, groupId);
+    const percentages = [
+      ...grades.quizzes.map((quiz) => quiz.score / quiz.maxScore),
+      ...grades.manual
+        .filter((grade) => grade.score !== null)
+        .map((grade) => (grade.score ?? 0) / grade.maxScore),
+    ];
+    if (!percentages.length) return 0;
+    return Math.round(
+      (percentages.reduce((sum, value) => sum + value, 0) / percentages.length) * 100,
+    );
+  }
+
+  private async attendance(studentId: string, courseId: string) {
+    const [totalRow] = await db
+      .select({ value: count() })
+      .from(lessons)
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .where(eq(modules.courseId, courseId));
+    const [presentRow] = await db
+      .select({ value: count() })
+      .from(lessonAttendance)
+      .innerJoin(lessons, eq(lessonAttendance.lessonId, lessons.id))
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .where(
+        and(
+          eq(lessonAttendance.studentId, studentId),
+          eq(lessonAttendance.isPresent, true),
+          eq(modules.courseId, courseId),
+        ),
+      );
+    const total = Number(totalRow?.value ?? 0);
+    const present = Number(presentRow?.value ?? 0);
+    return { present, total, percent: total === 0 ? 0 : Math.round((present / total) * 100) };
   }
 
   async unlink(parentId: string, studentId: string) {

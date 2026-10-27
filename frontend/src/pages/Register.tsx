@@ -48,7 +48,7 @@ export default function Register() {
       qc.clear();
       qc.setQueryData(sessionQuery.queryKey, { user: res.user });
       if (joinCode && !isParent) return navigate({ to: '/join/$joinCode', params: { joinCode } });
-      navigate({ to: isTeacher ? '/teacher/dashboard' : isParent ? '/parent/dashboard' : '/student/dashboard' });
+      navigate({ to: isTeacher ? '/teacher/dashboard' : isParent ? '/parent/children' : '/student/dashboard' });
     } catch (e) {
       setError(e as Error);
     } finally {
