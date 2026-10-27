@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell } from 'lucide-react';
 import { api } from '../lib/api';
-import { useLang } from '../lib/i18n';
+import { formatDateTime, useLang } from '../lib/i18n';
 import type { InboxItem, UnreadCount } from '../../../shared/api';
 
 export function NotificationBell() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const list = useQuery({
@@ -67,8 +67,8 @@ export function NotificationBell() {
                   className={`block w-full px-3 py-2 text-start text-sm hover:bg-line/40 ${n.readAt ? 'text-ink-soft' : 'font-semibold'}`}
                 >
                   <span className="block">{n.message}</span>
-                  <span className="mt-1 block text-xs text-ink-soft" dir="ltr">
-                    {new Date(n.createdAt).toLocaleString()}
+                  <span className="mt-1 block text-xs text-ink-soft">
+                    {formatDateTime(n.createdAt, lang)}
                   </span>
                 </button>
               </li>

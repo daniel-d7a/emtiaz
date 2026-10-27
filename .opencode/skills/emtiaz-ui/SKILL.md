@@ -34,7 +34,7 @@ Forms use `react-hook-form` + zod. Directories and the gradebook use `@tanstack/
 - **Every mutation** gets a success/error toast and a pending/disabled state. Destructive actions use a focus-trapped `ConfirmDialog` (Escape, scroll lock, focus return).
 - **Icon-only controls** get `aria-label` plus an Arabic/English tooltip.
 - **Role pages are separate.** Never one page with role-conditional sections. Build one `AppShell` with per-role sidebars and a mobile bottom nav.
-- **i18n.** Add both `ar` and `en` to `frontend/src/lib/i18n.tsx`; never hardcode copy. Mirror layout, chevrons, table order, and dialogs for RTL. Phone/code inputs set `dir="ltr"` on the value only.
+- **i18n.** Add both `ar` and `en` to `frontend/src/lib/i18n.tsx`; never hardcode copy. Mirror layout, chevrons, table order, and dialogs for RTL. Phone/code inputs set `dir="ltr"` on the value only. Taxonomy names use `localizeName`; dates use `formatDateTime` with the active lang, never a forced `dir="ltr"`.
 - **Motion.** Route fade + accordion animation honour `prefers-reduced-motion`.
 - **States.** Loading uses skeletons (not spinners) for page/table loads; empty states name the next action.
 

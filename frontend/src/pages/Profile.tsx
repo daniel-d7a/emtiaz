@@ -3,12 +3,12 @@ import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api, type SessionUser } from '../lib/api';
-import { useLang } from '../lib/i18n';
+import { localizeName, useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page } from '../components/ui';
 import type { MeResponse, PresignedUpload } from '../../../shared/api';
 
 export default function Profile() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery(sessionQuery);
   const { data: me } = useQuery({
@@ -119,7 +119,7 @@ export default function Profile() {
                 }}
               />
             </label>
-            <p className="text-xs text-ink-soft">PNG/JPG · ≤ 2 MB</p>
+            <p className="text-xs text-ink-soft">{t('fileFormats')}</p>
           </div>
         </div>
         {avatarErr && <div className="mb-3"><ErrorBox error={avatarErr} /></div>}
@@ -138,7 +138,7 @@ export default function Profile() {
                 placeholder={t('specialization')}
               />
               <datalist id="profile-subjects">
-                {subjects.map((c) => <option key={c.id} value={c.name} />)}
+                {subjects.map((c) => <option key={c.id} value={c.name} label={localizeName(c.name, lang)} />)}
               </datalist>
             </label>
           )}
@@ -150,7 +150,7 @@ export default function Profile() {
                   label={t('landingSlug')}
                   value={landingSlug}
                   onChange={(e) => setLandingSlug(e.target.value.toLowerCase())}
-                  placeholder="salim-physics"
+                  placeholder={t('landingSlugPlaceholder')}
                   dir="ltr"
                 />
                 <label className="block">

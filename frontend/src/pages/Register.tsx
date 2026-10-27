@@ -4,14 +4,14 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi, onboardingApi } from '../lib/api';
 import { sessionQuery } from '../lib/session';
-import { useLang } from '../lib/i18n';
+import { localizeName, useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input } from '../components/ui';
 
 export default function Register() {
   const { role } = useParams({ from: '/register/$role' });
   const isTeacher = role === 'teacher';
   const isParent = role === 'parent';
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [name, setName] = useState('');
@@ -30,8 +30,8 @@ export default function Register() {
   const { join: joinCode } = useSearch({ from: '/register/$role' });
 
   useEffect(() => {
-    document.title = isTeacher ? 'Emtiaz — Teacher sign up' : isParent ? 'Emtiaz — Parent sign up' : 'Emtiaz — Student sign up';
-  }, [isTeacher, isParent]);
+    document.title = `${t('register')} — ${t('appName')}`;
+  }, [t]);
 
   const submit = async () => {
     setBusy(true);
@@ -64,9 +64,9 @@ export default function Register() {
         </h1>
         <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label={`${t('phone')} (+968…)`} value={phone} onChange={(e) => setPhone(e.target.value)} required dir="ltr" />
+          <Input label={t('phoneWithPrefix')} value={phone} onChange={(e) => setPhone(e.target.value)} required dir="ltr" />
           {(!isTeacher && !isParent) && (
-            <Input label={`${t('email')} (optional)`} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+            <Input label={t('emailOptional')} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
           )}
           {isParent && (
             <Input label={t('email')} value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
@@ -82,16 +82,16 @@ export default function Register() {
                 required
               />
               <datalist id="subject-suggestions">
-                {subjects.map((c) => <option key={c.id} value={c.name} />)}
+                {subjects.map((c) => <option key={c.id} value={c.name} label={localizeName(c.name, lang)} />)}
               </datalist>
             </label>
           )}
           {isParent && (
             <Input
-              label={`${t('studentPhone')} (optional)`}
+              label={t('studentPhoneOptional')}
               value={studentPhone}
               onChange={(e) => setStudentPhone(e.target.value)}
-              placeholder="+968…"
+              placeholder={t('phoneExample')}
               dir="ltr"
             />
           )}

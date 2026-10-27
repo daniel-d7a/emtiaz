@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
-import { useLang, type Key } from '../../lib/i18n';
+import { formatDateTime, localizeName, useLang, type Key } from '../../lib/i18n';
 import { Badge, Button, Card, ConfirmDialog, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
 
 type Overview = Record<string, number>;
@@ -49,7 +49,7 @@ type CourseRow = {
 };
 
 export default function AdminDashboard() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [tab, setTab] = useState<'teachers' | 'students' | 'parents' | 'courses' | 'notifications' | 'taxonomy' | 'audit'>('teachers');
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(20);
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
           <h2 className="mb-3 text-lg font-bold">{t('notifications')}</h2>
           {settings.isLoading ? <Loading /> : settings.error ? <ErrorBox error={settings.error} /> : settings.data && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Channels</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">{t('channels')}</p>
               {([
                 ['whatsappEnabled', 'whatsapp'],
                 ['emailEnabled', 'email'],
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
                   {t(label)}
                 </label>
               ))}
-              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-soft">Types</p>
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-soft">{t('types')}</p>
               {([
                 ['adminEnabled', 'admin'],
                 ['parentEnabled', 'parent'],
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
                       <p className="text-ink-soft" dir="ltr">{n.recipient}</p>
                       <p className="line-clamp-2 text-xs text-ink-soft">{n.message}</p>
                     </div>
-                    <span className="text-xs text-ink-soft">{new Date(n.createdAt).toLocaleString()}</span>
+                    <span className="text-xs text-ink-soft">{formatDateTime(n.createdAt, lang)}</span>
                   </li>
                 ))}
               </ul>
@@ -281,7 +281,7 @@ export default function AdminDashboard() {
                     <p className="font-semibold">{r.action}</p>
                     <p className="text-ink-soft">{r.actorName} · {r.targetType}{r.targetId ? ` · ${r.targetId}` : ''}</p>
                   </div>
-                  <span className="text-xs text-ink-soft">{new Date(r.createdAt).toLocaleString()}</span>
+                  <span className="text-xs text-ink-soft">{formatDateTime(r.createdAt, lang)}</span>
                 </li>
               ))}
               {audit.data?.length === 0 && <li className="py-2 text-ink-soft">—</li>}
@@ -382,7 +382,7 @@ function TaxonomyTabs() {
       <div className="mb-4 flex gap-2">
         {(['grades', 'categories'] as const).map((k) => (
           <button key={k} onClick={() => setKind(k)} className={`rounded-lg px-3 py-2 text-sm ${kind === k ? 'bg-primary text-white' : 'border border-line'}`}>
-            {k}
+            {k === 'grades' ? t('grades') : t('categories')}
           </button>
         ))}
       </div>
@@ -392,7 +392,7 @@ function TaxonomyTabs() {
 }
 
 function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -421,7 +421,7 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
     <Card>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="grow">
-          <Input label={kind} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('name')} />
+          <Input label={kind === 'grades' ? t('grades') : t('categories')} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('name')} />
         </div>
         <Button onClick={() => add.mutate()} disabled={!name.trim()}>
           <Plus className="inline" size={16} /> {t('add')}
@@ -431,8 +431,8 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
       <ul className="mt-4 flex flex-col divide-y divide-line">
         {list.data?.map((g) => (
           <li key={g.id} className="flex items-center justify-between py-2">
-            <span className="font-semibold">{g.name}</span>
-            <button onClick={() => setDeleteTarget({ id: g.id, name: g.name })} aria-label={`${t('delete')} ${g.name}`} title={t('delete')} className="text-ink-soft hover:text-secondary">
+            <span className="font-semibold">{localizeName(g.name, lang)}</span>
+            <button onClick={() => setDeleteTarget({ id: g.id, name: g.name })} aria-label={`${t('delete')} ${localizeName(g.name, lang)}`} title={t('delete')} className="text-ink-soft hover:text-secondary">
               <Trash2 size={14} />
             </button>
           </li>
@@ -442,7 +442,7 @@ function Taxonomy({ kind }: { kind: 'grades' | 'categories' }) {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(next) => !next && setDeleteTarget(null)}
-        title={`${t('delete')} ${deleteTarget?.name ?? ''}?`}
+        title={`${t('delete')} ${deleteTarget ? localizeName(deleteTarget.name, lang) : ''}?`}
         confirmLabel={t('delete')}
         cancelLabel={t('cancel')}
         destructive

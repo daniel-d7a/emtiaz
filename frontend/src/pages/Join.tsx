@@ -72,7 +72,7 @@ export default function JoinPage() {
         <p className="mb-4 text-sm text-ink-soft">{t('oneStepJoin')}</p>
         <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); void quickRegister(); }}>
           <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label={`${t('phone')} (+968…)`} value={phone} onChange={(e) => setPhone(e.target.value)} required dir="ltr" />
+          <Input label={t('phoneWithPrefix')} value={phone} onChange={(e) => setPhone(e.target.value)} required dir="ltr" />
           <Input label={t('password')} value={password} onChange={(e) => setPassword(e.target.value)} type="password" required minLength={8} />
           {error && <ErrorBox error={error} />}
           <Button type="submit" variant="secondary" disabled={busy}>{t('joinNow')}</Button>

@@ -117,7 +117,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
         : data.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? '';
     const rows: unknown[][] = [
       [
-        'Student',
+        t('roster'),
         ...data.quizColumns.map((c) => `${c.lessonTitle} (/${c.maxScore})`),
         ...data.manualColumns.map((c) => `${c.title}${c.maxScore ? ` (/${c.maxScore})` : ''}`),
       ],
@@ -439,11 +439,11 @@ export function RosterTab({ groupId }: { groupId: string }) {
     .find((c) => c.id === data.group.courseId)
     ?.groups?.filter((g) => g.id !== groupId) ?? [];
   const inviteUrl = `https://wa.me/?text=${encodeURIComponent(
-    'Join my class on Emtiaz! Code: ' + data.group.joinCode + '\n' + window.location.origin + '/join/' + data.group.joinCode,
+    t('joinMessage') + data.group.joinCode + '\n' + window.location.origin + '/join/' + data.group.joinCode,
   )}`;
   const exportRoster = () => {
     const rows = [
-      ['Student', 'Phone', 'Progress', 'Joined'],
+      [t('roster'), t('phone'), t('progress'), t('joined')],
       ...data.students.map((s) => [
         s.name,
         s.phoneNumber ?? '',

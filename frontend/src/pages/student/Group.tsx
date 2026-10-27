@@ -231,7 +231,7 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
                       onClick={() => setAnswers({ ...answers, [q.id]: opt })}
                       className={`rounded-lg border px-4 py-2 text-sm ${answers[q.id] === opt ? 'border-primary bg-primary-light font-semibold' : 'border-line bg-white'}`}
                     >
-                      {opt === 'true' ? '✓' : '✗'}
+                      {opt === 'true' ? '✓ ' : '✗ '}{opt === 'true' ? t('trueLabel') : t('falseLabel')}
                     </button>
                   ))}
                 </div>
@@ -260,7 +260,7 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
               <span className={r.correct ? 'font-semibold text-primary' : 'font-semibold text-secondary'}>
                 {r.correct ? '✓' : '✗'} {i + 1}
               </span>
-              <span className="text-ink-soft"> — {r.expected}{r.explanation ? `: ${r.explanation}` : ''}</span>
+              <span className="text-ink-soft"> — {r.expected === 'true' ? t('trueLabel') : r.expected === 'false' ? t('falseLabel') : r.expected}{r.explanation ? `: ${r.explanation}` : ''}</span>
             </div>
           ))}
           <Button variant="ghost" aria-label={t('retry')} title={t('retry')} onClick={() => { setResult(null); setAnswers({}); }}><RotateCcw size={18} /></Button>

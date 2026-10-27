@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
-import { useLang } from '../../lib/i18n';
+import { localizeName, useLang } from '../../lib/i18n';
 import { Button, Card, EmptyState, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
 import type { StudentGroup as Enrolled } from '../../../../shared/api';
 
@@ -31,7 +31,7 @@ export default function StudentDashboard() {
               label={t('enterCode')}
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="OM123456"
+              placeholder={t('enterCodePlaceholder')}
               maxLength={8}
               dir="ltr"
             />
@@ -56,7 +56,7 @@ export default function StudentDashboard() {
                 </div>
                 <h3 className="text-lg font-bold">{e.course.title}</h3>
                 <p className="mb-3 text-sm text-ink-soft">
-                  {e.teacher.name}{e.teacher.subject ? ` · ${e.teacher.subject}` : ''}
+                  {e.teacher.name}{e.teacher.subject ? ` · ${localizeName(e.teacher.subject, lang)}` : ''}
                 </p>
                 <Progress value={e.progress} />
                 <p className="mt-1 text-xs text-ink-soft">
@@ -68,8 +68,8 @@ export default function StudentDashboard() {
           {data?.length === 0 && (
             <div className="sm:col-span-2">
               <EmptyState
-                title={lang === 'ar' ? 'لم تنضم إلى أي مجموعة بعد' : 'No groups yet'}
-                description={lang === 'ar' ? 'استخدم رمز المجموعة أعلاه للانضمام.' : 'Use the group code above to join.'}
+                title={t('noGroupsTitle')}
+                description={t('noGroupsHint')}
                 icon={BookOpen}
               />
             </div>

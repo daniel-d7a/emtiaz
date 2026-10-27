@@ -3,7 +3,7 @@ import { createRoute, Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import { api } from '../../lib/api';
-import { useLang } from '../../lib/i18n';
+import { localizeName, useLang } from '../../lib/i18n';
 import { Card, ErrorBox, Loading } from '../../components/ui';
 
 type PublicTeacher = {
@@ -13,7 +13,7 @@ type PublicTeacher = {
 
 export default function TeacherLanding() {
   const { slug } = useParams({ from: '/t/$slug' });
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { data, isLoading, error } = useQuery({
     queryKey: ['public-teacher', slug],
     queryFn: () => api<PublicTeacher>(`/api/public/teachers/${slug}`),
@@ -78,7 +78,7 @@ export default function TeacherLanding() {
           )}
           <div>
             <h1 className="text-2xl font-extrabold">{data.teacher.name}</h1>
-            {data.teacher.subject && <p className="text-sm font-semibold text-primary">{data.teacher.subject}</p>}
+            {data.teacher.subject && <p className="text-sm font-semibold text-primary">{localizeName(data.teacher.subject, lang)}</p>}
           </div>
         </div>
         {data.teacher.bio && <p className="mt-4 whitespace-pre-wrap text-sm text-ink-soft">{data.teacher.bio}</p>}
@@ -99,7 +99,7 @@ export default function TeacherLanding() {
             <Card key={c.id}>
               <div className="mb-2 flex items-center gap-2 text-primary">
                 <BookOpen size={18} />
-                <span className="text-xs font-semibold uppercase tracking-wide">{c.courseType}</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">{c.courseType === 'ACADEMIC' ? t('academic') : t('general')}</span>
               </div>
               <h3 className="font-bold">{c.title}</h3>
               {c.description && <p className="mt-1 text-sm text-ink-soft">{c.description}</p>}

@@ -236,7 +236,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, onMove }: {
         <div className="mt-3 flex flex-col gap-3">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} label={t('name')} />
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('lessons')} / notes</span>
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('lessons')} / {t('notes')}</span>
             <textarea
               className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
               rows={3}
@@ -318,7 +318,7 @@ function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId
 
 function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { title: string } | null }) {
   const { t } = useLang();
-  const [title, setTitle] = useState(existing?.title ?? 'Quiz');
+  const [title, setTitle] = useState(existing?.title ?? t('quiz'));
   const [questions, setQuestions] = useState<Question[]>([]);
   const [err, setErr] = useState<Error | null>(null);
 
@@ -366,8 +366,8 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
                 setQuestions(next);
               }}
             >
-              <option value="MCQ">MCQ</option>
-              <option value="TRUE_FALSE">True/False</option>
+              <option value="MCQ">{t('mcq')}</option>
+              <option value="TRUE_FALSE">{t('trueFalse')}</option>
             </select>
             <Input
               value={q.prompt}
@@ -417,14 +417,14 @@ function QuizBuilder({ endpoint, existing }: { endpoint: string; existing: { tit
                   }}
                   className={`rounded-lg border px-3 py-2 text-sm ${q.correctAnswer === v ? 'border-primary bg-primary-light font-semibold' : 'border-line'}`}
                 >
-                  {v}
+                  {v === 'true' ? t('trueLabel') : t('falseLabel')}
                 </button>
               ))}
             </div>
           )}
           {q.questionType === 'MCQ' && (
             <Input
-              label="correct answer"
+              label={t('correctAnswer')}
               value={q.correctAnswer}
               onChange={(e) => {
                 const next = [...questions];

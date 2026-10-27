@@ -142,6 +142,30 @@ const dict = {
   generalCourses: { ar: 'مهارات عامة', en: 'Skill courses' },
   totalGroups: { ar: 'مجموعات', en: 'Groups' },
   activeGroups: { ar: 'مجموعات نشطة', en: 'Active groups' },
+  grades: { ar: 'الصفوف', en: 'Grades' },
+  categories: { ar: 'التخصصات', en: 'Specializations' },
+  channels: { ar: 'القنوات', en: 'Channels' },
+  types: { ar: 'الأنواع', en: 'Types' },
+  notes: { ar: 'ملاحظات', en: 'Notes' },
+  mcq: { ar: 'اختيار من متعدد', en: 'Multiple choice' },
+  trueFalse: { ar: 'صح / خطأ', en: 'True / false' },
+  trueLabel: { ar: 'صح', en: 'True' },
+  falseLabel: { ar: 'خطأ', en: 'False' },
+  correctAnswer: { ar: 'الإجابة الصحيحة', en: 'Correct answer' },
+  noGroupsTitle: { ar: 'لم تنضم إلى أي مجموعة بعد', en: 'No groups yet' },
+  noGroupsHint: { ar: 'استخدم رمز المجموعة أعلاه للانضمام.', en: 'Use the group code above to join.' },
+  fileFormats: { ar: 'PNG/JPG · ≤ ٢ ميجابايت', en: 'PNG/JPG · ≤ 2 MB' },
+  switchToEnglish: { ar: 'التبديل إلى الإنجليزية', en: 'Switch to English' },
+  switchToArabic: { ar: 'التبديل إلى العربية', en: 'Switch to Arabic' },
+  emailOptional: { ar: 'البريد الإلكتروني (اختياري)', en: 'Email (optional)' },
+  studentPhoneOptional: { ar: 'رقم هاتف الطالب (اختياري)', en: 'Student phone number (optional)' },
+  phoneWithPrefix: { ar: 'رقم الهاتف (+968…)', en: 'Phone number (+968…)' },
+  phoneExample: { ar: '+968…', en: '+968…' },
+  courseTitlePlaceholder: { ar: 'الفيزياء — الصف العاشر', en: 'Physics — Grade 10' },
+  enterCodePlaceholder: { ar: 'OM123456', en: 'OM123456' },
+  landingSlugPlaceholder: { ar: 'salim-physics', en: 'salim-physics' },
+  joined: { ar: 'تاريخ الانضمام', en: 'Joined' },
+  joinMessage: { ar: 'انضم إلى صفي على امتياز! الرمز: ', en: 'Join my class on Emtiaz! Code: ' },
 } as const;
 
 export type Key = keyof typeof dict;
@@ -168,6 +192,29 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function translate(key: Key, lang?: Lang) {
   const stored = typeof localStorage !== 'undefined' ? (localStorage.getItem('lang') as Lang | null) : null;
   return dict[key][lang ?? stored ?? 'ar'];
+}
+
+const knownNames: Record<string, { ar: string; en: string }> = {
+  'English Speaking': { ar: 'التحدث بالإنجليزية', en: 'English Speaking' },
+  Grammar: { ar: 'القواعد', en: 'Grammar' },
+  IELTS: { ar: 'آيلتس', en: 'IELTS' },
+  'IELTS Preparation': { ar: 'التحضير لآيلتس', en: 'IELTS Preparation' },
+  Sciences: { ar: 'العلوم', en: 'Sciences' },
+  Languages: { ar: 'اللغات', en: 'Languages' },
+  Math: { ar: 'الرياضيات', en: 'Math' },
+  Physics: { ar: 'الفيزياء', en: 'Physics' },
+  English: { ar: 'الإنجليزية', en: 'English' },
+};
+
+export function localizeName(name: string, lang: Lang) {
+  return knownNames[name]?.[lang] ?? name;
+}
+
+export function formatDateTime(value: string | Date, lang: Lang) {
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
 export const useLang = () => useContext(Ctx);

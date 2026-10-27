@@ -79,7 +79,7 @@ export function PublicTopBar() {
       </Link>
       <button
         type="button"
-        aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
+        aria-label={lang === 'ar' ? t('switchToEnglish') : t('switchToArabic')}
         onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
         className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-line px-3 font-semibold"
       >
@@ -137,7 +137,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
             <NotificationBell />
             <button
               type="button"
-              aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
+              aria-label={lang === 'ar' ? t('switchToEnglish') : t('switchToArabic')}
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
               className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-line px-3 text-sm font-semibold"
             >

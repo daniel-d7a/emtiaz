@@ -70,7 +70,7 @@ export default function TeacherDashboard() {
       {showForm && (
         <Card className="mb-6">
           <div className="flex flex-col gap-3">
-            <Input label={t('newCourse')} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Physics — Grade 10" />
+            <Input label={t('newCourse')} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('courseTitlePlaceholder')} />
             <Select label={`${t('academic')} / ${t('general')}`} value={type} onChange={(e) => setType(e.target.value as any)}>
               <option value="ACADEMIC">{t('academic')}</option>
               <option value="GENERAL">{t('general')}</option>

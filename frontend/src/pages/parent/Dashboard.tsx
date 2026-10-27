@@ -57,7 +57,7 @@ export default function ParentDashboard() {
               <Input
                 label={t('studentPhone')}
                 error={errors.phoneNumber?.message}
-                placeholder="+968…"
+                placeholder={t('phoneExample')}
                 dir="ltr"
                 maxLength={20}
                 {...register('phoneNumber')}
