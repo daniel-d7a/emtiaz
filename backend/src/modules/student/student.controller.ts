@@ -9,12 +9,6 @@ import { StudentService } from './student.service';
 export class StudentController {
   constructor(private students: StudentService) {}
 
-  @Post('api/student/parent-code/rotate')
-  @Roles('STUDENT')
-  rotateParentCode(@Req() req: Request) {
-    return this.students.rotateParentCode(req.user!.id);
-  }
-
   @Get('api/student/groups')
   @Roles('STUDENT')
   myGroups(@Req() req: Request) {

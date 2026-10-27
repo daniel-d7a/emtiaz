@@ -62,10 +62,6 @@ export const users = pgTable('user', {
   landingSlug: text('landing_slug').unique(),
   landingBio: text('landing_bio'),
   landingPublished: boolean('landing_published').notNull().default(false),
-  parentInviteCode: text('parent_invite_code')
-    .notNull()
-    .unique()
-    .default(sql`('P' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 7)))`),
   isActive: boolean('is_active').notNull().default(true),
   specialization: text('specialization'), // legacy freetext; superseded by subjectCategoryId FK for teachers
   subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),

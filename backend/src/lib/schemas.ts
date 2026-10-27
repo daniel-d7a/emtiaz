@@ -1,6 +1,7 @@
 /** ZodValidationPipe + every request-body schema for write endpoints. 400 on first mismatch. */
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { z } from 'zod';
+import { normalizePhone } from './phone';
 
 @Injectable()
 export class ZodBodyPipe implements PipeTransform {
@@ -17,10 +18,15 @@ export class ZodBodyPipe implements PipeTransform {
 }
 
 const uuid = z.uuid();
-const phone = z
+const phoneNumber = z
   .string()
-  .regex(/^\+?[1-9]\d{6,14}$/, 'phone must be E.164-ish (+XXXXXXXXX)')
-  .optional();
+  .trim()
+  .min(1)
+  .transform(normalizePhone)
+  .refine((v) => /^\+[1-9]\d{6,14}$/.test(v), {
+    message: 'phone must be a valid number (+XXXXXXXXX)',
+  });
+const phone = phoneNumber.optional();
 const safeText = (max = 300) => z.string().trim().min(1).max(max);
 const optText = (max = 2000) => z.string().trim().max(max).optional();
 
@@ -35,9 +41,7 @@ export const TeacherSignupDto = z.object({
 export const StudentSignupDto = z.object({
   name: safeText(120),
   password: z.string().min(8).max(200),
-  phoneNumber: z
-    .string()
-    .regex(/^\+?[1-9]\d{6,14}$/, 'phone must be E.164-ish (+XXXXXXXXX)'),
+  phoneNumber,
   email: z.email().optional(),
   gradeId: uuid.optional(),
 });
@@ -47,10 +51,12 @@ export const UpdateMeDto = z
     name: safeText(120).optional(),
     phoneNumber: z
       .string()
+      .trim()
       .max(20)
       .refine((v) => v === '' || /^\+?[1-9]\d{6,14}$/.test(v), {
-        message: 'phone must be empty to clear, or E.164-ish (+XXXXXXXXX)',
+        message: 'phone must be empty to clear, or a valid number (+XXXXXXXXX)',
       })
+      .transform(normalizePhone)
       .optional(),
     subject: optText(60),
     image: z.string().trim().max(512).nullable().optional(),
@@ -122,7 +128,7 @@ export const BulkStudentsDto = z
       .array(
         z.object({
           name: safeText(120),
-          phoneNumber: z.string().regex(/^\+?[1-9]\d{6,14}$/, 'phone must be E.164-ish'),
+          phoneNumber,
         }),
       )
       .min(1)
@@ -169,10 +175,10 @@ export const ParentSignupDto = z.object({
   name: safeText(120),
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(128),
-  phoneNumber: z.string().regex(/^\+?[1-9]\d{6,14}$/).optional(),
-  studentCode: z.string().trim().min(4).max(16).optional(),
+  phoneNumber: phone,
+  studentPhone: phone,
 });
-export const ParentLinkDto = z.object({ code: z.string().trim().min(4).max(16) });
+export const ParentLinkDto = z.object({ phoneNumber });
 
 // ---------- admin ----------
 export const SetUserStatusDto = z

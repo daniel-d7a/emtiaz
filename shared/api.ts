@@ -22,7 +22,6 @@ export type User = {
   landingSlug: string | null;
   landingBio: string | null;
   landingPublished: boolean;
-  parentInviteCode: string;
   isActive: boolean;
   specialization: string | null;
   subjectCategoryId: string | null;

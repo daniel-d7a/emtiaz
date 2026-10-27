@@ -7,16 +7,16 @@ import type { ParentChild as Child, StudentGrades as Grades } from '../../../sha
 
 export default function ParentHome({ onLogout, onNotifications }: { onLogout: () => void; onNotifications: () => void }) {
   const qc = useQueryClient();
-  const [code, setCode] = useState('');
+  const [phone, setPhone] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const children = useQuery({
     queryKey: ['parent-students'],
     queryFn: () => api<Child[]>('/api/parent/students'),
   });
   const link = useMutation({
-    mutationFn: () => api('/api/parent/link', { body: { code: code.trim() } }),
+    mutationFn: () => api('/api/parent/link', { body: { phoneNumber: phone.trim() } }),
     onSuccess: () => {
-      setCode('');
+      setPhone('');
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
   });
@@ -44,8 +44,8 @@ export default function ParentHome({ onLogout, onNotifications }: { onLogout: ()
         </View>
       </View>
       <Card>
-        <Field label="رمز الطالب" value={code} onChange={setCode} />
-        <Btn label="ربط الطالب" onPress={() => link.mutate()} disabled={code.trim().length < 4 || link.isPending} />
+        <Field label="رقم هاتف الطالب" value={phone} onChange={setPhone} />
+        <Btn label="ربط الطالب" onPress={() => link.mutate()} disabled={phone.trim().length < 8 || link.isPending} />
         {link.error && <ErrorBox error={link.error} />}
       </Card>
       {unlink.error && <ErrorBox error={unlink.error} />}
@@ -80,7 +80,7 @@ export default function ParentHome({ onLogout, onNotifications }: { onLogout: ()
               {child.groups.length === 0 && <Empty text="لا مجموعات بعد" />}
             </Card>
           ))}
-          {children.data?.length === 0 && <Empty text="اربط طالبًا برمزه لعرض تقدمه" />}
+          {children.data?.length === 0 && <Empty text="اربط طالبًا برقم هاتفه لعرض تقدمه" />}
         </>
       )}
     </ScrollView>

@@ -67,10 +67,6 @@ export default function Profile() {
     }
   };
 
-  const rotateCode = useMutation({
-    mutationFn: () => api('/api/student/parent-code/rotate', { body: {} }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
-  });
   const save = useMutation({
     mutationFn: () =>
       api('/api/me', {
@@ -92,7 +88,7 @@ export default function Profile() {
 
   if (isLoading || !user) return <Loading />;
   return (
-    <Page title={t('register')}>
+    <Page title={t('profile')}>
       <Card className="max-w-md">
         <div className="mb-4 flex items-center gap-4">
           {user.image ? (
@@ -124,23 +120,6 @@ export default function Profile() {
         </div>
         {avatarErr && <div className="mb-3"><ErrorBox error={avatarErr} /></div>}
         <p className="mb-4 text-sm text-ink-soft" dir="ltr">{user.email || user.phoneNumber}</p>
-        {user.role === 'STUDENT' && me?.user.parentInviteCode && (
-          <div className="mb-4 rounded-xl border border-line bg-primary-light/40 p-3">
-            <p className="text-xs font-semibold text-ink-soft">{t('parentCode')}</p>
-            <p className="text-lg font-bold tracking-widest text-primary" dir="ltr">{me.user.parentInviteCode}</p>
-            <p className="text-xs text-ink-soft">{t('parentCodeHint')}</p>
-            <Button
-              variant="ghost"
-              className="mt-2"
-              onClick={() => {
-                if (window.confirm(t('rotateConfirm'))) rotateCode.mutate();
-              }}
-            >
-              {t('rotateParentCode')}
-            </Button>
-            {rotateCode.error && <ErrorBox error={rotateCode.error} />}
-          </div>
-        )}
         <div className="flex flex-col gap-3">
           <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
           <Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />

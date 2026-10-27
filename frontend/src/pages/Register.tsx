@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearch, createRoute } from '@tanstack/
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi, onboardingApi } from '../lib/api';
+import { sessionQuery } from '../lib/session';
 import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input } from '../components/ui';
 
@@ -18,7 +19,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
-  const [studentCode, setStudentCode] = useState('');
+  const [studentPhone, setStudentPhone] = useState('');
   const { data: subjects = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ['categories'],
     queryFn: () => onboardingApi.listCategories().then((d) => (d as Array<{ id: string; name: string }>)),
@@ -39,12 +40,13 @@ export default function Register() {
       if (isTeacher) {
         await onboardingApi.registerTeacher({ name, email, password, phoneNumber: phone, subject });
       } else if (isParent) {
-        await onboardingApi.registerParent({ name, email, password, phoneNumber: phone, studentCode: studentCode.trim() || undefined });
+        await onboardingApi.registerParent({ name, email, password, phoneNumber: phone, studentPhone: studentPhone.trim() || undefined });
       } else {
         await onboardingApi.registerStudent({ name, password, phoneNumber: phone, email: email || undefined });
       }
-      await authApi.login(isTeacher || isParent ? email : email || phone.replace(/[^\d]/g, '') + '@phone.emtiaz.om', password);
+      const res = await authApi.login(isTeacher || isParent ? email : email || phone.replace(/[^\d]/g, '') + '@phone.emtiaz.om', password);
       qc.clear();
+      qc.setQueryData(sessionQuery.queryKey, { user: res.user });
       if (joinCode && !isParent) return navigate({ to: '/join/$joinCode', params: { joinCode } });
       navigate({ to: isTeacher ? '/teacher/dashboard' : isParent ? '/parent/dashboard' : '/student/dashboard' });
     } catch (e) {
@@ -85,7 +87,13 @@ export default function Register() {
             </label>
           )}
           {isParent && (
-            <Input label={`${t('childCode')} (optional)`} value={studentCode} onChange={(e) => setStudentCode(e.target.value)} dir="ltr" />
+            <Input
+              label={`${t('studentPhone')} (optional)`}
+              value={studentPhone}
+              onChange={(e) => setStudentPhone(e.target.value)}
+              placeholder="+968…"
+              dir="ltr"
+            />
           )}
           <Input label={t('password')} value={password} onChange={(e) => setPassword(e.target.value)} type="password" required minLength={8} />
           {error && <ErrorBox error={error} />}

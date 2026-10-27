@@ -10,7 +10,7 @@ import type { ParentChild as Child, StudentGrades as Grades } from '../../../../
 export default function ParentDashboard() {
   const { t } = useLang();
   const qc = useQueryClient();
-  const [code, setCode] = useState('');
+  const [phone, setPhone] = useState('');
   const [open, setOpen] = useState<string | null>(null);
 
   const children = useQuery({
@@ -18,9 +18,9 @@ export default function ParentDashboard() {
     queryFn: () => api<Child[]>('/api/parent/students'),
   });
   const link = useMutation({
-    mutationFn: () => api('/api/parent/link', { body: { code: code.trim() } }),
+    mutationFn: () => api('/api/parent/link', { body: { phoneNumber: phone.trim() } }),
     onSuccess: () => {
-      setCode('');
+      setPhone('');
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
   });
@@ -35,9 +35,17 @@ export default function ParentDashboard() {
       <Card className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="grow">
-            <Input label={t('childCode')} value={code} onChange={(e) => setCode(e.target.value)} dir="ltr" maxLength={16} />
+            <Input
+              label={t('studentPhone')}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+968…"
+              dir="ltr"
+              maxLength={20}
+            />
+            <p className="mt-1 text-xs text-ink-soft">{t('studentPhoneHint')}</p>
           </div>
-          <Button onClick={() => link.mutate()} disabled={code.trim().length < 4}>
+          <Button onClick={() => link.mutate()} disabled={phone.trim().length < 8 || link.isPending}>
             <Link2 className="inline" size={18} /> {t('linkChild')}
           </Button>
         </div>

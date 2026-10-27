@@ -2,33 +2,37 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { parentStudents, users } from '../../db/schema';
+import { normalizePhone } from '../../lib/phone';
 import { StudentService } from '../student/student.service';
 
 @Injectable()
 export class ParentService {
   constructor(private readonly students: StudentService) {}
 
-  /** Resolves a student from their private parent code (used before signup too). */
-  async resolveStudent(code: string) {
+  /**
+   * Resolves an active student by phone number. Phone possession is the only
+   * proof here, by product decision; add an OTP/challenge if abuse appears.
+   */
+  async resolveStudent(phoneNumber: string) {
     const [student] = await db
       .select({ id: users.id, name: users.name })
       .from(users)
       .where(
         and(
-          eq(users.parentInviteCode, code.trim().toUpperCase()),
+          eq(users.phoneNumber, normalizePhone(phoneNumber)),
           eq(users.role, 'STUDENT'),
           eq(users.isActive, true),
           isNull(users.deletedAt),
         ),
       )
       .limit(1);
-    if (!student) throw new NotFoundException('Invalid student code');
+    if (!student) throw new NotFoundException('No active student with this phone number');
     return student;
   }
 
-  /** Links a parent to a student using the student's private parent code. */
-  async linkByCode(parentId: string, code: string) {
-    const student = await this.resolveStudent(code);
+  /** Links a parent to a student using the student's registered phone number. */
+  async linkByPhone(parentId: string, phoneNumber: string) {
+    const student = await this.resolveStudent(phoneNumber);
     await db
       .insert(parentStudents)
       .values({ parentId, studentId: student.id })

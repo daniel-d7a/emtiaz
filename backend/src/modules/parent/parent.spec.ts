@@ -32,26 +32,17 @@ afterAll(async () => {
   await testPool.end();
 });
 
-async function parentCode(studentId: string) {
-  const { rows } = await testPool.query(
-    `SELECT parent_invite_code FROM "user" WHERE id=$1`,
-    [studentId],
-  );
-  return rows[0].parent_invite_code as string;
-}
-
 describe('parent role', () => {
-  it('signs up, links with a student code, and reads progress and grades', async () => {
-    const code = await parentCode(world.s1.id);
+  it('signs up, links by phone, and reads progress and grades', async () => {
     const signup = await request(server).post('/api/onboarding/parent').send(PARENT);
     expect(signup.status).toBe(201);
 
     const parent = (await login(server, PARENT.email, PARENT.password)).session;
 
-    const wrong = await parent.post('/api/parent/link').send({ code: 'PNOPE123' });
+    const wrong = await parent.post('/api/parent/link').send({ phoneNumber: '+96890009999' });
     expect(wrong.status).toBe(404);
 
-    const link = await parent.post('/api/parent/link').send({ code });
+    const link = await parent.post('/api/parent/link').send({ phoneNumber: STUDENT1.phoneNumber });
     expect(link.status).toBe(201);
     expect(link.body.id).toBe(world.s1.id);
 
@@ -89,43 +80,22 @@ describe('parent role', () => {
     ).toBe(403);
   });
 
-  it('rejects a bad signup code before creating the account', async () => {
+  it('rejects an unknown student phone before creating the account', async () => {
     const email = 'parent-bad@example.om';
     const res = await request(server)
       .post('/api/onboarding/parent')
-      .send({ ...PARENT, email, phoneNumber: '+96890000011', studentCode: 'PNOPE123' });
+      .send({ ...PARENT, email, phoneNumber: '+96890000011', studentPhone: '+96890009999' });
     expect(res.status).toBe(404);
     const attempt = await login(server, email, PARENT.password);
     expect(attempt.status).not.toBe(200);
   });
 
-  it('rotating a student code unlinks parents and invalidates the old code', async () => {
-    const oldCode = await parentCode(world.s2.id);
-    const email = 'parent3@example.om';
-    await request(server)
-      .post('/api/onboarding/parent')
-      .send({ ...PARENT, email, phoneNumber: '+96890000012', studentCode: oldCode });
-    const parent = (await login(server, email, PARENT.password)).session;
-    expect((await parent.get('/api/parent/students')).body).toHaveLength(1);
-
-    const student = (await login(server, STUDENT2.email, STUDENT2.password)).session;
-    const rotated = await student.post('/api/student/parent-code/rotate');
-    expect(rotated.status).toBe(201);
-    expect(rotated.body.parentInviteCode).not.toBe(oldCode);
-
-    expect((await parent.get('/api/parent/students')).body).toHaveLength(0);
-    expect((await parent.post('/api/parent/link').send({ code: oldCode })).status).toBe(404);
-    expect(
-      (await parent.post('/api/parent/link').send({ code: rotated.body.parentInviteCode })).status,
-    ).toBe(201);
-  });
-
-  it('can link an existing child during signup and is idempotent', async () => {
-    const code = await parentCode(world.s2.id);
+  it('links during signup using a local phone format and is idempotent', async () => {
     const email = 'parent2@example.om';
+    const localPhone = STUDENT2.phoneNumber.replace('+968', '');
     const signup = await request(server)
       .post('/api/onboarding/parent')
-      .send({ ...PARENT, email, phoneNumber: '+96890000010', studentCode: code });
+      .send({ ...PARENT, email, phoneNumber: '+96890000010', studentPhone: localPhone });
     expect(signup.status).toBe(201);
 
     const parent = (await login(server, email, PARENT.password)).session;
@@ -133,8 +103,22 @@ describe('parent role', () => {
     expect(students.body).toHaveLength(1);
     expect(students.body[0].id).toBe(world.s2.id);
 
-    await parent.post('/api/parent/link').send({ code });
+    await parent.post('/api/parent/link').send({ phoneNumber: STUDENT2.phoneNumber });
     const again = await parent.get('/api/parent/students');
     expect(again.body).toHaveLength(1);
+  });
+
+  it('normalizes spacing and 00 prefixes when linking', async () => {
+    const email = 'parent3@example.om';
+    await request(server)
+      .post('/api/onboarding/parent')
+      .send({ ...PARENT, email, phoneNumber: '+96890000012' });
+    const parent = (await login(server, email, PARENT.password)).session;
+
+    const res = await parent
+      .post('/api/parent/link')
+      .send({ phoneNumber: '00968 9000 0002' });
+    expect(res.status).toBe(201);
+    expect(res.body.id).toBe(world.s1.id);
   });
 });

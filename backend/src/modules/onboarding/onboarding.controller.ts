@@ -78,8 +78,8 @@ export class OnboardingController {
     @Body(new ZodBodyPipe(ParentSignupDto))
     dto: z.infer<typeof ParentSignupDto>,
   ) {
-    // Validate the code before creating the account so a typo does not leave an orphan login.
-    if (dto.studentCode) await this.parents.resolveStudent(dto.studentCode);
+    // Validate the phone before creating the account so a typo does not leave an orphan login.
+    if (dto.studentPhone) await this.parents.resolveStudent(dto.studentPhone);
     const data = await auth.api.signUpEmail({
       body: {
         name: dto.name,
@@ -90,8 +90,8 @@ export class OnboardingController {
       },
       returnHeaders: true,
     });
-    if (dto.studentCode) {
-      await this.parents.linkByCode(data.response.user.id, dto.studentCode);
+    if (dto.studentPhone) {
+      await this.parents.linkByPhone(data.response.user.id, dto.studentPhone);
     }
     return { user: data.response.user, status: 'ok' };
   }
