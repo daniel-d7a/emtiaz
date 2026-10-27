@@ -50,7 +50,11 @@ cd frontend && npm run test:e2e
 #    - install Expo Go, run the app, scan the QR printed by the terminal
 #    - the API URL is derived from Metro's host, so keep the phone and the
 #      machine running the backend on the same Wi-Fi and leave the API on :3000
-cd mobile && npm install && npx expo start
+#    - with `--tunnel`, hostUri is the ngrok host (no API there), so expose the
+#      API too: cd mobile && npm run dev:tunnel
+#      (starts the compose `tunnel` service — cloudflared, no account)
+#      (docker compose serves the API on :3100, not :3000)
+cd mobile && npm install && npm run dev:tunnel
 ```
 
 ## Deploy (whole stack, dockerized)

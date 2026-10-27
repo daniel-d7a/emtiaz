@@ -1,11 +1,11 @@
 import Constants from 'expo-constants';
 import type { Session } from '../../shared/api';
 
-/** API base: in Expo Go the app runs on the same LAN host as Metro, so derive the API
- *  port from the manifest hostUri. Override by setting EMelia note below for prod.
- *  prod: hardcode https://api.emtiaz.om \\
- */
+/** API base: set EXPO_PUBLIC_API_URL to override (required with `expo start --tunnel`,
+ *  where hostUri is the ngrok host and cannot reach the API). Otherwise derive the
+ *  API host from Metro's hostUri on the same LAN. */
 function apiBase(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   const uri = Constants.expoConfig?.hostUri;
   if (uri) return `http://${uri.split(':')[0]}:3000`;
   return 'http://localhost:3000';
@@ -31,7 +31,11 @@ export async function api<T = any>(
 }
 
 export const authApi = {
-  session: (): Promise<Session> => fetch(`${API}/api/auth/get-session`, { credentials: 'include' }).then((r) => (r.ok ? r.json() : null)),
+  session: (): Promise<Session> =>
+    fetch(`${API}/api/auth/get-session`, {
+      credentials: 'include',
+      signal: AbortSignal.timeout(8000),
+    }).then((r) => (r.ok ? r.json() : null)),
   login: (email: string, password: string) => api('/api/auth/sign-in/email', { body: { email, password } }),
   logout: () => api('/api/auth/sign-out', { body: {} }),
 };

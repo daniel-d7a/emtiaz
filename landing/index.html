@@ -170,7 +170,7 @@
   </footer>
 
   <script>
-    const APP_URL = 'http://localhost:5173'; // prod: https://app.emtiaz.om
+    const APP_URL = window.location.origin;
     for (const id of ['cta-login', 'cta-foot']) document.getElementById(id).href = APP_URL + '/login';
     for (const id of ['cta-hero', 'cta-final']) document.getElementById(id).href = APP_URL + '/register/teacher';
     document.getElementById('cta-register').href = APP_URL + '/register/teacher';
