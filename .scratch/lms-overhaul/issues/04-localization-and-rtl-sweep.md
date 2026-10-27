@@ -4,9 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] No hardcoded UI copy remains on student, teacher, parent, admin, or public pages.
-- [ ] Course types, specializations, true/false, and question types render in both languages.
-- [ ] RTL layout mirrors (sidebar, chevrons, tables, dialogs, progress) rather than only swapping text.
-- [ ] "سلطنة عُمان" is used consistently; dates and numbers render correctly in both directions.
+- [x] No hardcoded UI copy remains on student, teacher, parent, admin, or public pages.
+- [x] Course types, specializations, true/false, and question types render in both languages.
+- [x] RTL layout mirrors (sidebar, chevrons, tables, dialogs, progress) rather than only swapping text.
+- [x] "سلطنة عُمان" is used consistently; dates and numbers render correctly in both directions.
+
+## Comments
+
+- 2026-10-27: Shipped in `9b8b213`. Removed the remaining hardcoded copy, localized taxonomy names via `localizeName`, added locale-aware dates via `formatDateTime`, and localized course types, true/false, question types, CSV headers, dialogs, and language-switch labels. RTL already used logical `start`/`end` utilities; verified no physical-direction classes remain.
+- Gates: frontend typecheck, 12 tests, and build pass. Build still reports the pre-existing >500 kB chunk warning.
+- `impeccable` CLI remains unavailable, so the visual 360/768/1024/1280 check was not run here.
