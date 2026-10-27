@@ -26,6 +26,23 @@ html[dir="ltr"] body { font-family: var(--font-english); }
 
 * { -webkit-tap-highlight-color: transparent; }
 
+button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@keyframes page-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-fade {
+  animation: page-fade 180ms ease-out;
+}
+
 :focus-visible {
   outline: 3px solid var(--color-secondary);
   outline-offset: 2px;
