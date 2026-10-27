@@ -67,6 +67,15 @@ export class StorageService {
     return `courses/${courseId}/cover/${randomUUID()}-${safeName}`;
   }
 
+  static isVideoLink(url: string): boolean {
+    try {
+      const host = new URL(url).hostname.replace(/^www\./, '');
+      return host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com');
+    } catch {
+      return false;
+    }
+  }
+
   static fileTypeFor(mimeType: string | undefined): 'PDF' | 'DOC' | 'AUDIO' | 'IMAGE' | 'ARCHIVE' | 'LINK' | 'VIDEO' {
     const m = mimeType ?? '';
     if (m.includes('pdf')) return 'PDF';

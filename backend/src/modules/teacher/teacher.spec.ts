@@ -599,6 +599,48 @@ describe('Phase 4: teacher endpoints', () => {
       expect(wrongLesson.status).toBe(403);
     });
 
+    it('adds YouTube and external link materials and removes them with confirmation support', async () => {
+      const youtube = await t.post('/api/storage/attachments').send({
+        lessonId: world.lesson2,
+        title: 'Motion video',
+        url: 'https://www.youtube.com/watch?v=abc123',
+      });
+      expect(youtube.status).toBe(201);
+      expect(youtube.body).toMatchObject({ fileType: 'VIDEO', r2ObjectKey: null, url: 'https://www.youtube.com/watch?v=abc123' });
+
+      const link = await t.post('/api/storage/attachments').send({
+        lessonId: world.lesson2,
+        title: 'Revision notes',
+        url: 'https://example.com/notes',
+      });
+      expect(link.status).toBe(201);
+      expect(link.body).toMatchObject({ fileType: 'LINK', r2ObjectKey: null });
+
+      const both = await t.post('/api/storage/attachments').send({
+        lessonId: world.lesson2,
+        title: 'Bad',
+        objectKey: 'courses/x/lessons/y/z.pdf',
+        url: 'https://example.com',
+      });
+      expect(both.status).toBe(400);
+
+      const s = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+      const view = await s.get(`/api/student/lessons/${world.lesson2}/view?groupId=${world.group1}`);
+      expect(view.status).toBe(200);
+      expect(view.body.attachments.find((a: any) => a.id === youtube.body.id)).toMatchObject({
+        title: 'Motion video',
+        fileType: 'VIDEO',
+        url: 'https://www.youtube.com/watch?v=abc123',
+      });
+      expect((await s.get(`/api/storage/attachments/${youtube.body.id}/download`)).status).toBe(404);
+      expect((await s.delete(`/api/storage/attachments/${youtube.body.id}`)).status).toBe(403);
+
+      const removed = await t.delete(`/api/storage/attachments/${youtube.body.id}`);
+      expect(removed.status).toBe(200);
+      const after = await s.get(`/api/student/lessons/${world.lesson2}/view?groupId=${world.group1}`);
+      expect(after.body.attachments.some((a: any) => a.id === youtube.body.id)).toBe(false);
+    });
+
     it('returns 503 instead of a fake URL when storage is unconfigured', async () => {
       const env = { ...process.env };
       delete process.env.R2_ENDPOINT;

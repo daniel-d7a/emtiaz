@@ -72,7 +72,10 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
   the target group's course.
 - Attachment download checks the attachment's course and optional group. Master
   files (no group) are visible to any enrolled group in the course; group files
-  only to that group; both still require the lesson to be unlocked.
+  only to that group; both still require the lesson to be unlocked. External
+  link materials live on the attachment row and are only returned to readers
+  who can see the lesson; deleting a material is owner-only and also deletes
+  the stored object when one exists.
 - Teachers can only attach objects under
   `courses/<courseId>/lessons/<lessonId>/` and set a course cover under
   `courses/<courseId>/cover/` for a course they own. Avatar keys must stay under
@@ -87,8 +90,9 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
 - Presigned PUT for uploads (15 min) and presigned GET for downloads (1 hour);
   the API stores object keys, not durable URLs.
-- Avatars: images only, max 2 MB. Lesson attachments: max 100 MB. File type is
-  classified from the declared MIME type.
+- Avatars: images only, max 2 MB. Lesson attachments: max 100 MB. Uploads are
+  typed from the declared MIME type; URL materials are classified as a YouTube
+  video or an external link.
 - Replaced/cleared avatars, banners, and course covers are deleted best-effort. Objects uploaded but never
   attached still need a bucket lifecycle rule.
 - Public teacher avatars and banners are served through a published-teacher

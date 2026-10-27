@@ -231,8 +231,8 @@ export const lessonAttachments = pgTable('lesson_attachments', {
     onDelete: 'cascade',
   }), // Null = Master Course File; Populated = Specific to one Group only
   title: text('title').notNull(),
-  r2ObjectKey: text('r2_object_key').notNull(),
-  publicOrSignedUrl: text('public_or_signed_url').notNull(),
+  r2ObjectKey: text('r2_object_key'),
+  url: text('url'),
   fileType: attachmentTypeEnum('file_type').notNull().default('PDF'),
   fileSizeBytes: integer('file_size_bytes'),
   mimeType: text('mime_type'),

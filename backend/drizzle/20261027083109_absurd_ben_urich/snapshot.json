@@ -1,0 +1,94 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "cfa33a42-aba6-4e9d-ab46-3418abdb6871",
+  "prevIds": [
+    "5842468c-6739-48ce-9420-58bc15bdc8f7"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "lesson_attachments",
+        "url"
+      ],
+      "writes": [
+        "s|col|public.lesson_attachments.url",
+        "n|col|public.lesson_attachments.url",
+        "e|col|public.lesson_attachments.url"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attachments",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "lesson_attachments",
+        "public_or_signed_url"
+      ],
+      "writes": [
+        "s|col|public.lesson_attachments.public_or_signed_url",
+        "n|col|public.lesson_attachments.public_or_signed_url",
+        "e|col|public.lesson_attachments.public_or_signed_url"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attachments",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "lesson_attachments",
+        "r2_object_key"
+      ],
+      "writes": [
+        "s|colprop|public.lesson_attachments.r2_object_key.notNull"
+      ],
+      "reads": [
+        "n|tbl|public.lesson_attachments",
+        "n|sch|public",
+        "n|col|public.lesson_attachments.r2_object_key"
+      ],
+      "sqlHash": "4b877de24c25faa9"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "lesson_attachments",
+        "name": "url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"public\",\"lesson_attachments\",\"public_or_signed_url\"]"
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"lesson_attachments\",\"r2_object_key\"]",
+      "set": {
+        "notNull": false
+      }
+    }
+  ]
+}

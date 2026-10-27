@@ -5,8 +5,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, FileUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
+import { attachmentIcon, attachmentUrl } from '../../lib/attachment';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
+import { Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select, StatCard } from '../../components/ui';
+import type { Attachment } from '../../../../shared/api';
 
 type Question = {
   questionType: 'MCQ' | 'TRUE_FALSE';
@@ -27,7 +29,7 @@ type Curriculum = {
       title: string;
       content: string | null;
       quiz: QuizData;
-      attachments: Array<{ id: string; title: string }>;
+      attachments: Attachment[];
     }>;
   }>;
 };
@@ -327,7 +329,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
             </Button>
           </div>
           {save.error && <ErrorBox error={save.error} />}
-          <AttachmentUploader lessonId={lesson.id} courseId={courseId} />
+          <LessonMaterials lesson={lesson} courseId={courseId} />
           <QuizBuilder endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
         </div>
       </Collapse>
@@ -344,31 +346,75 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
   );
 }
 
-function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId: string }) {
+function LessonMaterials({ lesson, courseId }: { lesson: Curriculum['modules'][0]['lessons'][0]; courseId: string }) {
   const { t } = useLang();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'file' | 'link'>('file');
+  const [title, setTitle] = useState('');
+  const [url, setUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<Error | null>(null);
-  const qc = useQueryClient();
+  const [removing, setRemoving] = useState<Attachment | null>(null);
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
 
-  const upload = async (file: File) => {
+  const reset = () => {
+    setMode('file');
+    setTitle('');
+    setUrl('');
+    setFile(null);
+    setErr(null);
+  };
+  const remove = useMutation({
+    mutationFn: (id: string) => api(`/api/storage/attachments/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  const add = async () => {
     setBusy(true);
     setErr(null);
     try {
-      const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/presigned-upload', {
-        body: { courseId, lessonId, fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
-      });
-      const resp = await fetch(up.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
-      await api('/api/storage/attachments', {
-        body: { lessonId, title: file.name, objectKey: up.objectKey, mimeType: file.type, fileSizeBytes: file.size },
-      });
-      invalidate();
+      if (mode === 'link' && !/^https?:\/\//i.test(url.trim())) throw new Error(t('invalidUrl'));
+      if (mode === 'file' && !file) throw new Error(t('requiredField'));
+      const materialTitle = title.trim() || (mode === 'file' ? file!.name : url.trim());
+      if (mode === 'file') {
+        const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/presigned-upload', {
+          body: {
+            courseId,
+            lessonId: lesson.id,
+            fileName: file!.name,
+            mimeType: file!.type || undefined,
+            fileSizeBytes: file!.size,
+          },
+        });
+        const resp = await fetch(up.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file!.type || 'application/octet-stream' },
+          body: file,
+        });
+        if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+        await api('/api/storage/attachments', {
+          body: {
+            lessonId: lesson.id,
+            title: materialTitle,
+            objectKey: up.objectKey,
+            mimeType: file!.type || undefined,
+            fileSizeBytes: file!.size,
+          },
+        });
+      } else {
+        await api('/api/storage/attachments', {
+          body: { lessonId: lesson.id, title: materialTitle, url: url.trim() },
+        });
+      }
       toast.success(t('saved'));
+      invalidate();
+      setOpen(false);
+      reset();
     } catch (e) {
       setErr(e as Error);
       toast.error((e as Error).message || t('errorOccurred'));
@@ -379,16 +425,104 @@ function AttachmentUploader({ lessonId, courseId }: { lessonId: string; courseId
 
   return (
     <div>
-      <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line bg-white px-4 py-3 text-sm font-semibold text-ink-soft hover:border-primary">
-        <FileUp size={16} />
-        {busy ? '…' : t('uploadFile')}
-        <input
-          type="file"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
-        />
-      </label>
-      {err && <div className="mt-2"><ErrorBox error={err} /></div>}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-bold">{t('materials')}</span>
+        <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => { reset(); setOpen(true); }}>
+          <Plus className="inline" size={15} /> {t('addMaterial')}
+        </Button>
+      </div>
+      {lesson.attachments.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-soft">{t('noMaterials')}</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-1">
+          {lesson.attachments.map((attachment) => {
+            const Icon = attachmentIcon(attachment.fileType);
+            return (
+              <li key={attachment.id} className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3">
+                <Icon size={17} className="shrink-0 text-primary" />
+                <a
+                  href={attachmentUrl(attachment)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="min-w-0 grow truncate text-sm font-semibold hover:text-primary"
+                >
+                  {attachment.title}
+                </a>
+                <span className="shrink-0 text-xs text-ink-soft">{attachment.fileType}</span>
+                <button
+                  type="button"
+                  aria-label={t('delete')}
+                  title={t('delete')}
+                  onClick={() => setRemoving(attachment)}
+                  className="shrink-0 text-ink-soft hover:text-secondary"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('addMaterial')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={add} disabled={busy || (mode === 'file' ? !file : !url.trim())}>
+              {busy ? '…' : t('add')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Select label={t('materialSource')} value={mode} onChange={(e) => setMode(e.target.value as 'file' | 'link')}>
+            <option value="file">{t('uploadFile')}</option>
+            <option value="link">{t('externalLink')}</option>
+          </Select>
+          <Input
+            label={t('materialTitle')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={mode === 'file' ? t('uploadFile') : t('externalLink')}
+          />
+          {mode === 'file' ? (
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line bg-white px-4 py-3 text-sm font-semibold text-ink-soft hover:border-primary">
+              <FileUp size={16} className="shrink-0" />
+              <span className="min-w-0 truncate">{file?.name ?? t('uploadFile')}</span>
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const picked = e.target.files?.[0] ?? null;
+                  setFile(picked);
+                  if (picked && !title) setTitle(picked.name);
+                }}
+              />
+            </label>
+          ) : (
+            <Input
+              label={t('materialUrl')}
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://"
+              dir="ltr"
+            />
+          )}
+          {err && <ErrorBox error={err} />}
+        </div>
+      </Dialog>
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(next) => !next && setRemoving(null)}
+        title={`${t('delete')} ${removing?.title ?? ''}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => removing && remove.mutate(removing.id)}
+      />
     </div>
   );
 }

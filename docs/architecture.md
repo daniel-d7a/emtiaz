@@ -106,7 +106,7 @@ reachable by the API container differs from the endpoint reachable by the
 browser ([ADR-0009](./adr/0009-two-s3-clients.md)). `npm run s3:init` creates
 the bucket and sets browser CORS for the configured frontend origins.
 
-- Lesson attachments: `courses/<courseId>/lessons/<lessonId>/…`, max 100 MB.
+- Lesson attachments: uploads live under `courses/<courseId>/lessons/<lessonId>/…` (max 100 MB); external links and YouTube URLs are stored directly on the attachment row.
 - Avatars: `avatars/<userId>/…`, images only, max 2 MB; `user.image` holds the
   key and `GET /api/me/avatar` redirects to a fresh presigned GET.
 - Published teacher avatars are available publicly at

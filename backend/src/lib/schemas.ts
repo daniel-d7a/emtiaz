@@ -188,15 +188,26 @@ export const PresignedUploadDto = z
     mimeType: z.string().max(120).optional(),
     fileSizeBytes: z.number().int().min(1).max(100 * 1024 * 1024).optional(),
   });
-export const AttachDto = z.object({
-  lessonId: uuid,
-  groupId: uuid.optional().nullable(),
-  title: safeText(200),
-  objectKey: z.string().trim().min(1).max(512),
-  mimeType: z.string().max(120).optional(),
-  fileSizeBytes: z.number().int().min(0).optional(),
-  verified: z.boolean().optional(),
-});
+export const AttachDto = z
+  .object({
+    lessonId: uuid,
+    groupId: uuid.optional().nullable(),
+    title: safeText(200),
+    objectKey: z.string().trim().min(1).max(512).optional(),
+    url: z
+      .string()
+      .trim()
+      .max(2000)
+      .url()
+      .refine((value) => /^https?:\/\//i.test(value), 'http(s) URL required')
+      .optional(),
+    mimeType: z.string().max(120).optional(),
+    fileSizeBytes: z.number().int().min(0).optional(),
+    verified: z.boolean().optional(),
+  })
+  .refine((dto) => Boolean(dto.objectKey) !== Boolean(dto.url), {
+    message: 'Provide either an upload or a link',
+  });
 
 // ---------- student ----------
 export const QuizSubmitDto = z

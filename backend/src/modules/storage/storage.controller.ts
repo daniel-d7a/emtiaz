@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Injectable, Module, Param, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Injectable, Module, Param, Post, Req, Res } from '@nestjs/common';
 import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
@@ -88,9 +88,11 @@ export class StorageController {
     dto: z.infer<typeof AttachDto>,
   ) {
     const course = await this.teacherCourse(req.user!, dto.lessonId);
-    const prefix = `courses/${course.id}/lessons/${dto.lessonId}/`;
-    if (!dto.objectKey.startsWith(prefix)) {
-      throw new ForbiddenException('Object does not belong to this lesson');
+    if (dto.objectKey) {
+      const prefix = `courses/${course.id}/lessons/${dto.lessonId}/`;
+      if (!dto.objectKey.startsWith(prefix)) {
+        throw new ForbiddenException('Object does not belong to this lesson');
+      }
     }
     if (dto.groupId) {
       const [group] = await db
@@ -99,16 +101,17 @@ export class StorageController {
         .where(and(eq(groups.id, dto.groupId), eq(groups.courseId, course.id)));
       if (!group) throw new ForbiddenException('Group not in this course');
     }
-    const downloadUrl = await this.storage.presignedGet(dto.objectKey);
     const [row] = await db
       .insert(lessonAttachments)
       .values({
         lessonId: dto.lessonId,
         groupId: dto.groupId,
         title: dto.title,
-        r2ObjectKey: dto.objectKey,
-        publicOrSignedUrl: downloadUrl,
-        fileType: StorageService.fileTypeFor(dto.mimeType),
+        r2ObjectKey: dto.objectKey ?? null,
+        url: dto.url ?? null,
+        fileType: dto.url
+          ? StorageService.isVideoLink(dto.url) ? 'VIDEO' : 'LINK'
+          : StorageService.fileTypeFor(dto.mimeType),
         fileSizeBytes: dto.fileSizeBytes,
         mimeType: dto.mimeType,
       })
@@ -116,10 +119,20 @@ export class StorageController {
     return row;
   }
 
+  @Roles('TEACHER')
+  @Delete('api/storage/attachments/:id')
+  async removeAttachment(@Req() req: Request, @Param('id') id: string) {
+    const row = await this.readableAttachment(req.user!, id);
+    await db.delete(lessonAttachments).where(eq(lessonAttachments.id, id));
+    if (row.r2ObjectKey) await this.storage.deleteObject(row.r2ObjectKey);
+    return { ok: true };
+  }
+
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
   @Get('api/storage/attachments/:id/download')
   async download(@Req() req: Request, @Param('id') id: string) {
     const row = await this.readableAttachment(req.user!, id);
+    if (!row.r2ObjectKey) throw new NotFoundException('Attachment has no file');
     return { id: row.id, url: await this.storage.presignedGet(row.r2ObjectKey) };
   }
 
@@ -131,6 +144,7 @@ export class StorageController {
     @Res() res: Response,
   ) {
     const row = await this.readableAttachment(req.user!, id);
+    if (!row.r2ObjectKey) throw new NotFoundException('Attachment has no file');
     res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey));
   }
 

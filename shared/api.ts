@@ -176,8 +176,8 @@ export type Attachment = {
   lessonId: string;
   groupId: string | null;
   title: string;
-  r2ObjectKey: string;
-  publicOrSignedUrl: string;
+  r2ObjectKey: string | null;
+  url: string | null;
   fileType: AttachmentType;
   fileSizeBytes: number | null;
   mimeType: string | null;
@@ -265,7 +265,7 @@ export type StudentLessonView = {
   title: string;
   content: string | null;
   completed: boolean;
-  attachments: Array<Pick<Attachment, 'id' | 'title' | 'fileType' | 'mimeType'>>;
+  attachments: Array<Pick<Attachment, 'id' | 'title' | 'fileType' | 'mimeType' | 'url'>>;
   hasQuiz: boolean;
 };
 

@@ -407,6 +407,7 @@ export class StudentService {
           title: a.title,
           fileType: a.fileType,
           mimeType: a.mimeType,
+          url: a.url,
         })),
       hasQuiz: !!(await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId)).limit(1)).length,
     };
