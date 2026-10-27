@@ -13,6 +13,7 @@ import { teacherGroupRoute } from './pages/teacher/Group';
 import { adminDashboardRoute } from './pages/admin/Dashboard';
 import { parentDashboardRoute } from './pages/parent/Dashboard';
 import { teacherLandingRoute } from './pages/public/Teacher';
+import { publicCourseRoute } from './pages/public/Course';
 
 const fallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -36,6 +37,7 @@ const routeTree = rootRoute.addChildren([
   adminDashboardRoute,
   parentDashboardRoute,
   teacherLandingRoute,
+  publicCourseRoute,
   fallbackRoute,
 ]);
 

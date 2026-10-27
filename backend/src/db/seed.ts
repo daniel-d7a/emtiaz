@@ -11,6 +11,7 @@ import {
   lessons,
   parentStudents,
   modules,
+  notificationSettings,
   quizQuestions,
   quizzes,
   sessions,
@@ -64,6 +65,7 @@ async function makeCourse(teacherId: string, dto: {
   gradeName?: string;
   categoryName?: string;
   semester?: string;
+  description?: string;
 }) {
   let gradeId: string | null = null;
   let categoryId: string | null = null;
@@ -74,7 +76,15 @@ async function makeCourse(teacherId: string, dto: {
   }
   const [course] = await db
     .insert(courses)
-    .values({ title: dto.title, courseType: dto.courseType, teacherId, gradeId, categoryId, semester: dto.semester })
+    .values({
+      title: dto.title,
+      description: dto.description,
+      courseType: dto.courseType,
+      teacherId,
+      gradeId,
+      categoryId,
+      semester: dto.semester,
+    })
     .returning();
   return course;
 }
@@ -126,7 +136,16 @@ async function seed() {
   ]);
   await signUp('Platform Admin', 'admin@emtiaz.om', process.env.SEED_ADMIN_PASSWORD ?? 'admin-password-123', 'ADMIN');
   await db.delete(sessions); // don't seed a live session
-  console.log('Seeded grades, categories, admin (admin@emtiaz.om).');
+  await db
+    .insert(notificationSettings)
+    .values({
+      id: 'global',
+      supportEmail: 'support@emtiaz.om',
+      supportPhone: '+96890000000',
+      supportWhatsapp: '+96890000000',
+    })
+    .onConflictDoNothing();
+  console.log('Seeded grades, categories, admin (admin@emtiaz.om), support contacts.');
   await seedDemo();
   process.exit(0);
 }
@@ -176,20 +195,42 @@ async function seedDemo() {
   }
 
   // Teacher 1: academic physics (2 groups) + general English (1 group)
-  const physics = await makeCourse(teacher1, { title: 'Physics — Grade 10', courseType: 'ACADEMIC', gradeName: 'Grade 10', semester: 'Semester 1' });
+  const physics = await makeCourse(teacher1, {
+    title: 'Physics — Grade 10',
+    courseType: 'ACADEMIC',
+    gradeName: 'Grade 10',
+    semester: 'Semester 1',
+    description: 'Motion, forces, and the everyday physics behind them. Weekly practice with worked examples and a short quiz after each lesson.',
+  });
   const g1a = (await db.insert(groups).values({ courseId: physics.id, name: 'Physics — Sun Tue', joinCode: joinCode() }).returning())[0];
   const g1b = (await db.insert(groups).values({ courseId: physics.id, name: 'Physics — Wed Thu', joinCode: joinCode() }).returning())[0];
   const physicsLessons = await makeCurriculum(physics.id, 'Unit 1 — Motion', [
     { title: 'Speed & velocity', content: 'A constant speed v covers d = v·t. Units: m/s.', withQuiz: true },
     { title: 'Force basics', content: 'F = m·a. Read chapter 2 before class.' },
   ]);
-  const english = await makeCourse(teacher1, { title: 'English Speaking — Everyday', courseType: 'GENERAL', categoryName: 'English Speaking' });
+  const english = await makeCourse(teacher1, {
+    title: 'English Speaking — Everyday',
+    courseType: 'GENERAL',
+    categoryName: 'English Speaking',
+    description: 'Build confidence speaking English in real situations: introductions, phone calls, travel, and small talk.',
+  });
   const g1c = (await db.insert(groups).values({ courseId: english.id, name: 'Speaking Circle A', joinCode: joinCode() }).returning())[0];
 
   // Teacher 2: academic math + general IELTS
-  const math = await makeCourse(teacher2, { title: 'Math — Grade 7', courseType: 'ACADEMIC', gradeName: 'Grade 7', semester: 'Semester 1' });
+  const math = await makeCourse(teacher2, {
+    title: 'Math — Grade 7',
+    courseType: 'ACADEMIC',
+    gradeName: 'Grade 7',
+    semester: 'Semester 1',
+    description: 'Number sense, algebra, and geometry at a steady weekly pace, with hand-marked practice.',
+  });
   const g2a = (await db.insert(groups).values({ courseId: math.id, name: 'Math — Group 1', joinCode: joinCode() }).returning())[0];
-  const ielts = await makeCourse(teacher2, { title: 'IELTS Crash Prep', courseType: 'GENERAL', categoryName: 'IELTS Preparation' });
+  const ielts = await makeCourse(teacher2, {
+    title: 'IELTS Crash Prep',
+    courseType: 'GENERAL',
+    categoryName: 'IELTS Preparation',
+    description: 'Focused exam practice for all four IELTS skills, with feedback on speaking and writing.',
+  });
   const g2b = (await db.insert(groups).values({ courseId: ielts.id, name: 'IELTS — Evening', joinCode: joinCode() }).returning())[0];
 
   // enrollments: students 1-3 in g1a, students 2+4 in g1b, students 3+5 in g1c; 5+6 in g2a; 1+6 in g2b

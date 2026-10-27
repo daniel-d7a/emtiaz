@@ -32,6 +32,9 @@ type NotificationSettings = {
   adminEnabled: boolean;
   parentEnabled: boolean;
   teacherEnabled: boolean;
+  supportEmail: string | null;
+  supportPhone: string | null;
+  supportWhatsapp: string | null;
 };
 type NotificationRow = {
   id: string;
@@ -232,6 +235,25 @@ export default function AdminDashboard() {
                   {t(label)}
                 </label>
               ))}
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-soft">{t('platformSupport')}</p>
+              <Input
+                label={t('email')}
+                type="email"
+                defaultValue={settings.data.supportEmail ?? ''}
+                onBlur={(e) => updateSettings.mutate({ supportEmail: e.target.value })}
+              />
+              <Input
+                label={t('phone')}
+                defaultValue={settings.data.supportPhone ?? ''}
+                dir="ltr"
+                onBlur={(e) => updateSettings.mutate({ supportPhone: e.target.value })}
+              />
+              <Input
+                label={t('whatsapp')}
+                defaultValue={settings.data.supportWhatsapp ?? ''}
+                dir="ltr"
+                onBlur={(e) => updateSettings.mutate({ supportWhatsapp: e.target.value })}
+              />
               {updateSettings.error && <ErrorBox error={updateSettings.error} />}
               <div className="mt-3 flex items-center gap-3">
                 <Button variant="ghost" onClick={() => monthlySummary.mutate()} disabled={monthlySummary.isPending}>

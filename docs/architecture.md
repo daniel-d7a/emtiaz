@@ -44,7 +44,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `teacher` | Course/module/lesson CRUD, quizzes, groups, pacing, roster, announcements, gradebook |
 | `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress and grades |
-| `public` | Published teacher landing data/avatar/banner, sitemap, robots |
+| `public` | Published teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
 | `storage` | Presigned uploads, attachment records/downloads, avatars, banners |
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
 
@@ -129,9 +129,9 @@ browser ([ADR-0009](./adr/0009-two-s3-clients.md)).
   prefetching in loaders ([ADR-0008](./adr/0008-tanstack-router.md)).
 - TanStack Query owns server state; there is no Zustand store.
 - Pages: home, login/register, join, profile, student dashboard/group/lesson/
-  quiz, teacher dashboard/course/group/public landing, parent dashboard, admin
-  dashboard (teachers, students, parents, courses, notifications, taxonomy,
-  audit).
+  quiz, teacher dashboard/course/group/public landing/public course, parent
+  dashboard, admin dashboard (teachers, students, parents, courses,
+  notifications, taxonomy, audit).
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
 - Teachers own a theme in `user.landing_theme` (layout, two colours, marquee,
@@ -161,7 +161,12 @@ targets teachers. Both share `styles.css` and an inline `data-t` translation
 dictionary, so there is no build step. Caddy resolves extensionless page URLs.
 Per-teacher pages are not static: `/t/<slug>` is a web route backed by
 `GET /api/public/teachers/<slug>`, and published slugs are listed in
-`sitemap.xml`.
+`sitemap.xml`. The storefront filters published courses by type and links to
+`/t/<slug>/courses/<id>`, backed by
+`GET /api/public/teachers/<slug>/courses/<id>` (course image, description,
+preview video/link, and an outline of module/lesson titles). Both pages share
+the teacher theme and a footer with the teacher's contact details plus the
+admin-configured platform support contacts.
 
 ## Deployment and operations
 

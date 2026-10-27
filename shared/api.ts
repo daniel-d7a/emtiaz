@@ -74,8 +74,45 @@ export type Course = {
   gradeId: string | null;
   semester: string | null;
   categoryId: string | null;
+  image: string | null;
+  previewUrl: string | null;
   isPublished: boolean;
   createdAt: string;
+};
+
+export type PublicSupport = {
+  email: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+};
+
+export type PublicTeacher = {
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  bio: string | null;
+  subject: string | null;
+  avatarUrl: string | null;
+  theme: TeacherTheme | null;
+  bannerUrl: string | null;
+};
+
+export type PublicCourseCard = Pick<
+  Course,
+  'id' | 'title' | 'description' | 'courseType'
+> & { imageUrl: string | null };
+
+export type PublicTeacherPage = {
+  teacher: PublicTeacher;
+  courses: PublicCourseCard[];
+  support: PublicSupport;
+};
+
+export type PublicCoursePage = {
+  teacher: Omit<PublicTeacher, 'avatarUrl' | 'bio' | 'subject'>;
+  course: Course & { imageUrl: string | null };
+  modules: Array<{ id: string; title: string; lessons: string[] }>;
+  support: PublicSupport;
 };
 
 export type Group = {
@@ -233,6 +270,7 @@ export type StudentGrades = {
 export type TeacherGroup = Group & { studentCount: number };
 
 export type TeacherCourse = Course & {
+  imageUrl: string | null;
   analytics: {
     students: number;
     groups: number;

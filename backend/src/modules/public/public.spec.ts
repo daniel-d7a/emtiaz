@@ -41,8 +41,18 @@ describe('public teacher landing', () => {
     expect(page.body.teacher.name).toBe(TEACHER.name);
     expect(page.body.teacher.bio).toBe('Physics for everyone');
     expect(page.body.teacher.theme).toEqual(theme);
-    expect(page.body.teacher.email).toBeUndefined();
-    expect(page.body.courses.map((c: any) => c.title)).toContain('Physics 10');
+    expect(page.body.teacher.email).toBe(TEACHER.email);
+    expect(page.body.support).toHaveProperty('email');
+    const course = page.body.courses.find((c: any) => c.title === 'Physics 10');
+    expect(course).toBeTruthy();
+
+    const detail = await request(server).get(
+      `/api/public/teachers/salim-physics/courses/${course.id}`,
+    );
+    expect(detail.status).toBe(200);
+    expect(detail.body.course.title).toBe('Physics 10');
+    expect(detail.body.modules[0].lessons.length).toBeGreaterThan(0);
+    expect(detail.body.teacher.name).toBe(TEACHER.name);
 
     const sitemap = await request(server).get('/sitemap.xml');
     expect(sitemap.status).toBe(200);

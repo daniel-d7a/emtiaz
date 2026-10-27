@@ -201,13 +201,20 @@ describe('Phase 5: admin endpoints', () => {
 
     const off = await admin
       .patch('/api/admin/notification-settings')
-      .send({ emailEnabled: false, adminEnabled: false });
+      .send({
+        emailEnabled: false,
+        adminEnabled: false,
+        supportEmail: 'help@emtiaz.om',
+        supportWhatsapp: '+96895550000',
+      });
     expect(off.status).toBe(200);
     expect(off.body.emailEnabled).toBe(false);
     expect(off.body.adminEnabled).toBe(false);
+    expect(off.body.supportEmail).toBe('help@emtiaz.om');
 
     const persisted = await admin.get('/api/admin/notification-settings');
     expect(persisted.body.emailEnabled).toBe(false);
+    expect(persisted.body.supportWhatsapp).toBe('+96895550000');
 
     const empty = await admin.patch('/api/admin/notification-settings').send({});
     expect(empty.status).toBe(400);

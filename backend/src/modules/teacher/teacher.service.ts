@@ -8,6 +8,7 @@ import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '../../db';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StorageService } from '../storage/storage.service';
 import {
   courses,
   groupLessonAccess,
@@ -43,7 +44,19 @@ type QuizPayload = {
 
 @Injectable()
 export class TeacherService {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
+  ) {}
+
+  private async signedImage(key: string | null): Promise<string | null> {
+    if (!key) return null;
+    try {
+      return await this.storage.presignedGet(key);
+    } catch {
+      return null;
+    }
+  }
 
   private async assertOwnsCourse(teacherId: string, courseId: string) {
     const [course] = await db
@@ -103,6 +116,13 @@ export class TeacherService {
             ),
           )
       : [];
+    const imageUrls = new Map(
+      await Promise.all(
+        coursesList
+          .filter((c) => c.image)
+          .map(async (c) => [c.id, await this.signedImage(c.image)] as const),
+      ),
+    );
     return coursesList.map((c) => {
       const cGroups = groupsList.filter((g) => g.courseId === c.id);
       const cGroupIds = new Set(cGroups.map((g) => g.id));
@@ -118,6 +138,7 @@ export class TeacherService {
       const possible = cStudentIds.size * cLessonIds.size;
       return {
         ...c,
+        imageUrl: imageUrls.get(c.id) ?? null,
         analytics: {
           students: cStudentIds.size,
           groups: cGroups.length,
@@ -171,14 +192,28 @@ export class TeacherService {
       gradeId: string;
       semester: string;
       categoryId: string;
+      image: string | null;
+      previewUrl: string | null;
     }>,
   ) {
-    await this.assertCourseAccess(user, courseId);
+    const before = await this.assertCourseAccess(user, courseId);
+    const patch = { ...dto };
+    if (patch.image !== undefined) {
+      const image = patch.image?.trim() || null;
+      if (image && !image.startsWith(`courses/${courseId}/cover/`)) {
+        throw new BadRequestException('image must be an uploaded course cover');
+      }
+      patch.image = image;
+    }
+    if (patch.previewUrl !== undefined) patch.previewUrl = patch.previewUrl?.trim() || null;
     const [updated] = await db
       .update(courses)
-      .set(dto)
+      .set(patch)
       .where(eq(courses.id, courseId))
       .returning();
+    if (before.image && before.image !== updated.image) {
+      await this.storage.deleteObject(before.image);
+    }
     return updated;
   }
 

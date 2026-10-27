@@ -1,0 +1,183 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "4f0b25c8-237f-4be6-929b-a2d6153fcf54",
+  "prevIds": [
+    "5a5420b7-023f-40e8-9c54-5f1dc068a0e2"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "courses",
+        "image"
+      ],
+      "writes": [
+        "s|col|public.courses.image",
+        "n|col|public.courses.image",
+        "e|col|public.courses.image"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "courses",
+        "preview_url"
+      ],
+      "writes": [
+        "s|col|public.courses.preview_url",
+        "n|col|public.courses.preview_url",
+        "e|col|public.courses.preview_url"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "support_email"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.support_email",
+        "n|col|public.notification_settings.support_email",
+        "e|col|public.notification_settings.support_email"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "support_phone"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.support_phone",
+        "n|col|public.notification_settings.support_phone",
+        "e|col|public.notification_settings.support_phone"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "support_whatsapp"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.support_whatsapp",
+        "n|col|public.notification_settings.support_whatsapp",
+        "e|col|public.notification_settings.support_whatsapp"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "courses",
+        "name": "image",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "courses",
+        "name": "preview_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "support_email",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "support_phone",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "support_whatsapp",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, FileUp, ListTree, Plus, Users } from 'lucide-react';
+import { Eye, EyeOff, FileUp, ListTree, Pencil, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, EmptyState, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
-import type { MeResponse, TeacherCourse as Course } from '../../../../shared/api';
+import { Button, Card, Dialog, EmptyState, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
+import type { MeResponse, PresignedUpload, TeacherCourse as Course } from '../../../../shared/api';
 import { ThemeStrip, ThemeSurface } from '../../components/TeacherTheme';
 
 export default function TeacherDashboard() {
@@ -106,10 +106,11 @@ export default function TeacherDashboard() {
         <div className="grid gap-4 sm:grid-cols-2">
           {data?.map((c) => (
             <Card key={c.id}>
-              <div className="mb-1 flex items-center gap-2">
+              <div className="mb-1 flex items-center justify-between gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.courseType === 'ACADEMIC' ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}>
                   {c.courseType === 'ACADEMIC' ? t('academic') : t('general')}
                 </span>
+                <EditCourse course={c} />
               </div>
               <h3 className="text-lg font-bold">{c.title}</h3>
               <p className="mt-1 text-xs text-ink-soft">
@@ -158,6 +159,124 @@ export default function TeacherDashboard() {
       )}
       </ThemeSurface>
     </Page>
+  );
+}
+
+function EditCourse({ course }: { course: Course }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(course.title);
+  const [description, setDescription] = useState(course.description ?? '');
+  const [previewUrl, setPreviewUrl] = useState(course.previewUrl ?? '');
+  const [busy, setBusy] = useState(false);
+  const [uploadError, setUploadError] = useState<Error | null>(null);
+
+  const save = useMutation({
+    mutationFn: (image?: string) =>
+      api(`/api/teacher/courses/${course.id}`, {
+        method: 'PATCH',
+        body: {
+          title,
+          description,
+          previewUrl: previewUrl.trim() || null,
+          ...(image ? { image } : {}),
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      setOpen(false);
+      void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
+    },
+  });
+
+  const uploadImage = async (file: File) => {
+    setBusy(true);
+    setUploadError(null);
+    try {
+      const up = await api<PresignedUpload>('/api/storage/course-image', {
+        body: {
+          courseId: course.id,
+          fileName: file.name,
+          mimeType: file.type,
+          fileSizeBytes: file.size,
+        },
+      });
+      const put = await fetch(up.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+      save.mutate(up.objectKey);
+    } catch (e) {
+      setUploadError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-primary">
+        <Pencil size={14} /> {t('edit')}
+      </button>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('edit')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={() => save.mutate(undefined)} disabled={!title.trim() || save.isPending}>
+              {t('save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Input label={t('courseTitle')} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseDescription')}</span>
+            <textarea
+              className="w-full rounded-xl border border-line bg-white px-4 py-3"
+              rows={4}
+              maxLength={2000}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
+          <Input
+            label={t('previewUrl')}
+            value={previewUrl}
+            onChange={(e) => setPreviewUrl(e.target.value)}
+            placeholder="https://"
+            dir="ltr"
+          />
+          <div>
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseImage')}</span>
+            {course.imageUrl && (
+              <img src={course.imageUrl} alt="" className="mb-2 h-32 w-full rounded-xl border border-line object-cover" />
+            )}
+            <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
+              {busy ? '…' : t('uploadFile')}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadImage(f);
+                }}
+              />
+            </label>
+            <p className="text-xs text-ink-soft">{t('imageHint')}</p>
+            {uploadError && <div className="mt-2"><ErrorBox error={uploadError} /></div>}
+          </div>
+          {save.error && <ErrorBox error={save.error} />}
+        </div>
+      </Dialog>
+    </>
   );
 }
 

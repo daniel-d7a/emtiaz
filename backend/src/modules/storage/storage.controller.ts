@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Injectable, Module, Param, Post, Req } from '@nestjs/common';
-import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto } from '../../lib/schemas';
+import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request } from 'express';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -42,6 +42,20 @@ export class StorageController {
       method: 'PUT',
       maxBytes: 100 * 1024 * 1024,
     };
+  }
+
+  @Roles('TEACHER')
+  @Post('api/storage/course-image')
+  async courseImageUpload(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(CourseImageUploadDto))
+    dto: z.infer<typeof CourseImageUploadDto>,
+  ) {
+    const [course] = await db.select().from(courses).where(eq(courses.id, dto.courseId));
+    if (!course) throw new NotFoundException('Course not found');
+    if (course.teacherId !== req.user!.id) throw new ForbiddenException('Not your course');
+    const objectKey = StorageService.buildCourseImageKey(dto.courseId, dto.fileName);
+    return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
   }
 
   @Roles('TEACHER')

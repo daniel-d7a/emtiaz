@@ -133,6 +133,8 @@ export const courses = pgTable('courses', {
   categoryId: uuid('category_id').references(() => categories.id, {
     onDelete: 'set null',
   }),
+  image: text('image'),
+  previewUrl: text('preview_url'),
   isPublished: boolean('is_published').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => [index('course_teacher_idx').on(t.teacherId)]);
@@ -383,6 +385,9 @@ export const notificationSettings = pgTable('notification_settings', {
   adminEnabled: boolean('admin_enabled').notNull().default(true),
   parentEnabled: boolean('parent_enabled').notNull().default(true),
   teacherEnabled: boolean('teacher_enabled').notNull().default(true),
+  supportEmail: text('support_email'),
+  supportPhone: text('support_phone'),
+  supportWhatsapp: text('support_whatsapp'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 

@@ -93,7 +93,16 @@ export const CreateCourseDto = z
     semester: optText(40),
     categoryId: uuid.optional(),
   });
-export const UpdateCourseDto = CreateCourseDto.partial();
+export const UpdateCourseDto = CreateCourseDto.partial().extend({
+  image: z.string().trim().max(512).nullable().optional(),
+  previewUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === '' || /^https?:\/\//i.test(v), 'must be an http(s) URL')
+    .nullable()
+    .optional(),
+});
 export const AddModuleDto = z.object({ title: safeText(160) });
 export const IdListDto = z.object({ moduleIds: z.array(uuid) });
 export const IdListDtoLessons = z.object({ lessonIds: z.array(uuid) });
@@ -155,6 +164,12 @@ export const AvatarUploadDto = z.object({
   fileSizeBytes: z.number().int().min(1).max(2 * 1024 * 1024),
 });
 export const BannerUploadDto = AvatarUploadDto;
+export const CourseImageUploadDto = z.object({
+  courseId: uuid,
+  fileName: safeText(200),
+  mimeType: z.string().regex(/^image\//, 'must be an image'),
+  fileSizeBytes: z.number().int().min(1).max(5 * 1024 * 1024),
+});
 export const PresignedUploadDto = z
   .object({
     courseId: uuid,
@@ -207,6 +222,9 @@ export const NotificationSettingsDto = z
     adminEnabled: z.boolean().optional(),
     parentEnabled: z.boolean().optional(),
     teacherEnabled: z.boolean().optional(),
+    supportEmail: z.string().trim().max(200).optional(),
+    supportPhone: z.string().trim().max(30).optional(),
+    supportWhatsapp: z.string().trim().max(30).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'at least one setting is required');
 

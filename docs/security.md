@@ -51,7 +51,7 @@ alone never grants access to another user's course, group, or child.
 | Upload own avatar | yes | yes | yes | yes |
 | Upload own banner | no | yes | no | no |
 | Read own inbox / mark read | yes | yes | yes | yes |
-| Public teacher page/avatar/banner, sitemap, robots | public | public | public | public |
+| Public teacher page/course, avatar/banner, sitemap, robots | public | public | public | public |
 
 \* Admin endpoints are read-only for courses/groups; admin does not call the
 teacher endpoints. Admin can download any attachment and manually enroll a
@@ -73,8 +73,9 @@ student.
   files (no group) are visible to any enrolled group in the course; group files
   only to that group; both still require the lesson to be unlocked.
 - Teachers can only attach objects under
-  `courses/<courseId>/lessons/<lessonId>/` for a course they own. Avatar keys
-  must stay under `avatars/<userId>/`; banner keys under `banners/<userId>/`.
+  `courses/<courseId>/lessons/<lessonId>/` and set a course cover under
+  `courses/<courseId>/cover/` for a course they own. Avatar keys must stay under
+  `avatars/<userId>/`; banner keys under `banners/<userId>/`.
 - Parents are read-only and must have a `parent_students` row. They cannot call
   student write endpoints, curriculum, lessons, quizzes, or attachments.
 - Student progress is computed from unlocked lessons only, so locking a lesson
@@ -86,10 +87,12 @@ student.
   the API stores object keys, not durable URLs.
 - Avatars: images only, max 2 MB. Lesson attachments: max 100 MB. File type is
   classified from the declared MIME type.
-- Replaced/cleared avatars are deleted best-effort. Objects uploaded but never
+- Replaced/cleared avatars, banners, and course covers are deleted best-effort. Objects uploaded but never
   attached still need a bucket lifecycle rule.
 - Public teacher avatars and banners are served through a published-teacher
-  check, not a public bucket listing.
+  check, not a public bucket listing. Public course detail resolves only
+  published courses of a published, active teacher and exposes no storage keys
+  or lesson content.
 
 ## Exports
 

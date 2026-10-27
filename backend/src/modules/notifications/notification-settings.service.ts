@@ -35,7 +35,15 @@ export class NotificationSettingsService {
     patch: Partial<
       Pick<
         typeof notificationSettings.$inferInsert,
-        'whatsappEnabled' | 'emailEnabled' | 'inAppEnabled' | 'adminEnabled' | 'parentEnabled' | 'teacherEnabled'
+        | 'whatsappEnabled'
+        | 'emailEnabled'
+        | 'inAppEnabled'
+        | 'adminEnabled'
+        | 'parentEnabled'
+        | 'teacherEnabled'
+        | 'supportEmail'
+        | 'supportPhone'
+        | 'supportWhatsapp'
       >
     >,
   ) {
