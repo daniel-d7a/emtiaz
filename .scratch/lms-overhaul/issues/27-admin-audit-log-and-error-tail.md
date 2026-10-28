@@ -4,10 +4,10 @@
 
 **Blocked by:** 21.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Mutating admin/teacher/student actions write an audit row with actor and action data.
-- [ ] Logs are queryable with the listed filters and retained for at least 30 days.
-- [ ] Sensitive values (passwords, tokens) never appear in the log.
-- [ ] The error viewer shows the last 500 lines and refreshes automatically.
-- [ ] Logging failures never break the primary request.
+- [x] Mutating admin/teacher/student actions write an audit row with actor and action data.
+- [x] Logs are queryable with the listed filters and retained for at least 30 days.
+- [x] Sensitive values (passwords, tokens) never appear in the log.
+- [x] The error viewer shows the last 500 lines and refreshes automatically.
+- [x] Logging failures never break the primary request.
