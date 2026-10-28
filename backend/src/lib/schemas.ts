@@ -293,6 +293,29 @@ export const TaxonomyCreateDto = z
   .object({ name: safeText(80), displayOrder: z.number().int().min(0).optional() });
 export const TaxonomyUpdateDto = TaxonomyCreateDto.partial();
 export const AdminEnrollDto = z.object({ groupId: uuid });
+export const AdminMoveStudentDto = z.object({ targetGroupId: uuid });
+export const CreateStudentDto = StudentSignupDto;
+export const UpdateStudentDto = z
+  .object({
+    name: safeText(120).optional(),
+    phoneNumber: z
+      .string()
+      .trim()
+      .max(20)
+      .refine((v) => v !== '' && /^\+?[1-9]\d{6,14}$/.test(v), {
+        message: 'phone must be a valid number (+XXXXXXXXX)',
+      })
+      .transform(normalizePhone)
+      .optional(),
+    gradeId: uuid.nullable().optional(),
+  })
+  .refine(
+    (dto) =>
+      dto.name !== undefined ||
+      dto.phoneNumber !== undefined ||
+      dto.gradeId !== undefined,
+    { message: 'nothing to update' },
+  );
 export const NotificationSettingsDto = z
   .object({
     whatsappEnabled: z.boolean().optional(),

@@ -96,6 +96,30 @@ export class OnboardingService {
     return created;
   }
 
+  async createStudent(dto: {
+    name: string;
+    password: string;
+    phoneNumber: string;
+    email?: string;
+    gradeId?: string;
+  }) {
+    const email = dto.email?.trim()
+      ? dto.email.trim().toLowerCase()
+      : `${dto.phoneNumber.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
+    const data = await auth.api.signUpEmail({
+      body: {
+        name: dto.name,
+        email,
+        password: dto.password,
+        role: 'STUDENT',
+        phoneNumber: dto.phoneNumber,
+        gradeId: dto.gradeId,
+      },
+      returnHeaders: true,
+    });
+    return data.response.user;
+  }
+
   async createTeacher(dto: {
     name: string;
     email: string;

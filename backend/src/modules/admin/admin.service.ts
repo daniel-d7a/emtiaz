@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, or, sql, sum } from 'drizzle-orm';
 import { db } from '../../db';
 import { alias } from 'drizzle-orm/pg-core';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -14,7 +14,11 @@ import {
   grades,
   groupStudents,
   groups,
+  lessonAttendance,
+  lessons,
+  modules,
   parentStudents,
+  quizAttempts,
   users,
 } from '../../db/schema';
 
@@ -275,6 +279,8 @@ export class AdminService {
     groupId?: string;
     teacherId?: string;
     search?: string;
+    name?: string;
+    phone?: string;
     deleted?: string;
     limit?: string;
   }) {
@@ -307,6 +313,8 @@ export class AdminService {
       deleted ? isNotNull(users.deletedAt) : isNull(users.deletedAt),
     ];
     if (filters.gradeId) conditions.push(eq(users.gradeId, filters.gradeId));
+    if (filters.name) conditions.push(ilike(users.name, `%${filters.name}%`));
+    if (filters.phone) conditions.push(ilike(users.phoneNumber, `%${filters.phone}%`));
     if (filters.search) {
       conditions.push(
         or(
@@ -357,6 +365,199 @@ export class AdminService {
         .filter((m) => m.studentId === s.id)
         .map((m) => ({ groupName: m.groupName, courseId: m.courseId, courseTitle: m.courseTitle })),
     }));
+  }
+
+  async updateStudent(
+    studentId: string,
+    dto: { name?: string; phoneNumber?: string; gradeId?: string | null },
+  ) {
+    const [student] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, studentId), eq(users.role, 'STUDENT')));
+    if (!student || student.deletedAt) throw new NotFoundException('Student not found');
+    const patch: Partial<typeof users.$inferInsert> = {};
+    if (dto.name !== undefined) patch.name = dto.name;
+    if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber;
+    if (dto.gradeId !== undefined) patch.gradeId = dto.gradeId;
+    const [updated] = await db
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, studentId))
+      .returning()
+      .catch((error) => {
+        if (error?.code === '23505') throw new ConflictException('Phone number already in use');
+        throw error;
+      });
+    return updated;
+  }
+
+  async studentProfile(studentId: string) {
+    const [student] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        gradeId: users.gradeId,
+        gradeName: grades.name,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        deletedAt: users.deletedAt,
+      })
+      .from(users)
+      .leftJoin(grades, eq(users.gradeId, grades.id))
+      .where(and(eq(users.id, studentId), eq(users.role, 'STUDENT')));
+    if (!student) throw new NotFoundException('Student not found');
+
+    const parentUser = alias(users, 'parent_user');
+    const teacherUser = alias(users, 'teacher_user');
+    const parents = await db
+      .select({
+        id: parentUser.id,
+        name: parentUser.name,
+        email: parentUser.email,
+        phoneNumber: parentUser.phoneNumber,
+      })
+      .from(parentStudents)
+      .innerJoin(parentUser, eq(parentStudents.parentId, parentUser.id))
+      .where(
+        and(
+          eq(parentStudents.studentId, studentId),
+          isNull(parentStudents.deletedAt),
+          isNull(parentUser.deletedAt),
+        ),
+      )
+      .orderBy(asc(parentUser.name));
+
+    const groupRows = await db
+      .select({
+        groupId: groups.id,
+        groupName: groups.name,
+        courseId: courses.id,
+        courseTitle: courses.title,
+        teacherId: teacherUser.id,
+        teacherName: teacherUser.name,
+        joinedAt: groupStudents.joinedAt,
+      })
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .innerJoin(teacherUser, eq(courses.teacherId, teacherUser.id))
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      )
+      .orderBy(desc(groupStudents.joinedAt));
+
+    const courseIds = [...new Set(groupRows.map((row) => row.courseId))];
+    const lessonRows = courseIds.length
+      ? await db
+          .select({ id: lessons.id, courseId: modules.courseId })
+          .from(lessons)
+          .innerJoin(modules, eq(lessons.moduleId, modules.id))
+          .where(inArray(modules.courseId, courseIds))
+      : [];
+    const presentRows = lessonRows.length
+      ? await db
+          .select({ lessonId: lessonAttendance.lessonId })
+          .from(lessonAttendance)
+          .where(
+            and(
+              eq(lessonAttendance.studentId, studentId),
+              eq(lessonAttendance.isPresent, true),
+              inArray(
+                lessonAttendance.lessonId,
+                lessonRows.map((row) => row.id),
+              ),
+            ),
+          )
+      : [];
+    const presentLessons = new Set(presentRows.map((row) => row.lessonId));
+
+    const [quiz] = await db
+      .select({
+        attempts: count(),
+        score: sum(quizAttempts.score),
+        maxScore: sum(quizAttempts.maxScore),
+      })
+      .from(quizAttempts)
+      .where(eq(quizAttempts.studentId, studentId));
+    const quizMax = Number(quiz?.maxScore ?? 0);
+
+    return {
+      ...student,
+      parents,
+      groups: groupRows.map((group) => {
+        const courseLessons = lessonRows.filter((lesson) => lesson.courseId === group.courseId);
+        const present = courseLessons.filter((lesson) => presentLessons.has(lesson.id)).length;
+        return {
+          ...group,
+          attendancePercent: courseLessons.length
+            ? Math.round((present / courseLessons.length) * 100)
+            : 0,
+        };
+      }),
+      quiz: {
+        attempts: Number(quiz?.attempts ?? 0),
+        averagePercent: quizMax
+          ? Math.round((Number(quiz?.score ?? 0) / quizMax) * 100)
+          : 0,
+      },
+    };
+  }
+
+  async removeStudentFromGroup(studentId: string, groupId: string) {
+    const [membership] = await db
+      .select({ id: groupStudents.id })
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groupStudents.groupId, groupId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      );
+    if (!membership) throw new NotFoundException('Enrollment not found');
+    await db
+      .delete(groupStudents)
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groupStudents.groupId, groupId),
+        ),
+      );
+    return { ok: true };
+  }
+
+  async moveStudentGroup(studentId: string, fromGroupId: string, toGroupId: string) {
+    if (fromGroupId === toGroupId) return { ok: true };
+    const [membership] = await db
+      .select({ id: groupStudents.id })
+      .from(groupStudents)
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groupStudents.groupId, fromGroupId),
+        ),
+      );
+    if (!membership) throw new NotFoundException('Enrollment not found');
+    await this.adminEnroll(studentId, toGroupId);
+    await db
+      .delete(groupStudents)
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groupStudents.groupId, fromGroupId),
+        ),
+      );
+    return { ok: true };
   }
 
   async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED'; deleted?: string; limit?: string }) {

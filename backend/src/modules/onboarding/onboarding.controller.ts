@@ -11,9 +11,6 @@ import { sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { ParentService } from '../parent/parent.service';
 
-const syntheticPhoneEmail = (phone: string) =>
-  `${phone.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
-
 @Controller()
 export class OnboardingController {
   constructor(
@@ -44,21 +41,8 @@ export class OnboardingController {
     @Body(new ZodBodyPipe(StudentSignupDto))
     dto: z.infer<typeof StudentSignupDto>,
   ) {
-    const email = dto.email?.trim()
-      ? dto.email.trim().toLowerCase()
-      : syntheticPhoneEmail(dto.phoneNumber);
-    const data = await auth.api.signUpEmail({
-      body: {
-        name: dto.name,
-        email,
-        password: dto.password,
-        role: 'STUDENT',
-        phoneNumber: dto.phoneNumber,
-        gradeId: dto.gradeId,
-      },
-      returnHeaders: true,
-    });
-    return { user: data.response.user, status: 'ok' };
+    const user = await this.onboarding.createStudent(dto);
+    return { user, status: 'ok' };
   }
 
   @Public()

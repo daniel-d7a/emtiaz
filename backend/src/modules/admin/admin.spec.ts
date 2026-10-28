@@ -97,6 +97,79 @@ describe('Phase 5: admin endpoints', () => {
     expect(audit.body.some((r: any) => r.targetId === id)).toBe(true);
   });
 
+  it('student directory filters, profile, create/edit, and group moves', async () => {
+    const email = 'created-student@test.om';
+    const invalid = await admin.post('/api/admin/students').send({
+      name: 'No Phone',
+      email: 'no-phone@test.om',
+      password: 'Passw0rd!123',
+    });
+    expect(invalid.status).toBe(400);
+
+    const created = await admin.post('/api/admin/students').send({
+      name: 'Created Student',
+      email,
+      password: 'Passw0rd!123',
+      phoneNumber: '+96895550010',
+      gradeId: world.gradeId,
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.id;
+    expect(created.body.role).toBe('STUDENT');
+    expect((await login(server, email, 'Passw0rd!123')).status).toBe(200);
+
+    const byName = await admin.get('/api/admin/students?name=Created');
+    expect(byName.body.map((s: any) => s.id)).toContain(id);
+    const byPhone = await admin.get('/api/admin/students?phone=95550010');
+    expect(byPhone.body.map((s: any) => s.id)).toContain(id);
+
+    const edited = await admin
+      .patch(`/api/admin/students/${id}`)
+      .send({ name: 'Edited Student', phoneNumber: '+96895550011' });
+    expect(edited.status).toBe(200);
+    expect(edited.body.name).toBe('Edited Student');
+    expect(edited.body.phoneNumber).toBe('+96895550011');
+
+    expect((await admin.post(`/api/admin/students/${id}/enroll`).send({ groupId: world.group1 })).status).toBe(201);
+    let profile = await admin.get(`/api/admin/students/${id}`);
+    expect(profile.status).toBe(200);
+    expect(profile.body.gradeName).toBeDefined();
+    expect(Array.isArray(profile.body.parents)).toBe(true);
+    expect(profile.body.groups).toHaveLength(1);
+    expect(profile.body.groups[0].teacherName).toBeDefined();
+    expect(profile.body.groups[0].joinedAt).toBeDefined();
+    expect(typeof profile.body.groups[0].attendancePercent).toBe('number');
+    expect(profile.body.quiz.attempts).toBe(0);
+
+    expect(
+      (await admin
+        .patch(`/api/admin/students/${id}/groups/${world.group1}/move`)
+        .send({ targetGroupId: world.group2 })).status,
+    ).toBe(200);
+    profile = await admin.get(`/api/admin/students/${id}`);
+    expect(profile.body.groups.map((g: any) => g.groupId)).toEqual([world.group2]);
+
+    expect(
+      (await admin.delete(`/api/admin/students/${id}/groups/${world.group2}`)).status,
+    ).toBe(200);
+    profile = await admin.get(`/api/admin/students/${id}`);
+    expect(profile.body.groups).toHaveLength(0);
+
+    expect((await admin.delete(`/api/admin/users/${id}`)).status).toBe(200);
+    expect(
+      (await admin.get('/api/admin/students?name=Edited')).body,
+    ).toHaveLength(0);
+    expect(
+      (await admin.post(`/api/admin/users/${id}/restore`)).status,
+    ).toBe(201);
+    expect(
+      (await admin.get('/api/admin/students?name=Edited')).body.map((s: any) => s.id),
+    ).toContain(id);
+
+    const audit = await admin.get('/api/admin/audit?action=student.group.move');
+    expect(audit.body.some((r: any) => r.targetId === world.group2)).toBe(true);
+  });
+
   it('suspend/Activate a user and revoke their sessions', async () => {
     const s1 = await getUserByEmail(STUDENT1.email);
     const s = (await login(server, STUDENT1.email, STUDENT1.password)).session;

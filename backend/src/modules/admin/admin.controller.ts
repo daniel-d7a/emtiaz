@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto } from '../../lib/schemas';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
@@ -85,11 +85,70 @@ export class AdminController {
       groupId?: string;
       teacherId?: string;
       search?: string;
+      name?: string;
+      phone?: string;
       deleted?: string;
       limit?: string;
     },
   ) {
     return this.admin.listStudents(q);
+  }
+
+  @Post('api/admin/students')
+  @Roles('ADMIN')
+  async createStudent(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(CreateStudentDto)) dto: z.infer<typeof CreateStudentDto>,
+  ) {
+    const student = await this.onboarding.createStudent(dto);
+    await this.admin.audit(req.user!.id, 'student.create', 'user', student.id);
+    return student;
+  }
+
+  @Get('api/admin/students/:studentId')
+  @Roles('ADMIN')
+  profile(@Param('studentId') studentId: string) {
+    return this.admin.studentProfile(studentId);
+  }
+
+  @Patch('api/admin/students/:studentId')
+  @Roles('ADMIN')
+  async updateStudent(
+    @Req() req: Request,
+    @Param('studentId') studentId: string,
+    @Body(new ZodBodyPipe(UpdateStudentDto)) dto: z.infer<typeof UpdateStudentDto>,
+  ) {
+    await this.admin.audit(req.user!.id, 'student.update', 'user', studentId, dto);
+    return this.admin.updateStudent(studentId, dto);
+  }
+
+  @Delete('api/admin/students/:studentId/groups/:groupId')
+  @Roles('ADMIN')
+  async removeStudentFromGroup(
+    @Req() req: Request,
+    @Param('studentId') studentId: string,
+    @Param('groupId') groupId: string,
+  ) {
+    await this.admin.audit(req.user!.id, 'student.group.remove', 'group', groupId, {
+      studentId,
+    });
+    return this.admin.removeStudentFromGroup(studentId, groupId);
+  }
+
+  @Patch('api/admin/students/:studentId/groups/:groupId/move')
+  @Roles('ADMIN')
+  async moveStudentGroup(
+    @Req() req: Request,
+    @Param('studentId') studentId: string,
+    @Param('groupId') groupId: string,
+    @Body(new ZodBodyPipe(AdminMoveStudentDto))
+    dto: z.infer<typeof AdminMoveStudentDto>,
+  ) {
+    await this.admin.audit(req.user!.id, 'student.group.move', 'group', dto.targetGroupId, {
+      studentId,
+      fromGroupId: groupId,
+    });
+    return this.admin.moveStudentGroup(studentId, groupId, dto.targetGroupId);
   }
 
   @Get('api/admin/parents')
