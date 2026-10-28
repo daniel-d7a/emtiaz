@@ -4,10 +4,14 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
-- [ ] No `shadow-*` utility remains in app components; cards, buttons, and hero blocks use borders or tonal fills instead.
-- [ ] No undefined token classes remain (for example `border-border`); borders use `line`, text uses `ink`/`ink-soft`, surfaces use `surface`/`background`.
-- [ ] Ordinary section headings no longer use `secondary`; terracotta appears only at the single attention point per screen, and destructive actions use `danger`.
-- [ ] Font weights are limited to 400/600/700; grades and counts use `tabular-nums`.
+## Comments
+
+Code cleanup landed in `0cf88be` (`fix: remove design-system drift from app surfaces`). Frontend typecheck, tests, and build pass. The remaining acceptance item is visual QA at 360 / 768 / 1280 in Arabic and English; that is still unchecked.
+
+- [x] No `shadow-*` utility remains in app components; cards, buttons, and hero blocks use borders or tonal fills instead.
+- [x] No undefined token classes remain (for example `border-border`); borders use `line`, text uses `ink`/`ink-soft`, surfaces use `surface`/`background`.
+- [x] Ordinary section headings no longer use `secondary`; terracotta appears only at the single attention point per screen, and destructive actions use `danger`.
+- [x] Font weights are limited to 400/600/700; grades and counts use `tabular-nums`.
 - [ ] `npm run typecheck`, `npm test`, and `npm run build` pass; checked at 360 / 768 / 1280 in Arabic and English.

@@ -4,9 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The trade-offs are documented against the current schema and query patterns.
-- [ ] The decision states whether to split, keep, or partially split profiles.
-- [ ] If splitting, an expand–contract migration path is outlined and an implementation ticket is proposed.
-- [ ] ADR-0015 is superseded or reaffirmed; docs are updated.
+## Comments
+
+Reaffirmed the single `user` table in ADR-0015 with a 2026-10-29 re-evaluation section; docs/architecture.md and docs/README.md updated. Committed in `09657ee`. No split ticket is proposed; the optional 1:1 `teacher_profiles` expand–contract path is documented if the teacher profile grows.
+
+- [x] The trade-offs are documented against the current schema and query patterns.
+- [x] The decision states whether to split, keep, or partially split profiles.
+- [x] If splitting, an expand–contract migration path is outlined and an implementation ticket is proposed.
+- [x] ADR-0015 is superseded or reaffirmed; docs are updated.

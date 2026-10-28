@@ -4,9 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Each module returns typed response shapes that match `shared/api.ts`.
-- [ ] Password hashes, tokens, storage keys, and internal-only fields never reach a client.
-- [ ] Serializers are covered by backend specs.
-- [ ] Web and mobile clients continue to typecheck against the shared contract.
+## Comments
+
+Completed in `7528704` (`feat: add explicit backend response serializers`). Backend typecheck and 129 tests pass; web and mobile typecheck against the shared contract.
+
+- [x] Each module returns typed response shapes that match `shared/api.ts`.
+- [x] Password hashes, tokens, storage keys, and internal-only fields never reach a client.
+- [x] Serializers are covered by backend specs.
+- [x] Web and mobile clients continue to typecheck against the shared contract.
