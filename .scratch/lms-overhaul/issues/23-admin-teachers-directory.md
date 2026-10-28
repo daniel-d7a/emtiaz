@@ -4,10 +4,10 @@
 
 **Blocked by:** 03, 22.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The table shows the required columns and correct aggregate counts.
-- [ ] Name, phone, and specialization filters combine correctly.
-- [ ] A public-page link appears only for published teachers.
-- [ ] Row actions work and refresh the table with toast feedback.
-- [ ] A top-of-table button opens a create-teacher modal.
+- [x] The table shows the required columns and correct aggregate counts.
+- [x] Name, phone, and specialization filters combine correctly.
+- [x] A public-page link appears only for published teachers.
+- [x] Row actions work and refresh the table with toast feedback.
+- [x] A top-of-table button opens a create-teacher modal.
