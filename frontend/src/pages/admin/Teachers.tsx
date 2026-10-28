@@ -53,7 +53,8 @@ type EditValues = z.infer<typeof editSchema>;
 export default function AdminTeachers() {
   const { t, lang } = useLang();
   const qc = useQueryClient();
-  const [name, setName] = useState('');
+  const { name: linkedName } = adminTeachersRoute.useSearch();
+  const [name, setName] = useState(linkedName ?? '');
   const [phone, setPhone] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
@@ -439,6 +440,9 @@ function EditTeacherDialog({
 export const adminTeachersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin/teachers',
+  validateSearch: (search: Record<string, unknown>): { name?: string } => ({
+    name: typeof search.name === 'string' ? search.name : undefined,
+  }),
   beforeLoad: () => requireRole('ADMIN'),
   component: AdminTeachers,
 });

@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto, CreateParentDto, UpdateParentDto, AdminParentLinkDto } from '../../lib/schemas';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto, CreateParentDto, UpdateParentDto, AdminParentLinkDto, AdminCreateCourseDto, AdminUpdateCourseDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
@@ -212,6 +212,7 @@ export class AdminController {
   courses(
     @Query()
     q: {
+      name?: string;
       courseType?: 'ACADEMIC' | 'GENERAL';
       gradeId?: string;
       categoryId?: string;
@@ -221,6 +222,30 @@ export class AdminController {
     },
   ) {
     return this.admin.listCourses(q);
+  }
+
+  @Post('api/admin/courses')
+  @Roles('ADMIN')
+  async createCourse(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(AdminCreateCourseDto))
+    dto: z.infer<typeof AdminCreateCourseDto>,
+  ) {
+    const course = await this.admin.createCourse(dto);
+    await this.admin.audit(req.user!.id, 'course.create', 'course', course.id);
+    return course;
+  }
+
+  @Patch('api/admin/courses/:courseId')
+  @Roles('ADMIN')
+  async updateCourse(
+    @Req() req: Request,
+    @Param('courseId') courseId: string,
+    @Body(new ZodBodyPipe(AdminUpdateCourseDto))
+    dto: z.infer<typeof AdminUpdateCourseDto>,
+  ) {
+    await this.admin.audit(req.user!.id, 'course.update', 'course', courseId, dto);
+    return this.admin.updateCourse(courseId, dto);
   }
 
   @Get('api/admin/groups')

@@ -135,6 +135,25 @@ export const UpdateCourseDto = CreateCourseDto.partial().omit({ gradeName: true,
     .nullable()
     .optional(),
 });
+export const AdminCreateCourseDto = z.object({
+  title: safeText(160),
+  teacherId: z.string().min(1),
+  courseType: z.enum(['ACADEMIC', 'GENERAL']),
+  gradeId: uuid.optional(),
+  semester: z.string().trim().max(40).optional(),
+  categoryId: uuid.optional(),
+});
+export const AdminUpdateCourseDto = z
+  .object({
+    title: safeText(160).optional(),
+    teacherId: z.string().min(1).optional(),
+    courseType: z.enum(['ACADEMIC', 'GENERAL']).optional(),
+    gradeId: uuid.nullable().optional(),
+    semester: z.string().trim().max(40).nullable().optional(),
+    categoryId: uuid.nullable().optional(),
+  })
+  .refine((dto) => Object.keys(dto).length > 0, { message: 'nothing to update' });
+
 export const AddModuleDto = z.object({ title: safeText(160) });
 export const UpdateModuleDto = z.object({ title: safeText(160) });
 export const IdListDto = z.object({ moduleIds: z.array(uuid) });

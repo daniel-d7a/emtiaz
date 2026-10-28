@@ -470,6 +470,42 @@ describe('Phase 5: admin endpoints', () => {
     ).toBe(true);
   });
 
+  it('creates and edits courses with combined filters', async () => {
+    const created = await admin.post('/api/admin/courses').send({
+      title: 'Admin Created Course',
+      teacherId: world.teacher.id,
+      courseType: 'GENERAL',
+      categoryId: world.categoryId,
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.id;
+    expect(created.body.courseType).toBe('GENERAL');
+
+    const combined = await admin.get(
+      `/api/admin/courses?name=Admin%20Created&categoryId=${world.categoryId}&teacherId=${world.teacher.id}`,
+    );
+    expect(combined.body.map((c: any) => c.id)).toContain(id);
+    expect(combined.body[0].categoryName).toBeDefined();
+    expect(combined.body[0].groups).toEqual([]);
+
+    const edited = await admin
+      .patch(`/api/admin/courses/${id}`)
+      .send({ title: 'Admin Edited Course', courseType: 'ACADEMIC', gradeId: world.gradeId });
+    expect(edited.status).toBe(200);
+    expect(edited.body.title).toBe('Admin Edited Course');
+    expect(edited.body.courseType).toBe('ACADEMIC');
+    expect(edited.body.gradeId).toBe(world.gradeId);
+    const filtered = await admin.get('/api/admin/courses?name=Admin%20Edited');
+    expect(filtered.body).toHaveLength(1);
+    expect(filtered.body[0].gradeName).toBeDefined();
+
+    expect(
+      (await admin.get('/api/admin/courses?name=Physics%2010')).body[0].groups.length,
+    ).toBeGreaterThanOrEqual(2);
+    const audit = await admin.get('/api/admin/audit?action=course.create');
+    expect(audit.body.some((r: any) => r.targetId === id)).toBe(true);
+  });
+
   it('can manually enroll a student into a group', async () => {
     const s1 = await getUserByEmail(STUDENT1.email);
     const res = await admin

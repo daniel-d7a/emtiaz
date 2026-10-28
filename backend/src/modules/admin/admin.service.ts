@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -760,6 +761,7 @@ export class AdminService {
   }
 
   async listCourses(filters: {
+    name?: string;
     courseType?: 'ACADEMIC' | 'GENERAL';
     gradeId?: string;
     categoryId?: string;
@@ -771,6 +773,7 @@ export class AdminService {
     const conditions = [
       filters.deleted === 'true' ? isNotNull(courses.deletedAt) : isNull(courses.deletedAt),
     ];
+    if (filters.name) conditions.push(ilike(courses.title, `%${filters.name}%`));
     if (filters.courseType)
       conditions.push(eq(courses.courseType, filters.courseType));
     if (filters.gradeId) conditions.push(eq(courses.gradeId, filters.gradeId));
@@ -781,9 +784,13 @@ export class AdminService {
       .select({
         course: courses,
         teacherName: users.name,
+        categoryName: categories.name,
+        gradeName: grades.name,
       })
       .from(courses)
       .innerJoin(users, eq(courses.teacherId, users.id))
+      .leftJoin(categories, eq(courses.categoryId, categories.id))
+      .leftJoin(grades, eq(courses.gradeId, grades.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(courses.createdAt));
     const rows = limit ? await query.limit(limit) : await query;
@@ -805,6 +812,8 @@ export class AdminService {
     return rows.map((r) => ({
       ...r.course,
       teacherName: r.teacherName,
+      categoryName: r.categoryName,
+      gradeName: r.gradeName,
       groups: groupRows
         .filter((g) => g.courseId === r.course.id)
         .map((g) => ({
@@ -812,6 +821,87 @@ export class AdminService {
           studentCount: Number(counts.find((c) => c.groupId === g.id)?.c ?? 0),
         })),
     }));
+  }
+
+  async createCourse(dto: {
+    title: string;
+    teacherId: string;
+    courseType: 'ACADEMIC' | 'GENERAL';
+    gradeId?: string;
+    semester?: string;
+    categoryId?: string;
+  }) {
+    await this.assertTeacher(dto.teacherId);
+    if (dto.courseType === 'ACADEMIC' && !dto.gradeId) {
+      throw new BadRequestException('Academic courses need a grade');
+    }
+    if (dto.courseType === 'GENERAL' && !dto.categoryId) {
+      throw new BadRequestException('General courses need a specialization');
+    }
+    const [course] = await db
+      .insert(courses)
+      .values({
+        title: dto.title,
+        teacherId: dto.teacherId,
+        courseType: dto.courseType,
+        gradeId: dto.courseType === 'ACADEMIC' ? dto.gradeId : null,
+        categoryId: dto.courseType === 'GENERAL' ? dto.categoryId : null,
+        semester: dto.semester?.trim() || null,
+      })
+      .returning();
+    return course;
+  }
+
+  async updateCourse(
+    courseId: string,
+    dto: {
+      title?: string;
+      teacherId?: string;
+      courseType?: 'ACADEMIC' | 'GENERAL';
+      gradeId?: string | null;
+      semester?: string | null;
+      categoryId?: string | null;
+    },
+  ) {
+    const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
+    if (!course || course.deletedAt) throw new NotFoundException('Course not found');
+    if (dto.teacherId) await this.assertTeacher(dto.teacherId);
+    const courseType = dto.courseType ?? course.courseType;
+    const gradeId = dto.gradeId !== undefined ? dto.gradeId : course.gradeId;
+    const categoryId = dto.categoryId !== undefined ? dto.categoryId : course.categoryId;
+    if (courseType === 'ACADEMIC' && !gradeId) {
+      throw new BadRequestException('Academic courses need a grade');
+    }
+    if (courseType === 'GENERAL' && !categoryId) {
+      throw new BadRequestException('General courses need a specialization');
+    }
+    const [updated] = await db
+      .update(courses)
+      .set({
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.teacherId !== undefined && { teacherId: dto.teacherId }),
+        ...(dto.semester !== undefined && { semester: dto.semester?.trim() || null }),
+        courseType,
+        gradeId: courseType === 'ACADEMIC' ? gradeId : null,
+        categoryId: courseType === 'GENERAL' ? categoryId : null,
+      })
+      .where(eq(courses.id, courseId))
+      .returning();
+    return updated;
+  }
+
+  private async assertTeacher(teacherId: string) {
+    const [teacher] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, teacherId),
+          eq(users.role, 'TEACHER'),
+          isNull(users.deletedAt),
+        ),
+      );
+    if (!teacher) throw new NotFoundException('Teacher not found');
   }
 
   async listGroups(filters: { deleted?: string; courseId?: string } = {}) {

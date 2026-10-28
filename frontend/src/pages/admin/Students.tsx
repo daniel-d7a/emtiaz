@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { createRoute } from '@tanstack/react-router';
+import { createRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
@@ -78,14 +78,14 @@ export default function AdminStudents() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<StudentRow | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
-  const { studentId: linkedStudentId } = adminStudentsRoute.useSearch();
+  const { studentId: linkedStudentId, groupId: linkedGroupId } = adminStudentsRoute.useSearch();
   useEffect(() => {
     if (linkedStudentId) setProfileId(linkedStudentId);
   }, [linkedStudentId]);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const students = useQuery({
-    queryKey: ['admin-students', name, phone, showDeleted, limit],
+    queryKey: ['admin-students', name, phone, linkedGroupId, showDeleted, limit],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(limit),
@@ -93,6 +93,7 @@ export default function AdminStudents() {
       });
       if (name.trim()) params.set('name', name.trim());
       if (phone.trim()) params.set('phone', phone.trim());
+      if (linkedGroupId) params.set('groupId', linkedGroupId);
       return api<StudentRow[]>(`/api/admin/students?${params}`);
     },
   });
@@ -142,6 +143,12 @@ export default function AdminStudents() {
           <div className="min-w-44 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
           <div className="min-w-44 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
         </div>
+        {linkedGroupId && (
+          <p className="mt-2 text-xs font-semibold text-primary">
+            {t('filteredByGroup')}{' '}
+            <Link to="/admin/students" search={{}} className="underline">{t('clearFilters')}</Link>
+          </p>
+        )}
         <div className="mt-3 flex justify-end">
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="inline" size={16} /> {t('createStudent')}
@@ -558,8 +565,9 @@ function enrollmentError(...errors: Array<Error | null>) {
 export const adminStudentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin/students',
-  validateSearch: (search: Record<string, unknown>): { studentId?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { studentId?: string; groupId?: string } => ({
     studentId: typeof search.studentId === 'string' ? search.studentId : undefined,
+    groupId: typeof search.groupId === 'string' ? search.groupId : undefined,
   }),
   beforeLoad: () => requireRole('ADMIN'),
   component: AdminStudents,
