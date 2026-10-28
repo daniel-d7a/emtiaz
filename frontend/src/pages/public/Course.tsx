@@ -45,7 +45,7 @@ export default function PublicCourse() {
 
       <ThemeHero
         theme={data.teacher.theme}
-        bannerUrl={data.teacher.bannerUrl}
+        bannerUrl={data.course.imageUrl}
         name={data.course.title}
         subject={data.teacher.name}
       />
