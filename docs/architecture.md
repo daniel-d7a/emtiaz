@@ -40,7 +40,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | Module | Responsibility |
 |---|---|
 | `onboarding` | Role signup, `GET/PATCH /api/me`, avatar URL, categories, health |
-| `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades, parent-code rotation |
+| `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades |
 | `teacher` | Home stats, course/module/lesson CRUD, quizzes, group settings/pacing/visibility, roster, announcements, gradebook, group statistics |
 | `admin` | Global metrics, directories, suspend/delete/restore, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
@@ -164,8 +164,9 @@ the bucket and sets browser CORS for the configured frontend origins.
   tab for home, notifications, and profile; detail screens push over the tabs
   ([ADR-0019](./adr/0019-mobile-bottom-tabs.md)).
 - Student: home, groups, join, curriculum, lesson, quiz, profile, notifications.
-- Teacher: course/group summaries, pacing, roster, announcements, material
-  upload, profile, notifications.
+- Teacher: courses, curriculum (modules, lessons, materials, quizzes), groups,
+  pacing, roster, gradebook, stats, announcements, landing-page theme, profile,
+  notifications.
 - Parent: link/unlink children, progress, attendance, grades, delivered reports, notifications.
 - Admin remains web-only.
 - API base derives from Metro `hostUri` in development; release builds need a

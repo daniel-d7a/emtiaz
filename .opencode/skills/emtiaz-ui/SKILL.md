@@ -1,6 +1,6 @@
 ---
 name: emtiaz-ui
-description: Use when building or changing web UI in this repo — pages, layouts, navigation, forms, dialogs, tables, toasts, RTL/Arabic copy, or design tokens. Encodes DESIGN.md and the working conventions in notes.md so output matches the Emtiaz design system.
+description: Use when building or changing web UI in this repo — pages, layouts, navigation, forms, dialogs, tables, toasts, RTL/Arabic copy, or design tokens. Encodes DESIGN.md and the project's UI conventions so output matches the Emtiaz design system.
 ---
 
 # Emtiaz web UI
