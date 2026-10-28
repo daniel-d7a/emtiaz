@@ -94,7 +94,7 @@ export function ThemeStrip({
     >
       {bannerUrl && <img src={bannerUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
       {t.marquee && (
-        <div className="absolute inset-x-0 bottom-0 overflow-hidden bg-black/40 py-1.5" >
+        <div className="absolute inset-x-0 bottom-0 overflow-hidden bg-ink/40 py-1.5" >
           <div className="marquee-track w-max whitespace-nowrap px-4 text-sm font-semibold text-white">
             {t.marquee}
           </div>

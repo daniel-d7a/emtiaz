@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, ExternalLink, PlayCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { rootRoute } from '../../routes/__root';
 import { useLang } from '../../lib/i18n';
+import { applyPageMeta } from '../../lib/meta';
 import { Card, ErrorBox, Loading } from '../../components/ui';
 import { ThemeHero, ThemeSurface } from '../../components/TeacherTheme';
 import { PublicFooter } from '../../components/PublicFooter';
@@ -13,7 +14,7 @@ import { embedUrl } from '../../lib/embed';
 
 export default function PublicCourse() {
   const { slug, courseId } = useParams({ from: '/t/$slug/courses/$courseId' });
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { data, isLoading, error } = useQuery({
     queryKey: ['public-course', slug, courseId],
     queryFn: () => api<PublicCoursePage>(`/api/public/teachers/${slug}/courses/${courseId}`),
@@ -21,12 +22,14 @@ export default function PublicCourse() {
 
   useEffect(() => {
     if (!data) return;
-    const previous = document.title;
-    document.title = `${data.course.title} — ${data.teacher.name}`;
-    return () => {
-      document.title = previous;
-    };
-  }, [data]);
+    return applyPageMeta({
+      title: `${data.course.title} — ${data.teacher.name}`,
+      description: data.course.description ?? `${data.course.title} — ${data.teacher.name}`,
+      image: data.course.imageUrl,
+      type: 'article',
+      locale: lang,
+    });
+  }, [data, lang]);
 
   if (isLoading) return <Loading />;
   if (error) return <div className="mx-auto max-w-3xl p-4"><ErrorBox error={error} /></div>;
@@ -71,7 +74,7 @@ export default function PublicCourse() {
 
       {data.course.previewUrl && (
         <section>
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-secondary">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-primary-dark">
             <PlayCircle size={18} /> {t('preview')}
           </h2>
           <Card>
@@ -98,7 +101,7 @@ export default function PublicCourse() {
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-secondary">{t('curriculumPreview')}</h2>
+        <h2 className="mb-3 text-lg font-bold text-primary-dark">{t('curriculumPreview')}</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {data.modules.map((m) => (
             <Card key={m.id}>

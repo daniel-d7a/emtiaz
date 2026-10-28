@@ -5,6 +5,7 @@ import { ArrowRight, BookOpen, GraduationCap } from 'lucide-react';
 import { api } from '../../lib/api';
 import { rootRoute } from '../../routes/__root';
 import { localizeName, useLang } from '../../lib/i18n';
+import { applyPageMeta } from '../../lib/meta';
 import { Card, ErrorBox, Loading } from '../../components/ui';
 import { ThemeHero, ThemeSurface } from '../../components/TeacherTheme';
 import { PublicFooter } from '../../components/PublicFooter';
@@ -21,45 +22,18 @@ export default function TeacherLanding() {
 
   useEffect(() => {
     if (!data) return;
-    const previous = document.title;
     const title = `${data.teacher.name} — ${t('appName')}`;
     const description =
       data.teacher.bio ??
       `${data.teacher.name} — ${t('coursesBy')} ${data.teacher.name}`;
-    document.title = title;
-    const addMeta = (attr: string, key: string, content: string) => {
-      const tag = document.createElement('meta');
-      tag.setAttribute(attr, key);
-      tag.content = content;
-      document.head.appendChild(tag);
-      return tag;
-    };
-    const metas = [
-      addMeta('name', 'description', description),
-      addMeta('property', 'og:title', title),
-      addMeta('property', 'og:description', description),
-      addMeta('property', 'og:type', 'profile'),
-      addMeta('name', 'twitter:card', 'summary'),
-    ];
-    if (data.teacher.avatarUrl) {
-      metas.push(
-        addMeta(
-          'property',
-          'og:image',
-          `${window.location.origin}/api/public/teachers/${slug}/avatar`,
-        ),
-      );
-    }
-    const canonical = document.createElement('link');
-    canonical.rel = 'canonical';
-    canonical.href = window.location.href;
-    document.head.appendChild(canonical);
-    return () => {
-      document.title = previous;
-      for (const tag of metas) tag.remove();
-      canonical.remove();
-    };
-  }, [data, slug, t]);
+    return applyPageMeta({
+      title,
+      description,
+      image: data.teacher.avatarUrl ? `/api/public/teachers/${slug}/avatar` : null,
+      type: 'profile',
+      locale: lang,
+    });
+  }, [data, slug, t, lang]);
 
   if (isLoading) return <Loading />;
   if (error) return <div className="mx-auto max-w-3xl p-4"><ErrorBox error={error} /></div>;
@@ -140,7 +114,7 @@ function CourseSection({
   if (courses.length === 0) return null;
   return (
     <section>
-      <h2 className="mb-3 text-lg font-bold text-secondary">{title}</h2>
+      <h2 className="mb-3 text-lg font-bold text-primary-dark">{title}</h2>
       <div className="flex flex-col gap-3">
         {courses.map((c) => (
           <Link key={c.id} to="/t/$slug/courses/$courseId" params={{ slug, courseId: c.id }}>

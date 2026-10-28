@@ -29,12 +29,15 @@
   <nav class="nav" id="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="./" data-t="logo">امتياز<span>.</span></a>
-      <div class="nav-links">
+      <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="القائمة">
+        <span class="sr-only" data-t="nav_menu">القائمة</span>
+        <span class="menu-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      </button>
+      <div class="nav-links" id="nav-links">
         <a class="navlink" href="#tools" data-t="nav_tools">الأدوات</a>
         <a class="navlink" href="#workflow" data-t="nav_workflow">كيف تعمل</a>
-        <a class="navlink" href="#reviews" data-t="nav_reviews">آراء المعلمين</a>
         <a class="navlink" href="./#pricing" data-t="nav_pricing">الأسعار</a>
-        <button class="btn langbtn" id="lang" onclick="toggleLang()">English</button>
+        <button class="btn langbtn" id="lang" type="button" onclick="toggleLang()">English</button>
         <a class="btn btn-outline" id="cta-login" data-t="cta_login">تسجيل الدخول</a>
         <a class="btn btn-primary" id="cta-register" data-t="cta_register">ابدأ مجانًا</a>
       </div>
@@ -55,12 +58,12 @@
           <p class="cta-note" data-t="note">مجاني خلال فترة الإطلاق · إعداد في دقائق</p>
         </div>
         <div class="mock reveal" aria-hidden="true">
-          <div class="mock-head"><span class="mock-title" data-t="mock_title">سجل درجات · الفيزياء</span><span class="pill" data-t="mock_pill">تلقائي</span></div>
-          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="row1">مريم الهنائية</span><span class="meta">9 / 10</span></div>
-          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="row2">أحمد الغافري</span><span class="meta">8 / 10</span></div>
-          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="row3">شيخة الحارثية</span><span class="meta">10 / 10</span></div>
-          <div class="lesson-row"><i class="dot locked"></i><span class="grow" data-t="row4">سالم البلوشي</span><span class="meta" data-t="row4_meta">لم يبدأ</span></div>
-          <p class="meta" style="margin-top:14px" data-t="mock_footer">أفضل محاولة لكل طالب · محدّث لحظيًا</p>
+          <div class="mock-head"><span class="mock-title" data-t="mock_title">سجل درجات · الفيزياء</span><span class="pill" data-t="mock_pill">نموذج توضيحي</span></div>
+          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="row1">طالب أ</span><span class="meta">9 / 10</span></div>
+          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="row2">طالب ب</span><span class="meta">8 / 10</span></div>
+          <div class="lesson-row"><i class="dot"></i><span class="grow" data-t="row3">طالب ج</span><span class="meta">10 / 10</span></div>
+          <div class="lesson-row"><i class="dot locked"></i><span class="grow" data-t="row4">طالب د</span><span class="meta" data-t="row4_meta">لم يبدأ</span></div>
+          <p class="meta" style="margin-top:14px" data-t="mock_footer">نموذج توضيحي · أفضل محاولة لكل طالب</p>
           <div class="bar"><i style="width:75%"></i></div>
         </div>
       </div>
@@ -86,14 +89,6 @@
         <div class="step reveal"><span class="n">3</span><h3 data-t="f3_h">اختبار ودرجات</h3><p data-t="f3_p">اختبار قصير يُصحّح فورًا، ودرجته تظهر في السجل — بلا رصد يدوي.</p></div>
         <div class="step reveal"><span class="n">4</span><h3 data-t="f4_h">راجع وقرّر</h3><p data-t="f4_p">شاهد من لم يبدأ، ومن يحتاج دعمًا، قبل الحصة القادمة.</p></div>
       </div>
-    </section>
-
-    <section class="reviews" id="reviews">
-      <div class="center">
-        <span class="eyebrow" data-t="rev_badge">آراء تجريبية</span>
-        <h2 data-t="rev_h">معلمون جرّبوه يقولون</h2>
-      </div>
-      <div class="grid grid-3" id="reviews-grid" style="margin-top:38px"></div>
     </section>
 
     <section class="final">
@@ -135,7 +130,7 @@
       logo: { ar: 'امتياز<span>.</span>', en: 'Emtiaz<span>.</span>' },
       nav_tools: { ar: 'الأدوات', en: 'Tools' },
       nav_workflow: { ar: 'كيف تعمل', en: 'How it works' },
-      nav_reviews: { ar: 'آراء المعلمين', en: 'Teacher reviews' },
+      nav_menu: { ar: 'القائمة', en: 'Menu' },
       nav_pricing: { ar: 'الأسعار', en: 'Pricing' },
       nav_home: { ar: 'الصفحة الرئيسية', en: 'Home' },
       cta_login: { ar: 'تسجيل الدخول', en: 'Log in' },
@@ -147,13 +142,13 @@
       cta_tools: { ar: 'تعرّف على الأدوات', en: 'See the tools' },
       note: { ar: 'مجاني خلال فترة الإطلاق · إعداد في دقائق', en: 'Free during launch · set up in minutes' },
       mock_title: { ar: 'سجل درجات · الفيزياء', en: 'Gradebook · Physics' },
-      mock_pill: { ar: 'تلقائي', en: 'auto' },
-      row1: { ar: 'مريم الهنائية', en: 'Maryam Al Hinai' },
-      row2: { ar: 'أحمد الغافري', en: 'Ahmed Al Ghafri' },
-      row3: { ar: 'شيخة الحارثية', en: 'Shaikha Al Harthi' },
-      row4: { ar: 'سالم البلوشي', en: 'Salim Al Balushi' },
+      mock_pill: { ar: 'نموذج توضيحي', en: 'illustrative sample' },
+      row1: { ar: 'طالب أ', en: 'Student A' },
+      row2: { ar: 'طالب ب', en: 'Student B' },
+      row3: { ar: 'طالب ج', en: 'Student C' },
+      row4: { ar: 'طالب د', en: 'Student D' },
       row4_meta: { ar: 'لم يبدأ', en: 'not started' },
-      mock_footer: { ar: 'أفضل محاولة لكل طالب · محدّث لحظيًا', en: 'Best attempt per student · live' },
+      mock_footer: { ar: 'بيانات توضيحية — ليست نتائج حقيقية', en: 'Illustrative data — not real results' },
       tools_badge: { ar: 'أدواتك اليومية', en: 'Your daily tools' },
       tools_h: { ar: 'كل ما يسرق وقتك، مؤتمت', en: 'Everything that steals your time, automated' },
       tools_p: { ar: 'لا جداول معقدة ولا إعداد طويل. كل شيء جاهز من أول مجموعة.', en: 'No complex tables or long setup. Ready from the first group.' },
@@ -167,8 +162,6 @@
       f3_p: { ar: 'اختبار قصير يُصحّح فورًا، ودرجته تظهر في السجل — بلا رصد يدوي.', en: 'A short quiz graded instantly, with the mark in the gradebook — no manual entry.' },
       f4_h: { ar: 'راجع وقرّر', en: 'Review and decide' },
       f4_p: { ar: 'شاهد من لم يبدأ، ومن يحتاج دعمًا، قبل الحصة القادمة.', en: 'See who has not started and who needs help before the next class.' },
-      rev_badge: { ar: 'آراء تجريبية', en: 'Demo reviews' },
-      rev_h: { ar: 'معلمون جرّبوه يقولون', en: 'Teachers who tried it say' },
       final_h: { ar: 'جرّبها مع مجموعتك القادمة', en: 'Try it with your next group' },
       final_p: { ar: 'أنشئ حسابًا مجانيًا، وابدأ بمجموعة واحدة. لا التزام، ولا إعداد معقد.', en: 'Create a free account and start with one group. No commitment, no complex setup.' },
       cta_final: { ar: 'أنشئ حساب معلم', en: 'Create teacher account' },
@@ -185,25 +178,12 @@
       { icon: 'users', h: { ar: 'إدارة مجموعات', en: 'Group management' }, p: { ar: 'انقل طالبًا بين مجموعات مقررك، أضف قائمة بالهاتف، وشاهد من نشط.', en: 'Move a student between your course groups, bulk-add by phone, see who is active.' } },
     ];
 
-    const reviews = [
-      { who: { ar: 'سالم البلوشي', en: 'Salim Al Balushi' }, role: { ar: 'معلم فيزياء', en: 'Physics teacher' }, text: { ar: 'أرسل رمز المجموعة في واتساب، وفي دقائق الكل داخل. وفّرت ساعات كنت أصحح فيها على الورق.', en: 'I send the group code and everyone is in within minutes. I saved hours of paper grading.' } },
-      { who: { ar: 'فاطمة الرواحية', en: 'Fatma Al Rawahi' }, role: { ar: 'معلمة إنجليزي', en: 'English teacher' }, text: { ar: 'الفتح التدريجي غيّر طريقة إدارتي للمجموعات. كل مجموعة بإيقاعها، وأرى كل شيء من شاشة واحدة.', en: 'Paced unlocking changed how I run my groups. Each at its own pace, all visible on one screen.' } },
-      { who: { ar: 'خالد المعمري', en: 'Khalid Al Maamari' }, role: { ar: 'معلم رياضيات', en: 'Maths teacher' }, text: { ar: 'سجل الدرجات جاهز من أول يوم — أعمدة الاختبارات تتعبأ وحدها، وأضيف المشاركة يدويًا.', en: 'The gradebook is ready from day one — quiz columns fill themselves, I add participation by hand.' } },
-    ];
-
     let lang = 'ar';
     const pick = (o) => o[lang];
 
     function render() {
       document.getElementById('tools-grid').innerHTML = tools.map((t) => `
         <div class="card reveal"><div class="icon">${icons[t.icon]}</div><h3>${pick(t.h)}</h3><p>${pick(t.p)}</p></div>`).join('');
-
-      document.getElementById('reviews-grid').innerHTML = reviews.map((r, i) => `
-        <div class="review reveal">
-          <div class="stars">★★★★★</div>
-          <p>${pick(r.text)}</p>
-          <div class="reviewer"><span class="avatar ${i % 2 ? 'alt' : ''}">${pick(r.who).slice(0, 1)}</span><div><b>${pick(r.who)}</b><span>${pick(r.role)}</span></div></div>
-        </div>`).join('');
 
       document.querySelectorAll('[data-t]').forEach((el) => {
         const v = dict[el.getAttribute('data-t')]?.[lang];
@@ -212,6 +192,7 @@
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
       document.getElementById('lang').textContent = lang === 'ar' ? 'English' : 'العربية';
+      document.getElementById('nav-toggle').setAttribute('aria-label', lang === 'ar' ? 'القائمة' : 'Menu');
       observeReveals();
     }
 
@@ -229,8 +210,26 @@
       document.querySelectorAll('.reveal:not(.in)').forEach((el) => observer.observe(el));
     }
 
+    const nav = document.getElementById('nav');
+    const navToggle = document.getElementById('nav-toggle');
+    function closeNav() {
+      nav.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    }
+    navToggle.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', String(open));
+    });
+    document.querySelectorAll('#nav-links a, #nav-links button').forEach((el) => el.addEventListener('click', closeNav));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && nav.classList.contains('open')) {
+        closeNav();
+        navToggle.focus();
+      }
+    });
+
     window.addEventListener('scroll', () => {
-      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 8);
+      nav.classList.toggle('scrolled', window.scrollY > 8);
     }, { passive: true });
 
     render();
