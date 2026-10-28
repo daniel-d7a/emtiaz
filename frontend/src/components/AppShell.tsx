@@ -9,8 +9,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { authApi } from '../lib/api';
 import { useLang, type Key } from '../lib/i18n';
-import { sessionQuery } from '../lib/session';
-import type { SessionUser } from '../../../shared/api';
+import { sessionQuery, useAdminPermissions } from '../lib/session';
+import type { AdminPermission, SessionUser } from '../../../shared/api';
 import { NotificationBell } from './NotificationBell';
 import { BrandMark } from './SiteBranding';
 
@@ -28,7 +28,7 @@ type NavTarget =
   | '/admin/audit'
   | '/profile';
 
-type NavItem = { to: NavTarget; label: Key; icon: LucideIcon };
+type NavItem = { to: NavTarget; label: Key; icon: LucideIcon; permissions?: AdminPermission[] };
 
 const ROLE_HOME: Record<SessionUser['role'], NavTarget> = {
   STUDENT: '/student/dashboard',
@@ -52,13 +52,13 @@ const ROLE_NAV: Record<SessionUser['role'], NavItem[]> = {
   TEACHER: [{ to: '/teacher/dashboard', label: 'myWorkspace', icon: LayoutDashboard }],
   PARENT: [{ to: '/parent/children', label: 'myChildren', icon: Users }],
   ADMIN: [
-    { to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard },
-    { to: '/admin/teachers', label: 'teachers', icon: GraduationCap },
-    { to: '/admin/students', label: 'students', icon: Users },
-    { to: '/admin/parents', label: 'parents', icon: HeartHandshake },
-    { to: '/admin/courses', label: 'courses', icon: BookOpen },
-    { to: '/admin/settings', label: 'settings', icon: Settings },
-    { to: '/admin/audit', label: 'auditLog', icon: ScrollText },
+    { to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard, permissions: ['overview'] },
+    { to: '/admin/teachers', label: 'teachers', icon: GraduationCap, permissions: ['teachers'] },
+    { to: '/admin/students', label: 'students', icon: Users, permissions: ['students'] },
+    { to: '/admin/parents', label: 'parents', icon: HeartHandshake, permissions: ['parents'] },
+    { to: '/admin/courses', label: 'courses', icon: BookOpen, permissions: ['courses'] },
+    { to: '/admin/settings', label: 'settings', icon: Settings, permissions: ['settings', 'taxonomy', 'notifications', 'roles'] },
+    { to: '/admin/audit', label: 'auditLog', icon: ScrollText, permissions: ['audit'] },
   ],
 };
 
@@ -115,8 +115,11 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
-  const items = navFor(user.role);
-  const home = ROLE_HOME[user.role];
+  const can = useAdminPermissions();
+  const items = navFor(user.role).filter(
+    (item) => !item.permissions || can(...item.permissions),
+  );
+  const home = items[0]?.to ?? ROLE_HOME[user.role];
 
   useEffect(() => setMenuOpen(false), [pathname]);
 

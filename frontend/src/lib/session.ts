@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
 import { authApi } from './api';
 import { queryClient } from './queryClient';
-import type { Session } from '../../../shared/api';
+import type { AdminPermission, Session } from '../../../shared/api';
 
 export type { Session } from '../../../shared/api';
 
@@ -14,6 +14,13 @@ export const sessionQuery = {
 
 export function useSession() {
   return useQuery(sessionQuery);
+}
+
+export function useAdminPermissions() {
+  const { data } = useSession();
+  const permissions = data?.user.permissions ?? [];
+  return (...required: AdminPermission[]) =>
+    required.some((permission) => permissions.includes(permission));
 }
 
 /** Route guard: redirects anonymous (or wrong-role) users to the login page. */

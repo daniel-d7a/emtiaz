@@ -49,7 +49,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
 
 Global providers in `app.module.ts`: Redis-backed throttler (when configured),
-`AuthGuard`, and `RolesGuard`. Better Auth handles `/api/auth/*` directly; a
+`AuthGuard`, `RolesGuard`, and `AdminPermissionGuard`. Better Auth handles `/api/auth/*` directly; a
 login-lockout middleware runs in front of its sign-in routes.
 
 ## Identity and data model
@@ -80,6 +80,8 @@ Core relationships:
 - `inbox_notifications.user_id`, `notifications`, `audit_logs.actor_id`
 - `grades`, `semesters`, `categories` — admin-managed taxonomy shared by
   teacher course creation and public filters
+- `admin_roles` + `user.admin_role_id` — permission sets for admins
+  ([ADR-0018](./adr/0018-admin-permissions.md))
 - `notification_settings` — single global row (`id = 'global'`) holding channel
   toggles, platform support contacts, and branding colours/logo
 

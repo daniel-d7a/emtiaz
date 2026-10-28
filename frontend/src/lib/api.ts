@@ -25,9 +25,17 @@ export async function api<T = any>(
 }
 
 export const authApi = {
-  session: (): Promise<Session> =>
-    fetch(`${BASE}/api/auth/get-session`, { credentials: 'include', cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null)),
+  session: async (): Promise<Session> => {
+    const session: Session = await fetch(`${BASE}/api/auth/get-session`, {
+      credentials: 'include',
+      cache: 'no-store',
+    }).then((r) => (r.ok ? r.json() : null));
+    if (session?.user.role === 'ADMIN') {
+      const res = await fetch(`${BASE}/api/admin/permissions`, { credentials: 'include', cache: 'no-store' });
+      session.user.permissions = res.ok ? await res.json() : [];
+    }
+    return session;
+  },
   login: (email: string, password: string) =>
     api('/api/auth/sign-in/email', { body: { email, password } }),
   logout: () => api('/api/auth/sign-out', { body: {} }),

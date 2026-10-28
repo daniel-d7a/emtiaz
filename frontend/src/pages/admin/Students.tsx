@@ -13,7 +13,7 @@ import {
 } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
-import { requireRole } from '../../lib/session';
+import { requireRole, useAdminPermissions } from '../../lib/session';
 
 type StudentRow = {
   id: string;
@@ -71,6 +71,7 @@ type EditValues = z.infer<typeof editSchema>;
 export default function AdminStudents() {
   const { t } = useLang();
   const qc = useQueryClient();
+  const canManageUsers = useAdminPermissions()('users');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
@@ -195,7 +196,7 @@ export default function AdminStudents() {
                         >
                           <UserRound className="inline" size={12} /> {t('profile')}
                         </button>
-                        {student.deletedAt ? (
+                        {student.deletedAt ? canManageUsers && (
                           <button
                             onClick={() => restoreUser.mutate(student.id)}
                             className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
@@ -211,20 +212,24 @@ export default function AdminStudents() {
                             >
                               <Pencil className="inline" size={12} /> {t('edit')}
                             </button>
-                            <button
-                              onClick={() => setStatus.mutate({ id: student.id, isActive: !student.isActive })}
-                              className={`rounded-full px-3 py-1 text-xs font-bold ${student.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                            >
-                              {student.isActive ? t('suspend') : t('activate')}
-                            </button>
-                            <button
-                              aria-label={`${t('delete')} ${student.name}`}
-                              onClick={() => setDeleteTarget(student)}
-                              className="text-ink-soft hover:text-secondary"
-                              title={t('delete')}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {canManageUsers && (
+                              <>
+                                <button
+                                  onClick={() => setStatus.mutate({ id: student.id, isActive: !student.isActive })}
+                                  className={`rounded-full px-3 py-1 text-xs font-bold ${student.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                                >
+                                  {student.isActive ? t('suspend') : t('activate')}
+                                </button>
+                                <button
+                                  aria-label={`${t('delete')} ${student.name}`}
+                                  onClick={() => setDeleteTarget(student)}
+                                  className="text-ink-soft hover:text-secondary"
+                                  title={t('delete')}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -409,6 +414,7 @@ function StudentProfileDialog({
 }) {
   const { t, lang } = useLang();
   const qc = useQueryClient();
+  const canManageUsers = useAdminPermissions()('users');
   const [addGroupId, setAddGroupId] = useState('');
   const profile = useQuery({
     queryKey: ['admin-student-profile', studentId],

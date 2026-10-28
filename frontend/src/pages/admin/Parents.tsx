@@ -12,7 +12,7 @@ import {
   Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select,
 } from '../../components/ui';
 import { rootRoute } from '../../routes/__root';
-import { requireRole } from '../../lib/session';
+import { requireRole, useAdminPermissions } from '../../lib/session';
 
 type Child = {
   id: string;
@@ -74,6 +74,7 @@ type EditValues = z.infer<typeof editSchema>;
 export default function AdminParents() {
   const { t } = useLang();
   const qc = useQueryClient();
+  const canManageUsers = useAdminPermissions()('users');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
@@ -199,7 +200,7 @@ export default function AdminParents() {
                         >
                           <UserRound className="inline" size={12} /> {t('profile')}
                         </button>
-                        {parent.deletedAt ? (
+                        {parent.deletedAt ? canManageUsers && (
                           <button
                             onClick={() => restoreUser.mutate(parent.id)}
                             className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
@@ -215,20 +216,24 @@ export default function AdminParents() {
                             >
                               <Pencil className="inline" size={12} /> {t('edit')}
                             </button>
-                            <button
-                              onClick={() => setStatus.mutate({ id: parent.id, isActive: !parent.isActive })}
-                              className={`rounded-full px-3 py-1 text-xs font-bold ${parent.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                            >
-                              {parent.isActive ? t('suspend') : t('activate')}
-                            </button>
-                            <button
-                              aria-label={`${t('delete')} ${parent.name}`}
-                              onClick={() => setDeleteTarget(parent)}
-                              className="text-ink-soft hover:text-secondary"
-                              title={t('delete')}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {canManageUsers && (
+                              <>
+                                <button
+                                  onClick={() => setStatus.mutate({ id: parent.id, isActive: !parent.isActive })}
+                                  className={`rounded-full px-3 py-1 text-xs font-bold ${parent.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                                >
+                                  {parent.isActive ? t('suspend') : t('activate')}
+                                </button>
+                                <button
+                                  aria-label={`${t('delete')} ${parent.name}`}
+                                  onClick={() => setDeleteTarget(parent)}
+                                  className="text-ink-soft hover:text-secondary"
+                                  title={t('delete')}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -423,6 +428,7 @@ function ParentProfileDialog({
 }) {
   const { t, lang } = useLang();
   const qc = useQueryClient();
+  const canManageUsers = useAdminPermissions()('users');
   const [childId, setChildId] = useState('');
   const profile = useQuery({
     queryKey: ['admin-parent-profile', parentId],

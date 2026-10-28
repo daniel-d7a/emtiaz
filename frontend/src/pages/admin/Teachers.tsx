@@ -15,7 +15,7 @@ import { localizeName, useLang } from '../../lib/i18n';
 import { Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
-import { requireRole } from '../../lib/session';
+import { requireRole, useAdminPermissions } from '../../lib/session';
 
 type TeacherRow = {
   id: string;
@@ -53,6 +53,7 @@ type EditValues = z.infer<typeof editSchema>;
 export default function AdminTeachers() {
   const { t, lang } = useLang();
   const qc = useQueryClient();
+  const canManageUsers = useAdminPermissions()('users');
   const { name: linkedName } = adminTeachersRoute.useSearch();
   const [name, setName] = useState(linkedName ?? '');
   const [phone, setPhone] = useState('');
@@ -171,7 +172,7 @@ export default function AdminTeachers() {
         const teacher = row.original;
         return (
           <div className="flex flex-wrap items-center gap-2">
-            {teacher.deletedAt ? (
+            {teacher.deletedAt ? canManageUsers && (
               <button
                 onClick={() => restoreUser.mutate(teacher.id)}
                 className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
@@ -187,20 +188,24 @@ export default function AdminTeachers() {
                 >
                   <Pencil className="inline" size={12} /> {t('edit')}
                 </button>
-                <button
-                  onClick={() => setStatus.mutate({ id: teacher.id, isActive: !teacher.isActive })}
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${teacher.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                >
-                  {teacher.isActive ? t('suspend') : t('activate')}
-                </button>
-                <button
-                  aria-label={`${t('delete')} ${teacher.name}`}
-                  onClick={() => setDeleteTarget(teacher)}
-                  className="text-ink-soft hover:text-secondary"
-                  title={t('delete')}
-                >
-                  <Trash2 size={14} />
-                </button>
+                {canManageUsers && (
+                  <>
+                    <button
+                      onClick={() => setStatus.mutate({ id: teacher.id, isActive: !teacher.isActive })}
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${teacher.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                    >
+                      {teacher.isActive ? t('suspend') : t('activate')}
+                    </button>
+                    <button
+                      aria-label={`${t('delete')} ${teacher.name}`}
+                      onClick={() => setDeleteTarget(teacher)}
+                      className="text-ink-soft hover:text-secondary"
+                      title={t('delete')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>

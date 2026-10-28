@@ -616,6 +616,36 @@ describe('Phase 5: admin endpoints', () => {
       .send({ emailEnabled: true, adminEnabled: true });
   });
 
+  it('enforces admin role permissions and audits role changes', async () => {
+    const created = await admin
+      .post('/api/admin/roles')
+      .send({ name: 'Overview only', permissions: ['overview'] });
+    expect(created.status).toBe(201);
+    expect(created.body.permissions).toEqual(['overview']);
+
+    const adminUser = await getUserByEmail(ADMIN.email);
+    await testPool.query('UPDATE "user" SET admin_role_id=$1 WHERE id=$2', [
+      created.body.id,
+      adminUser.id,
+    ]);
+
+    const permissions = await admin.get('/api/admin/permissions');
+    expect(permissions.body).toEqual(['overview']);
+    expect((await admin.get('/api/admin/overview')).status).toBe(200);
+    expect((await admin.get('/api/admin/teachers')).status).toBe(403);
+
+    await testPool.query('UPDATE "user" SET admin_role_id=NULL WHERE id=$1', [adminUser.id]);
+    expect((await admin.get('/api/admin/teachers')).status).toBe(200);
+
+    const renamed = await admin
+      .patch(`/api/admin/roles/${created.body.id}`)
+      .send({ name: 'Overview only role' });
+    expect(renamed.body.name).toBe('Overview only role');
+
+    const audit = await admin.get('/api/admin/audit?action=role.create');
+    expect(audit.body.some((row: any) => row.targetId === created.body.id)).toBe(true);
+  });
+
   describe('taxonomy', () => {
     it('CRUD semesters', async () => {
       const created = await admin

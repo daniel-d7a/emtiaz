@@ -34,3 +34,4 @@ actually implemented.
 | [0013](./adr/0013-mobile-react-navigation.md) | React Navigation native stacks on mobile | current |
 | [0014](./adr/0014-redis-shared-state.md) | Optional Redis for shared throttle, lockout, and job locks | current |
 | [0015](./adr/0015-single-user-table.md) | One `user` identity table with a role column | current |
+| [0018](./adr/0018-admin-permissions.md) | Admin roles carry permission sets enforced by a global guard | current |

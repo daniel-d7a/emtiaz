@@ -1,7 +1,7 @@
 import { createRoute } from '@tanstack/react-router';
 import { queryClient } from '../../lib/queryClient';
 import { rootRoute } from '../../routes/__root';
-import { requireRole } from '../../lib/session';
+import { requireRole, useAdminPermissions } from '../../lib/session';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, GraduationCap, Users, UsersRound } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -29,10 +29,13 @@ type NotificationRow = {
 
 export default function AdminDashboard() {
   const { t, lang } = useLang();
+  const can = useAdminPermissions();
+  const canSeeNotifications = can('notifications');
   const overview = useQuery(adminOverviewQuery);
   const notifications = useQuery({
     queryKey: ['admin-notifications'],
     queryFn: () => api<NotificationRow[]>('/api/admin/notifications'),
+    enabled: canSeeNotifications,
   });
 
   return (
@@ -69,7 +72,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <Card className="mt-4">
+      {canSeeNotifications && <Card className="mt-4">
         <h2 className="font-bold">{t('recentNotifications')}</h2>
         {notifications.isLoading ? <Loading /> : notifications.error ? <ErrorBox error={notifications.error} /> : (
           notifications.data?.length ? (
@@ -89,7 +92,7 @@ export default function AdminDashboard() {
             </ul>
           ) : <p className="mt-3 text-sm text-ink-soft">{t('noNotifications')}</p>
         )}
-      </Card>
+      </Card>}
     </Page>
   );
 }

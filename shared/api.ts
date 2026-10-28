@@ -42,6 +42,19 @@ export type User = {
   deletedAt: string | null;
 };
 
+export type AdminPermission =
+  | 'overview'
+  | 'teachers'
+  | 'students'
+  | 'parents'
+  | 'courses'
+  | 'taxonomy'
+  | 'notifications'
+  | 'audit'
+  | 'settings'
+  | 'roles'
+  | 'users';
+
 export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
   Partial<
     Pick<
@@ -52,9 +65,27 @@ export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
       | 'image'
       | 'landingSlug'
     >
-  >;
+  > & { permissions?: AdminPermission[] };
 
 export type Session = { user: SessionUser; session?: unknown } | null;
+
+export type AdminRole = {
+  id: string;
+  name: string;
+  permissions: AdminPermission[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  isActive: boolean;
+  adminRoleId: string | null;
+  adminRoleName: string | null;
+  createdAt: string;
+};
 export type MeResponse = {
   user: User;
   avatarUrl: string | null;

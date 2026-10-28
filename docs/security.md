@@ -36,11 +36,17 @@ the checklist to keep in mind when adding endpoints or screens.
 Every user row has a role, but ownership checks are still required — a role
 alone never grants access to another user's course, group, or child.
 
+An `ADMIN` also needs the route's admin permission. `admin_roles` stores a
+permission list and `user.admin_role_id` links an admin to one; the global
+`AdminPermissionGuard` checks `@RequirePermission(...)`. An admin with no
+assigned role keeps full access. Assigning a role never grants teacher, student,
+or parent ownership rights.
+
 ## Authorization matrix
 
 | Action | Admin | Teacher | Student | Parent |
 |---|---|---|---|---|
-| Global metrics, directories, suspend/delete/restore, taxonomy, audit | yes | no | no | no |
+| Global metrics, directories, suspend/delete/restore, taxonomy, audit | with permission | no | no | no |
 | Create/edit own courses, modules, lessons, quizzes | no* | owner | no | no |
 | Create groups, pacing, roster, announcements, gradebook | no* | owner | no | no |
 | Read group statistics | no* | owner | no | no |

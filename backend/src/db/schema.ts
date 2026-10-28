@@ -59,6 +59,14 @@ export const semesters = pgTable('semesters', {
   displayOrder: integer('display_order').notNull().default(0),
 });
 
+export const adminRoles = pgTable('admin_roles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  permissions: jsonb('permissions').$type<string[]>().notNull().default([]),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // ==========================================
 // 3. BETTER AUTH + USER TABLES (Sessions)
 // ==========================================
@@ -71,6 +79,7 @@ export const users = pgTable('user', {
   phoneNumberVerified: boolean('phone_number_verified').default(false),
   image: text('image'),
   role: roleEnum('role').notNull().default('STUDENT'),
+  adminRoleId: uuid('admin_role_id').references(() => adminRoles.id, { onDelete: 'set null' }),
   landingSlug: text('landing_slug').unique(),
   landingBio: text('landing_bio'),
   landingBanner: text('landing_banner'),

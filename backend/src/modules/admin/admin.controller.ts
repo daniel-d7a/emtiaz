@@ -12,13 +12,15 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto, CreateParentDto, UpdateParentDto, AdminParentLinkDto, AdminCreateCourseDto, AdminUpdateCourseDto } from '../../lib/schemas';
+import { RequirePermission } from '../../lib/admin-permissions';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto, CreateParentDto, UpdateParentDto, AdminParentLinkDto, AdminCreateCourseDto, AdminUpdateCourseDto, AdminRoleDto, AdminRoleUpdateDto, AdminRoleAssignDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MonthlySummaryService } from '../notifications/monthly-summary.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
+import { effectiveAdminPermissions } from './admin-access';
 
 @Controller()
 export class AdminController {
@@ -30,14 +32,22 @@ export class AdminController {
     private onboarding: OnboardingService,
   ) {}
 
+  @Get('api/admin/permissions')
+  @Roles('ADMIN')
+  permissions(@Req() req: Request) {
+    return effectiveAdminPermissions(req.user!.id);
+  }
+
   @Get('api/admin/overview')
   @Roles('ADMIN')
+  @RequirePermission('overview')
   overview() {
     return this.admin.overview();
   }
 
   @Get('api/admin/teachers')
   @Roles('ADMIN')
+  @RequirePermission('teachers', 'courses')
   teachers(
     @Query()
     q: {
@@ -55,6 +65,7 @@ export class AdminController {
 
   @Post('api/admin/teachers')
   @Roles('ADMIN')
+  @RequirePermission('teachers')
   async createTeacher(
     @Req() req: Request,
     @Body(new ZodBodyPipe(CreateTeacherDto)) dto: z.infer<typeof CreateTeacherDto>,
@@ -66,6 +77,7 @@ export class AdminController {
 
   @Patch('api/admin/teachers/:teacherId')
   @Roles('ADMIN')
+  @RequirePermission('teachers')
   async updateTeacher(
     @Req() req: Request,
     @Param('teacherId') teacherId: string,
@@ -77,6 +89,7 @@ export class AdminController {
 
   @Get('api/admin/students')
   @Roles('ADMIN')
+  @RequirePermission('students', 'parents')
   students(
     @Query()
     q: {
@@ -96,6 +109,7 @@ export class AdminController {
 
   @Post('api/admin/students')
   @Roles('ADMIN')
+  @RequirePermission('students')
   async createStudent(
     @Req() req: Request,
     @Body(new ZodBodyPipe(CreateStudentDto)) dto: z.infer<typeof CreateStudentDto>,
@@ -107,12 +121,14 @@ export class AdminController {
 
   @Get('api/admin/students/:studentId')
   @Roles('ADMIN')
+  @RequirePermission('students')
   profile(@Param('studentId') studentId: string) {
     return this.admin.studentProfile(studentId);
   }
 
   @Patch('api/admin/students/:studentId')
   @Roles('ADMIN')
+  @RequirePermission('students')
   async updateStudent(
     @Req() req: Request,
     @Param('studentId') studentId: string,
@@ -124,6 +140,7 @@ export class AdminController {
 
   @Delete('api/admin/students/:studentId/groups/:groupId')
   @Roles('ADMIN')
+  @RequirePermission('students')
   async removeStudentFromGroup(
     @Req() req: Request,
     @Param('studentId') studentId: string,
@@ -137,6 +154,7 @@ export class AdminController {
 
   @Patch('api/admin/students/:studentId/groups/:groupId/move')
   @Roles('ADMIN')
+  @RequirePermission('students')
   async moveStudentGroup(
     @Req() req: Request,
     @Param('studentId') studentId: string,
@@ -153,6 +171,7 @@ export class AdminController {
 
   @Get('api/admin/parents')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   parents(
     @Query()
     q: {
@@ -169,6 +188,7 @@ export class AdminController {
 
   @Post('api/admin/parents')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   async createParent(
     @Req() req: Request,
     @Body(new ZodBodyPipe(CreateParentDto)) dto: z.infer<typeof CreateParentDto>,
@@ -180,12 +200,14 @@ export class AdminController {
 
   @Get('api/admin/parents/:parentId')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   parentProfile(@Param('parentId') parentId: string) {
     return this.admin.parentProfile(parentId);
   }
 
   @Patch('api/admin/parents/:parentId')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   async updateParent(
     @Req() req: Request,
     @Param('parentId') parentId: string,
@@ -197,6 +219,7 @@ export class AdminController {
 
   @Post('api/admin/parent-links')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   async linkParentChild(
     @Req() req: Request,
     @Body(new ZodBodyPipe(AdminParentLinkDto)) dto: z.infer<typeof AdminParentLinkDto>,
@@ -209,6 +232,7 @@ export class AdminController {
 
   @Get('api/admin/courses')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   courses(
     @Query()
     q: {
@@ -226,6 +250,7 @@ export class AdminController {
 
   @Post('api/admin/courses')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   async createCourse(
     @Req() req: Request,
     @Body(new ZodBodyPipe(AdminCreateCourseDto))
@@ -238,6 +263,7 @@ export class AdminController {
 
   @Patch('api/admin/courses/:courseId')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   async updateCourse(
     @Req() req: Request,
     @Param('courseId') courseId: string,
@@ -250,18 +276,21 @@ export class AdminController {
 
   @Get('api/admin/groups')
   @Roles('ADMIN')
+  @RequirePermission('courses', 'students')
   groups(@Query() q: { deleted?: string; courseId?: string }) {
     return this.admin.listGroups(q);
   }
 
   @Get('api/admin/parent-links')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   parentLinks(@Query() q: { deleted?: string }) {
     return this.admin.listParentLinks(q);
   }
 
   @Patch('api/admin/users/:userId/status')
   @Roles('ADMIN')
+  @RequirePermission('users')
   async setUserStatus(
     @Req() req: Request,
     @Param('userId') userId: string,
@@ -276,6 +305,7 @@ export class AdminController {
 
   @Delete('api/admin/users/:userId')
   @Roles('ADMIN')
+  @RequirePermission('users')
   async deleteUser(@Req() req: Request, @Param('userId') userId: string) {
     await this.admin.audit(req.user!.id, 'user.delete', 'user', userId);
     return this.admin.deleteUser(userId);
@@ -283,6 +313,7 @@ export class AdminController {
 
   @Post('api/admin/users/:userId/restore')
   @Roles('ADMIN')
+  @RequirePermission('users')
   async restoreUser(@Req() req: Request, @Param('userId') userId: string) {
     await this.admin.audit(req.user!.id, 'user.restore', 'user', userId);
     return this.admin.restoreUser(userId);
@@ -290,6 +321,7 @@ export class AdminController {
 
   @Delete('api/admin/courses/:courseId')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   async deleteCourse(@Req() req: Request, @Param('courseId') courseId: string) {
     await this.admin.audit(req.user!.id, 'course.delete', 'course', courseId);
     return this.admin.deleteCourse(courseId);
@@ -297,6 +329,7 @@ export class AdminController {
 
   @Post('api/admin/courses/:courseId/restore')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   async restoreCourse(@Req() req: Request, @Param('courseId') courseId: string) {
     await this.admin.audit(req.user!.id, 'course.restore', 'course', courseId);
     return this.admin.restoreCourse(courseId);
@@ -304,6 +337,7 @@ export class AdminController {
 
   @Delete('api/admin/groups/:groupId')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   async deleteGroup(@Req() req: Request, @Param('groupId') groupId: string) {
     await this.admin.audit(req.user!.id, 'group.delete', 'group', groupId);
     return this.admin.deleteGroup(groupId);
@@ -311,6 +345,7 @@ export class AdminController {
 
   @Post('api/admin/groups/:groupId/restore')
   @Roles('ADMIN')
+  @RequirePermission('courses')
   async restoreGroup(@Req() req: Request, @Param('groupId') groupId: string) {
     await this.admin.audit(req.user!.id, 'group.restore', 'group', groupId);
     return this.admin.restoreGroup(groupId);
@@ -318,6 +353,7 @@ export class AdminController {
 
   @Delete('api/admin/parent-links/:parentId/:studentId')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   async deleteParentLink(
     @Req() req: Request,
     @Param('parentId') parentId: string,
@@ -331,6 +367,7 @@ export class AdminController {
 
   @Post('api/admin/parent-links/:parentId/:studentId/restore')
   @Roles('ADMIN')
+  @RequirePermission('parents')
   async restoreParentLink(
     @Req() req: Request,
     @Param('parentId') parentId: string,
@@ -344,6 +381,7 @@ export class AdminController {
 
   @Post('api/admin/students/:studentId/enroll')
   @Roles('ADMIN')
+  @RequirePermission('students')
   async enroll(
     @Req() req: Request,
     @Param('studentId') studentId: string,
@@ -358,6 +396,7 @@ export class AdminController {
 
   @Get('api/admin/audit')
   @Roles('ADMIN')
+  @RequirePermission('audit')
   auditLog(
     @Query('limit') limit?: string,
     @Query('action') action?: string,
@@ -381,30 +420,87 @@ export class AdminController {
 
   @Get('api/admin/errors/tail')
   @Roles('ADMIN')
+  @RequirePermission('audit')
   errorTail() {
     return this.admin.errorTail();
   }
 
+  @Get('api/admin/roles')
+  @Roles('ADMIN')
+  @RequirePermission('roles')
+  roles() {
+    return this.admin.listAdminRoles();
+  }
+
+  @Post('api/admin/roles')
+  @Roles('ADMIN')
+  @RequirePermission('roles')
+  async createRole(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(AdminRoleDto)) dto: z.infer<typeof AdminRoleDto>,
+  ) {
+    const role = await this.admin.createAdminRole(dto.name, dto.permissions);
+    await this.admin.audit(req.user!.id, 'role.create', 'admin_role', role.id, dto);
+    return role;
+  }
+
+  @Patch('api/admin/roles/:roleId')
+  @Roles('ADMIN')
+  @RequirePermission('roles')
+  async updateRole(
+    @Req() req: Request,
+    @Param('roleId') roleId: string,
+    @Body(new ZodBodyPipe(AdminRoleUpdateDto)) dto: z.infer<typeof AdminRoleUpdateDto>,
+  ) {
+    const role = await this.admin.updateAdminRole(roleId, dto);
+    await this.admin.audit(req.user!.id, 'role.update', 'admin_role', roleId, dto);
+    return role;
+  }
+
+  @Get('api/admin/admins')
+  @Roles('ADMIN')
+  @RequirePermission('roles')
+  admins() {
+    return this.admin.listAdmins();
+  }
+
+  @Patch('api/admin/admins/:userId/role')
+  @Roles('ADMIN')
+  @RequirePermission('roles')
+  async assignAdminRole(
+    @Req() req: Request,
+    @Param('userId') userId: string,
+    @Body(new ZodBodyPipe(AdminRoleAssignDto)) dto: z.infer<typeof AdminRoleAssignDto>,
+  ) {
+    const user = await this.admin.setAdminRole(userId, dto.roleId);
+    await this.admin.audit(req.user!.id, 'role.assign', 'user', userId, dto);
+    return user;
+  }
+
   @Get('api/admin/notification-settings')
   @Roles('ADMIN')
+  @RequirePermission('notifications', 'settings')
   getNotificationSettings() {
     return this.notificationSettings.get();
   }
 
   @Get('api/admin/notifications')
   @Roles('ADMIN')
+  @RequirePermission('notifications')
   recentNotifications(@Query('limit') limit?: string) {
     return this.notifications.recent(Number(limit) || 50);
   }
 
   @Post('api/admin/notifications/monthly-summary')
   @Roles('ADMIN')
+  @RequirePermission('notifications')
   sendMonthlySummary() {
     return this.monthlySummary.run();
   }
 
   @Patch('api/admin/notification-settings')
   @Roles('ADMIN')
+  @RequirePermission('notifications', 'settings')
   async updateNotificationSettings(
     @Req() req: Request,
     @Body(new ZodBodyPipe(NotificationSettingsDto))
@@ -424,12 +520,14 @@ export class AdminController {
 
   @Post('api/admin/taxonomy/grades')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   createGrade(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
     return this.admin.createGrade(dto.name, dto.displayOrder);
   }
 
   @Put('api/admin/taxonomy/grades/:id')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   updateGrade(
     @Param('id') id: string,
     @Body(new ZodBodyPipe(TaxonomyUpdateDto))
@@ -440,6 +538,7 @@ export class AdminController {
 
   @Delete('api/admin/taxonomy/grades/:id')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   deleteGrade(@Param('id') id: string) {
     return this.admin.deleteGrade(id);
   }
@@ -452,12 +551,14 @@ export class AdminController {
 
   @Post('api/admin/taxonomy/semesters')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   createSemester(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
     return this.admin.createSemester(dto.name, dto.displayOrder);
   }
 
   @Put('api/admin/taxonomy/semesters/:id')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   updateSemester(
     @Param('id') id: string,
     @Body(new ZodBodyPipe(TaxonomyUpdateDto))
@@ -468,6 +569,7 @@ export class AdminController {
 
   @Delete('api/admin/taxonomy/semesters/:id')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   deleteSemester(@Param('id') id: string) {
     return this.admin.deleteSemester(id);
   }
@@ -480,12 +582,14 @@ export class AdminController {
 
   @Post('api/admin/taxonomy/categories')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   createCategory(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
     return this.admin.createCategory(dto.name);
   }
 
   @Put('api/admin/taxonomy/categories/:id')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   updateCategory(
     @Param('id') id: string,
     @Body(new ZodBodyPipe(z.object({ name: z.string().trim().min(1).max(80) })))
@@ -496,6 +600,7 @@ export class AdminController {
 
   @Delete('api/admin/taxonomy/categories/:id')
   @Roles('ADMIN')
+  @RequirePermission('taxonomy')
   deleteCategory(@Param('id') id: string) {
     return this.admin.deleteCategory(id);
   }

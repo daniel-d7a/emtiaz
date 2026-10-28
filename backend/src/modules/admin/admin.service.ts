@@ -12,6 +12,7 @@ import { db } from '../../db';
 import { alias } from 'drizzle-orm/pg-core';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
+  adminRoles,
   auditLogs,
   categories,
   courses,
@@ -28,6 +29,7 @@ import {
   semesters,
   users,
 } from '../../db/schema';
+import type { AdminPermission } from '../../lib/admin-permissions';
 
 @Injectable()
 export class AdminService implements OnApplicationBootstrap {
@@ -1121,6 +1123,54 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   // ---------- Taxonomy ----------
+
+  // ---------- Admin roles ----------
+
+  async listAdminRoles() {
+    return db.select().from(adminRoles).orderBy(asc(adminRoles.name));
+  }
+  async createAdminRole(name: string, permissions: AdminPermission[]) {
+    const [row] = await db.insert(adminRoles).values({ name, permissions }).returning();
+    return row;
+  }
+  async updateAdminRole(id: string, dto: { name?: string; permissions?: AdminPermission[] }) {
+    const [row] = await db
+      .update(adminRoles)
+      .set({ ...dto, updatedAt: new Date() })
+      .where(eq(adminRoles.id, id))
+      .returning();
+    if (!row) throw new NotFoundException('Admin role not found');
+    return row;
+  }
+  async listAdmins() {
+    return db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        isActive: users.isActive,
+        adminRoleId: users.adminRoleId,
+        adminRoleName: adminRoles.name,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .leftJoin(adminRoles, eq(users.adminRoleId, adminRoles.id))
+      .where(and(eq(users.role, 'ADMIN'), isNull(users.deletedAt)))
+      .orderBy(asc(users.name));
+  }
+  async setAdminRole(userId: string, roleId: string | null) {
+    if (roleId) {
+      const [role] = await db.select({ id: adminRoles.id }).from(adminRoles).where(eq(adminRoles.id, roleId));
+      if (!role) throw new NotFoundException('Admin role not found');
+    }
+    const [row] = await db
+      .update(users)
+      .set({ adminRoleId: roleId, updatedAt: new Date() })
+      .where(and(eq(users.id, userId), eq(users.role, 'ADMIN')))
+      .returning({ id: users.id, adminRoleId: users.adminRoleId });
+    if (!row) throw new NotFoundException('Admin not found');
+    return row;
+  }
 
   async listGrades() {
     return db.select().from(grades).orderBy(asc(grades.displayOrder));

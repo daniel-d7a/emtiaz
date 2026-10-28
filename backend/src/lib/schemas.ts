@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { z } from 'zod';
 import { normalizePhone } from './phone';
+import { ADMIN_PERMISSIONS } from './admin-permissions';
 
 @Injectable()
 export class ZodBodyPipe implements PipeTransform {
@@ -317,6 +318,15 @@ export const AdminParentLinkDto = z.object({
   parentId: z.string().min(1),
   studentId: z.string().min(1),
 });
+export const AdminRoleDto = z.object({
+  name: safeText(80),
+  permissions: z.array(z.enum(ADMIN_PERMISSIONS)).min(1),
+});
+export const AdminRoleUpdateDto = AdminRoleDto.partial().refine(
+  (v) => v.name !== undefined || v.permissions !== undefined,
+  { message: 'nothing to update' },
+);
+export const AdminRoleAssignDto = z.object({ roleId: uuid.nullable() });
 export const CreateParentDto = z.object({
   name: safeText(120),
   email: z.string().trim().toLowerCase().email(),
