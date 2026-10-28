@@ -160,10 +160,12 @@ the bucket and sets browser CORS for the configured frontend origins.
 ## Mobile app
 
 - Expo / React Native with role-specific React Navigation native stacks
-  ([ADR-0013](./adr/0013-mobile-react-navigation.md)).
+  ([ADR-0013](./adr/0013-mobile-react-navigation.md)). Each role has a bottom
+  tab for home, notifications, and profile; detail screens push over the tabs
+  ([ADR-0019](./adr/0019-mobile-bottom-tabs.md)).
 - Student: home, groups, join, curriculum, lesson, quiz, profile, notifications.
-- Teacher: course/group summaries, pacing, roster, announcements, profile,
-  notifications.
+- Teacher: course/group summaries, pacing, roster, announcements, material
+  upload, profile, notifications.
 - Parent: link/unlink children, progress, attendance, grades, delivered reports, notifications.
 - Admin remains web-only.
 - API base derives from Metro `hostUri` in development; release builds need a

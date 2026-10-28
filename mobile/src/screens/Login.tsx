@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { authApi } from '../api';
-import { Btn, ErrorBox, Field, s } from '../ui';
+import { ScrollView, View } from 'react-native';
+import { ApiError, authApi } from '../api';
+import { Btn, ErrorBox, Field, Text, c, s } from '../ui';
 
 export default function Login({ onIn }: { onIn: (user: any) => void }) {
   const [email, setEmail] = useState('');
@@ -15,24 +15,43 @@ export default function Login({ onIn }: { onIn: (user: any) => void }) {
     try {
       const res = await authApi.login(email.trim(), password);
       onIn(res);
-    } catch (e: any) {
-      setError(e);
+    } catch (e) {
+      setError(
+        e instanceof ApiError && e.status === 401
+          ? new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة.')
+          : (e as Error),
+      );
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <View style={s.page}>
-      <Text style={s.h1}>امتياز</Text>
-      <Text style={{ color: '#78716C', marginBottom: 16 }}>منصة تعلّم بسيطة للمعلمين والطلبة في سلطنة عُمان</Text>
-      <Field label="البريد الإلكتروني" value={email} onChange={setEmail} placeholder="you@example.com" />
-      <Field label="كلمة المرور" value={password} onChange={setPassword} secure />
-      {error && <ErrorBox error={error} />}
-      <Btn label={busy ? '…' : 'تسجيل الدخول'} onPress={submit} />
-      <Text style={{ color: '#78716C', textAlign: 'center', marginTop: 20 }}>
-        لا تملك حسابًا؟ سجّل عبر الموقع ثم انتقل إلى التطبيق
-      </Text>
-    </View>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={[s.pageContent, { flexGrow: 1, justifyContent: 'center' }]}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View>
+        <Text style={s.h1}>امتياز</Text>
+        <Text style={{ color: c.inkSoft, marginBottom: 16 }}>
+          منصة تعلّم بسيطة للمعلمين والطلبة في سلطنة عُمان
+        </Text>
+        <Field
+          label="البريد الإلكتروني"
+          value={email}
+          onChange={setEmail}
+          placeholder="you@example.com"
+          dir="ltr"
+          keyboardType="email-address"
+        />
+        <Field label="كلمة المرور" value={password} onChange={setPassword} secure />
+        {error && <ErrorBox error={error} />}
+        <Btn label="تسجيل الدخول" onPress={submit} loading={busy} />
+        <Text style={{ color: c.inkSoft, textAlign: 'center', marginTop: 20 }}>
+          لا تملك حسابًا؟ سجّل عبر الموقع ثم انتقل إلى التطبيق
+        </Text>
+      </View>
+    </ScrollView>
   );
 }

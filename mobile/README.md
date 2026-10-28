@@ -1,7 +1,9 @@
 # Emtiaz mobile (Expo / React Native)
 
 Student, teacher, and parent companion app. `App.tsx` mounts role-specific
-React Navigation native stacks (see `docs/adr/0013-mobile-react-navigation.md`).
+React Navigation native stacks with a home/notifications/profile bottom tab
+(see `docs/adr/0013-mobile-react-navigation.md` and
+`docs/adr/0019-mobile-bottom-tabs.md`).
 
 Layout:
 
@@ -49,14 +51,15 @@ automatically. Override it with `EXPO_PUBLIC_API_URL` (required with
 ## What each role sees
 
 - **Student**: login, my groups, join by code, curriculum, lesson viewer
-  (marks lesson as viewed), quizzes with retry, notifications, and profile
+  (marks lesson as viewed), quizzes with retry, and notifications/profile tabs
   (avatar upload, name/phone, logout). Parent-code display/rotation stays on
   the web profile.
 - **Teacher**: login, course/group list with student/group/lesson/progress
   summaries, per-group pacing with lesson unlock toggles, roster with progress,
-  group announcements, notifications, and profile.
-- **Parent**: login, link/unlink a child with the student's parent code, see
-  each child's groups and progress, open quiz/manual grades, and notifications.
+  group announcements, material upload, and notifications/profile tabs.
+- **Parent**: login, link/unlink a child by the student's phone number, see
+  each child's groups and progress, open quiz/manual grades, plus
+  notifications/profile tabs.
 - **Admin**: web only.
 
 ## Troubleshooting

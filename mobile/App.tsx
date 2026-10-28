@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Text, View } from 'react-native';
+import { I18nManager, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import { Cairo_400Regular } from '@expo-google-fonts/cairo/400Regular';
+import { Cairo_600SemiBold } from '@expo-google-fonts/cairo/600SemiBold';
+import { Cairo_700Bold } from '@expo-google-fonts/cairo/700Bold';
+import { DMSans_400Regular } from '@expo-google-fonts/dm-sans/400Regular';
+import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
 import { authApi } from './src/api';
 import Courses from './src/screens/Courses';
 import Group from './src/screens/Group';
@@ -15,50 +22,73 @@ import Profile from './src/screens/Profile';
 import TeacherHome from './src/screens/TeacherHome';
 import TeacherGroup from './src/screens/TeacherGroup';
 import Quiz from './src/screens/Quiz';
-import { Loading, s } from './src/ui';
+import { Loading, Text, c, f, s } from './src/ui';
 import { queryClient } from './src/query';
 import type { Session } from '../shared/api';
 
+I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
+
 type RootStackParamList = {
-  Courses: undefined;
-  Profile: undefined;
-  Notifications: undefined;
-  TeacherHome: undefined;
-  ParentHome: undefined;
+  Main: undefined;
   TeacherGroup: { groupId: string };
   Group: { groupId: string };
   Lesson: { lessonId: string; groupId: string };
   Quiz: { groupId: string; lessonId?: string; quizId?: string };
 };
 
+type TabParamList = {
+  Home: undefined;
+  Notifications: undefined;
+  Profile: undefined;
+};
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 const screenOptions = {
   headerShown: false,
-  contentStyle: { backgroundColor: '#FAF8F5' },
+  contentStyle: { backgroundColor: c.background },
 };
+const tabOptions = {
+  headerShown: false,
+  tabBarActiveTintColor: c.primary,
+  tabBarInactiveTintColor: c.inkSoft,
+  tabBarStyle: { backgroundColor: c.card, borderTopColor: c.line },
+  tabBarItemStyle: { minHeight: 48 },
+  tabBarLabelStyle: { fontFamily: f.semiBold, fontSize: 13 },
+  sceneStyle: { backgroundColor: c.background },
+};
+
+function MainTabs({ home, onLogout }: { home: ReactNode; onLogout: () => void }) {
+  return (
+    <Tab.Navigator screenOptions={tabOptions}>
+      <Tab.Screen name="Home" options={{ title: 'الرئيسية' }}>
+        {() => home}
+      </Tab.Screen>
+      <Tab.Screen name="Notifications" options={{ title: 'الإشعارات' }}>
+        {() => <Notifications />}
+      </Tab.Screen>
+      <Tab.Screen name="Profile" options={{ title: 'حسابي' }}>
+        {() => <Profile onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+}
 
 function StudentStack({ onLogout }: { onLogout: () => void }) {
   return (
-    <Stack.Navigator initialRouteName="Courses" screenOptions={screenOptions}>
-      <Stack.Screen name="Courses">
+    <Stack.Navigator initialRouteName="Main" screenOptions={screenOptions}>
+      <Stack.Screen name="Main">
         {({ navigation }) => (
-          <Courses
-            onOpen={(groupId) => navigation.navigate('Group', { groupId })}
-            onProfile={() => navigation.navigate('Profile')}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="Profile">
-        {({ navigation }) => (
-          <Profile
-            onBack={() => navigation.goBack()}
+          <MainTabs
             onLogout={onLogout}
-            onNotifications={() => navigation.navigate('Notifications')}
+            home={
+              <Courses
+                onOpen={(groupId) => navigation.navigate('Group', { groupId })}
+              />
+            }
           />
         )}
-      </Stack.Screen>
-      <Stack.Screen name="Notifications">
-        {({ navigation }) => <Notifications onBack={() => navigation.goBack()} />}
       </Stack.Screen>
       <Stack.Screen name="Group">
         {({ navigation, route }) => (
@@ -116,26 +146,18 @@ function StudentStack({ onLogout }: { onLogout: () => void }) {
 
 function TeacherStack({ onLogout }: { onLogout: () => void }) {
   return (
-    <Stack.Navigator initialRouteName="TeacherHome" screenOptions={screenOptions}>
-      <Stack.Screen name="TeacherHome">
+    <Stack.Navigator initialRouteName="Main" screenOptions={screenOptions}>
+      <Stack.Screen name="Main">
         {({ navigation }) => (
-          <TeacherHome
-            onOpenGroup={(groupId) => navigation.navigate('TeacherGroup', { groupId })}
-            onProfile={() => navigation.navigate('Profile')}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="Profile">
-        {({ navigation }) => (
-          <Profile
-            onBack={() => navigation.goBack()}
+          <MainTabs
             onLogout={onLogout}
-            onNotifications={() => navigation.navigate('Notifications')}
+            home={
+              <TeacherHome
+                onOpenGroup={(groupId) => navigation.navigate('TeacherGroup', { groupId })}
+              />
+            }
           />
         )}
-      </Stack.Screen>
-      <Stack.Screen name="Notifications">
-        {({ navigation }) => <Notifications onBack={() => navigation.goBack()} />}
       </Stack.Screen>
       <Stack.Screen name="TeacherGroup">
         {({ navigation, route }) => (
@@ -148,17 +170,9 @@ function TeacherStack({ onLogout }: { onLogout: () => void }) {
 
 function ParentStack({ onLogout }: { onLogout: () => void }) {
   return (
-    <Stack.Navigator initialRouteName="ParentHome" screenOptions={screenOptions}>
-      <Stack.Screen name="ParentHome">
-        {({ navigation }) => (
-          <ParentHome
-            onLogout={onLogout}
-            onNotifications={() => navigation.navigate('Notifications')}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="Notifications">
-        {({ navigation }) => <Notifications onBack={() => navigation.goBack()} />}
+    <Stack.Navigator initialRouteName="Main" screenOptions={screenOptions}>
+      <Stack.Screen name="Main">
+        {() => <MainTabs onLogout={onLogout} home={<ParentHome />} />}
       </Stack.Screen>
     </Stack.Navigator>
   );
@@ -167,6 +181,13 @@ function ParentStack({ onLogout }: { onLogout: () => void }) {
 function Root() {
   const [session, setSession] = useState<Session>(null);
   const [loaded, setLoaded] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Cairo_400Regular,
+    Cairo_600SemiBold,
+    Cairo_700Bold,
+    DMSans_400Regular,
+    DMSans_700Bold,
+  });
 
   useEffect(() => {
     authApi
@@ -178,20 +199,21 @@ function Root() {
       .finally(() => setLoaded(true));
   }, []);
 
+  if (!fontsLoaded && !fontError) return <Loading />;
   if (!loaded) return <Loading />;
   if (!session) return <Login onIn={setSession} />;
   if (session.user.role === 'ADMIN') {
     return (
       <View style={s.page}>
         <Text style={s.h1}>{session.user.name}</Text>
-        <Text style={{ color: '#78716C' }}>لوحة الإدارة متاحة على الموقع.</Text>
+        <Text style={{ color: c.inkSoft }}>لوحة الإدارة متاحة على الموقع.</Text>
       </View>
     );
   }
 
   const logout = () => setSession(null);
   return (
-    <NavigationContainer>
+    <NavigationContainer direction="rtl">
       {session.user.role === 'PARENT' ? (
         <ParentStack onLogout={logout} />
       ) : session.user.role === 'TEACHER' ? (
@@ -207,7 +229,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <Root />
+        <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
+          <Root />
+        </SafeAreaView>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

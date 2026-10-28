@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, authApi } from '../api';
-import { Btn, Card, Empty, ErrorBox, Field, Loading, c, s } from '../ui';
+import { api } from '../api';
+import { Btn, Card, Empty, ErrorBox, Field, Loading, Text, c, s } from '../ui';
 import type { ParentChild as Child, StudentGrades as Grades } from '../../../shared/api';
 
-export default function ParentHome({ onLogout, onNotifications }: { onLogout: () => void; onNotifications: () => void }) {
+export default function ParentHome() {
   const qc = useQueryClient();
   const [phone, setPhone] = useState('');
   const [open, setOpen] = useState<string | null>(null);
@@ -27,25 +27,16 @@ export default function ParentHome({ onLogout, onNotifications }: { onLogout: ()
   });
 
   return (
-    <ScrollView style={s.page}>
-      <View style={s.row}>
-        <Text style={s.h1}>أبنائي</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Btn label="الإشعارات" variant="ghost" onPress={onNotifications} />
-          <Btn
-            label="خروج"
-            variant="ghost"
-            onPress={async () => {
-              await authApi.logout();
-              qc.clear();
-              onLogout();
-            }}
-          />
-        </View>
-      </View>
+    <ScrollView style={s.page} keyboardShouldPersistTaps="handled">
+      <Text style={s.h1}>أبنائي</Text>
       <Card>
-        <Field label="رقم هاتف الطالب" value={phone} onChange={setPhone} />
-        <Btn label="ربط الطالب" onPress={() => link.mutate()} disabled={phone.trim().length < 8 || link.isPending} />
+        <Field label="رقم هاتف الطالب" value={phone} onChange={setPhone} keyboardType="phone-pad" />
+        <Btn
+          label="ربط الطالب"
+          onPress={() => link.mutate()}
+          disabled={phone.trim().length < 8}
+          loading={link.isPending}
+        />
         {link.error && <ErrorBox error={link.error} />}
       </Card>
       {unlink.error && <ErrorBox error={unlink.error} />}
@@ -55,19 +46,24 @@ export default function ParentHome({ onLogout, onNotifications }: { onLogout: ()
             <Card key={child.id}>
               <Text style={s.h2}>{child.name}</Text>
               <Text style={{ color: c.inkSoft, marginBottom: 8 }}>{child.email}</Text>
-              <Btn label="فصل الطالب" variant="ghost" onPress={() => unlink.mutate(child.id)} />
+              <Btn
+                label="فصل الطالب"
+                variant="ghost"
+                loading={unlink.isPending && unlink.variables === child.id}
+                onPress={() => unlink.mutate(child.id)}
+              />
               {child.groups.map((g) => {
                 const key = `${child.id}:${g.group.id}`;
                 return (
                   <View key={key} style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, marginTop: 8 }}>
-                    <Text style={{ fontWeight: '700', textAlign: 'right' }}>{g.course.title}</Text>
-                    <Text style={{ color: c.inkSoft, textAlign: 'right', fontSize: 12 }}>
+                    <Text style={{ fontWeight: '700' }}>{g.course.title}</Text>
+                    <Text style={{ color: c.inkSoft, fontSize: 12 }}>
                       {g.group.name} · {g.teacher.name}
                     </Text>
                     <View style={s.progress}>
                       <View style={[s.progressFill, { width: `${Math.min(100, Math.max(0, g.progress))}%` }]} />
                     </View>
-                    <Text style={{ color: c.inkSoft, fontSize: 12, textAlign: 'right' }}>التقدم: {g.progress}%</Text>
+                    <Text style={{ color: c.inkSoft, fontSize: 12 }}>التقدم: {g.progress}%</Text>
                     <Btn
                       label={open === key ? 'إخفاء الدرجات' : 'عرض الدرجات'}
                       variant="ghost"
@@ -98,12 +94,12 @@ function ChildGrades({ studentId, groupId }: { studentId: string; groupId: strin
   return (
     <View style={{ marginTop: 8 }}>
       {grades.data.quizzes.map((q) => (
-        <Text key={q.quizId} style={{ textAlign: 'right', marginBottom: 4 }}>
+        <Text key={q.quizId} style={{ marginBottom: 4 }}>
           {q.title}: {q.score}/{q.maxScore}
         </Text>
       ))}
       {grades.data.manual.map((m) => (
-        <Text key={m.columnId} style={{ textAlign: 'right', marginBottom: 4 }}>
+        <Text key={m.columnId} style={{ marginBottom: 4 }}>
           {m.title}: {m.score ?? '—'}/{m.maxScore}
         </Text>
       ))}

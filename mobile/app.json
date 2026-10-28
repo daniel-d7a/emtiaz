@@ -6,7 +6,14 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#FAF8F5",
-    "ios": { "bundleIdentifier": "om.emtiaz.app" },
-    "android": { "package": "om.emtiaz.app" }
+    "ios": {
+      "bundleIdentifier": "om.emtiaz.app"
+    },
+    "android": {
+      "package": "om.emtiaz.app"
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

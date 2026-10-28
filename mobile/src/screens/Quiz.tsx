@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableHighlight, View } from 'react-native';
+import { ScrollView, TextInput, TouchableHighlight, View } from 'react-native';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../api';
-import { Btn, Card, ErrorBox, Loading, c, s } from '../ui';
+import { Btn, Card, ErrorBox, Loading, Text, c, s } from '../ui';
 import type { QuizPayload, QuizSubmission } from '../../../shared/api';
 
 export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?: string; quizId?: string; groupId: string; onBack: (refresh: boolean) => void }) {
@@ -59,8 +59,10 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
                     <TouchableHighlight
                       key={opt}
                       underlayColor={c.primaryLight}
-                      onPress={() => setAnswers({ ...answers, [q.id]: opt })}
-                      style={[{ borderRadius: 10, borderWidth: 1, borderColor: c.line, padding: 10, backgroundColor: c.card }, answers[q.id] === opt && { borderColor: c.primary, backgroundColor: c.primaryLight }]}
+                      onPress={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: answers[q.id] === opt }}
+                      style={[{ minHeight: 48, justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: c.line, padding: 12, backgroundColor: c.card }, answers[q.id] === opt && { borderColor: c.primary, backgroundColor: c.primaryLight }]}
                     >
                       <Text>{opt}</Text>
                     </TouchableHighlight>
@@ -72,10 +74,12 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
                     <TouchableHighlight
                       key={opt}
                       underlayColor={c.primaryLight}
-                      onPress={() => setAnswers({ ...answers, [q.id]: opt })}
-                      style={{ flex: 1, borderRadius: 10, borderWidth: 1, borderColor: answers[q.id] === opt ? c.primary : c.line, padding: 10, backgroundColor: answers[q.id] === opt ? c.primaryLight : c.card, alignItems: 'center' }}
+                      onPress={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: answers[q.id] === opt }}
+                      style={{ flex: 1, minHeight: 48, justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: answers[q.id] === opt ? c.primary : c.line, padding: 12, backgroundColor: answers[q.id] === opt ? c.primaryLight : c.card, alignItems: 'center' }}
                     >
-                      <Text>{opt === 'true' ? '✓' : '✗'}</Text>
+                      <Text>{opt === 'true' ? '✓ صح' : '✗ خطأ'}</Text>
                     </TouchableHighlight>
                   ))}
                 </View>
@@ -83,15 +87,17 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
                 <TextInput
                   style={s.input}
                   value={answers[q.id] ?? ''}
-                  onChangeText={(v) => setAnswers({ ...answers, [q.id]: v })}
+                  onChangeText={(v) => setAnswers((prev) => ({ ...prev, [q.id]: v }))}
                   placeholder="اكتب جوابك…"
+                  placeholderTextColor={c.inkSoft}
                 />
               )}
             </Card>
           ))}
           <Btn
-            label={submit.isPending ? '…' : 'إرسال'}
-            disabled={submit.isPending}
+            label="إرسال"
+            loading={submit.isPending}
+            disabled={Object.keys(answers).length === 0}
             onPress={() => submit.mutate({ quizId: quizData.id, answers })}
           />
         </>

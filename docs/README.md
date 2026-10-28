@@ -31,7 +31,8 @@ actually implemented.
 | [0010](./adr/0010-structured-logging.md) | pino JSON logs with request IDs | current |
 | [0011](./adr/0011-parent-role.md) | Parent role linked by private student code | current |
 | [0012](./adr/0012-teacher-landing-pages.md) | Teacher landing pages at `/t/<slug>` | current |
-| [0013](./adr/0013-mobile-react-navigation.md) | React Navigation native stacks on mobile | current |
+| [0013](./adr/0013-mobile-react-navigation.md) | React Navigation native stacks on mobile | current, extended by 0019 |
 | [0014](./adr/0014-redis-shared-state.md) | Optional Redis for shared throttle, lockout, and job locks | current |
 | [0015](./adr/0015-single-user-table.md) | One `user` identity table with a role column | current |
 | [0018](./adr/0018-admin-permissions.md) | Admin roles carry permission sets enforced by a global guard | current |
+| [0019](./adr/0019-mobile-bottom-tabs.md) | Mobile role stacks use bottom tabs for home, notifications, profile | current |

@@ -1,10 +1,10 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
-import { Btn, Card, Empty, ErrorBox, Loading, c, s } from '../ui';
+import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
 import type { InboxItem as Item } from '../../../shared/api';
 
-export default function Notifications({ onBack }: { onBack: () => void }) {
+export default function Notifications({ onBack }: { onBack?: () => void }) {
   const qc = useQueryClient();
   const list = useQuery({
     queryKey: ['inbox'],
@@ -24,23 +24,37 @@ export default function Notifications({ onBack }: { onBack: () => void }) {
 
   return (
     <ScrollView style={s.page}>
-      <Btn label="رجوع" variant="ghost" onPress={onBack} />
+      {onBack && <Btn label="رجوع" variant="ghost" onPress={onBack} />}
       <View style={s.row}>
         <Text style={s.h1}>الإشعارات</Text>
-        {unread > 0 && <Btn label="تحديد الكل كمقروء" variant="ghost" onPress={() => markAll.mutate()} />}
+        {unread > 0 && (
+          <Btn
+            label="تحديد الكل كمقروء"
+            variant="ghost"
+            loading={markAll.isPending}
+            onPress={() => markAll.mutate()}
+          />
+        )}
       </View>
       {markRead.error && <ErrorBox error={markRead.error} />}
+      {markAll.error && <ErrorBox error={markAll.error} />}
       {list.isLoading ? <Loading /> : list.error ? <ErrorBox error={list.error} /> : (
         <>
           {list.data?.map((n) => (
             <Card key={n.id}>
               <Text
+                accessibilityRole={n.readAt ? undefined : 'button'}
                 onPress={() => !n.readAt && markRead.mutate(n.id)}
-                style={{ fontWeight: n.readAt ? '400' : '700', color: n.readAt ? c.inkSoft : c.ink, textAlign: 'right' }}
+                style={{
+                  fontWeight: n.readAt ? '400' : '700',
+                  color: n.readAt ? c.inkSoft : c.ink,
+                  minHeight: 44,
+                  paddingVertical: 8,
+                }}
               >
                 {n.message}
               </Text>
-              <Text style={{ color: c.inkSoft, fontSize: 12, marginTop: 6, textAlign: 'right' }}>
+              <Text style={{ color: c.inkSoft, fontSize: 12, marginTop: 6 }}>
                 {new Date(n.createdAt).toLocaleString()}
               </Text>
             </Card>
