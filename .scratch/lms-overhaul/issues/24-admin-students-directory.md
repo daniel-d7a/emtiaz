@@ -4,10 +4,10 @@
 
 **Blocked by:** 03, 22.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The table filters by name and phone and shows the required identity columns.
-- [ ] The profile loads parent data, attendance %, quiz totals, and group history with teacher and date.
-- [ ] Add, move, and remove group actions work and are audited.
-- [ ] Suspend, soft delete, and restore behave correctly.
-- [ ] A create-student modal validates a mandatory phone number.
+- [x] The table filters by name and phone and shows the required identity columns.
+- [x] The profile loads parent data, attendance %, quiz totals, and group history with teacher and date.
+- [x] Add, move, and remove group actions work and are audited.
+- [x] Suspend, soft delete, and restore behave correctly.
+- [x] A create-student modal validates a mandatory phone number.
