@@ -57,8 +57,9 @@ login-lockout middleware runs in front of its sign-in routes.
 There is one authentication identity table, `user`, with a `role` enum:
 `ADMIN`, `TEACHER`, `STUDENT`, `PARENT`. Sessions and accounts reference that
 row. Role-specific fields live on the same row (`landing_*` for teachers,
-`grade_id` and `date_of_birth` for students, `subject_category_id` for teachers). The rationale and the future profile-table option are in
-[ADR-0015](./adr/0015-single-user-table.md).
+`grade_id` and `date_of_birth` for students, `subject_category_id` for teachers).
+The rationale and the future profile-table option are in
+[ADR-0015](./adr/0015-single-user-table.md), reaffirmed on 2026-10-29.
 
 Core relationships:
 
