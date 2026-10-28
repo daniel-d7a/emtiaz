@@ -42,6 +42,8 @@ describe('Phase 3: student endpoints', () => {
     expect(g.course.title).toBe('Physics 10');
     expect(g.group.joinCode).toBeDefined();
     expect(g).toHaveProperty('progress');
+    expect(g.course).not.toHaveProperty('deletedAt');
+    expect(g.group).not.toHaveProperty('deletedAt');
   });
 
   it('returns home stats and latest courses', async () => {
@@ -96,10 +98,13 @@ describe('Phase 3: student endpoints', () => {
     expect(res.body.teacher.theme.primary).toBe('#1D4ED8');
     expect(res.body.teacher.slug).toBe('teacher-page');
     expect(res.body.modules[0].lessons).toHaveLength(2);
+    expect(res.body.course).not.toHaveProperty('deletedAt');
     const l1 = res.body.modules[0].lessons[0];
     expect(l1.unlocked).toBe(true);
     expect(l1.hasQuiz).toBe(true);
     expect(l1.completed).toBe(false);
+    expect(l1).not.toHaveProperty('deletedAt');
+    expect(l1.attachments.every((a: any) => !('r2ObjectKey' in a))).toBe(true);
   });
 
   it('locks lessons with a groupLessonAccess row', async () => {

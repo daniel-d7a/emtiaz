@@ -92,6 +92,15 @@ describe('Phase 2: auth & onboarding', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ name: 'Salim B', phoneNumber: '+96891119999' });
     expect(res.body.subjectCategoryId).toBeDefined(); // subject normalized to the taxonomy FK
+    expect(res.body).not.toHaveProperty('adminRoleId');
+    expect(res.body).not.toHaveProperty('deletedAt');
+    expect(res.body).not.toHaveProperty('landingBanner');
+    const me = await s.get('/api/me');
+    expect(me.status).toBe(200);
+    expect(me.body.user).not.toHaveProperty('adminRoleId');
+    expect(me.body.user).not.toHaveProperty('deletedAt');
+    expect(me.body.user).not.toHaveProperty('image');
+    expect(me.body.user).not.toHaveProperty('landingBanner');
     const res2 = await s.patch('/api/me').send({ phoneNumber: '' });
     expect(res2.status).toBe(200);
     expect(res2.body.phoneNumber).toBeNull();
@@ -132,7 +141,9 @@ describe('Phase 2: auth & onboarding', () => {
 
       const own = await s.patch('/api/me').send({ image: up.body.objectKey });
       expect(own.status).toBe(200);
-      expect(own.body.image).toBe(up.body.objectKey);
+      expect(own.body).not.toHaveProperty('image');
+      const savedRow = await pool.query('SELECT image FROM "user" WHERE id=$1', [userId]);
+      expect(savedRow.rows[0].image).toBe(up.body.objectKey);
 
       const av = await s.get('/api/me/avatar');
       expect(av.status).toBe(302);
@@ -141,7 +152,7 @@ describe('Phase 2: auth & onboarding', () => {
       const storage = app.get(StorageService);
       const del = jest.spyOn(storage, 'deleteObject').mockResolvedValue();
       const cleared = await s.patch('/api/me').send({ image: null });
-      expect(cleared.body.image).toBeNull();
+      expect(cleared.body).not.toHaveProperty('image');
       expect(del).toHaveBeenCalledWith(up.body.objectKey);
       del.mockRestore();
       const none = await s.get('/api/me/avatar');

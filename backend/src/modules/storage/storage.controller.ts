@@ -16,6 +16,7 @@ import {
 import { Roles } from '../../auth/roles.decorator';
 import { StorageService } from './storage.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { serializeAttachment } from '../../lib/serializers';
 
 @Controller()
 @Injectable()
@@ -35,13 +36,7 @@ export class StorageController {
     }
     const objectKey = StorageService.buildObjectKey(dto.courseId, dto.lessonId, dto.fileName);
     const uploadUrl = await this.storage.presignedPut(objectKey);
-    return {
-      objectKey,
-      uploadUrl,
-      key: objectKey,
-      method: 'PUT',
-      maxBytes: 100 * 1024 * 1024,
-    };
+    return { objectKey, uploadUrl };
   }
 
   @Roles('TEACHER')
@@ -142,7 +137,7 @@ export class StorageController {
         mimeType: dto.mimeType,
       })
       .returning();
-    return row;
+    return serializeAttachment(row);
   }
 
   @Roles('TEACHER')
@@ -159,7 +154,7 @@ export class StorageController {
   async download(@Req() req: Request, @Param('id') id: string) {
     const row = await this.readableAttachment(req.user!, id);
     if (!row.r2ObjectKey) throw new NotFoundException('Attachment has no file');
-    return { id: row.id, url: await this.storage.presignedGet(row.r2ObjectKey) };
+    return { url: await this.storage.presignedGet(row.r2ObjectKey) };
   }
 
   @Roles('STUDENT', 'TEACHER', 'ADMIN')

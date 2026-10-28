@@ -6,6 +6,7 @@ import { logger } from '../../lib/logger';
 import { WHATSAPP_SENDER, WhatsAppSender } from './whatsapp-sender';
 import { EMAIL_SENDER, EmailSender } from './email-sender';
 import { NotificationSettingsService, type NotificationType } from './notification-settings.service';
+import { serializeAdminNotification, serializeInboxItem } from '../../lib/serializers';
 
 @Injectable()
 export class NotificationsService {
@@ -46,13 +47,14 @@ export class NotificationsService {
     }
   }
 
-  inbox(userId: string, limit = 30) {
-    return db
+  async inbox(userId: string, limit = 30) {
+    const rows = await db
       .select()
       .from(inboxNotifications)
       .where(eq(inboxNotifications.userId, userId))
       .orderBy(desc(inboxNotifications.createdAt))
       .limit(Math.min(limit, 100));
+    return rows.map(serializeInboxItem);
   }
 
   async unreadCount(userId: string) {
@@ -79,8 +81,13 @@ export class NotificationsService {
     return { ok: true };
   }
 
-  recent(limit = 50) {
-    return db.select().from(notifications).orderBy(desc(notifications.createdAt)).limit(Math.min(limit, 200));
+  async recent(limit = 50) {
+    const rows = await db
+      .select()
+      .from(notifications)
+      .orderBy(desc(notifications.createdAt))
+      .limit(Math.min(limit, 200));
+    return rows.map(serializeAdminNotification);
   }
 
   private async enabled(channel: 'whatsapp' | 'email' | 'inApp', type: NotificationType) {

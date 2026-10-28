@@ -10,6 +10,16 @@ import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 import {
+  serializeAttachment,
+  serializeCourse,
+  serializeGroup,
+  serializeLesson,
+  serializeManualGradeColumn,
+  serializeModule,
+  serializeQuiz,
+  serializeTeacherQuizQuestion,
+} from '../../lib/serializers';
+import {
   categories,
   courses,
   grades,
@@ -189,7 +199,7 @@ export class TeacherService {
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )[0];
       return {
-        ...c,
+        ...serializeCourse(c),
         imageUrl: imageUrls.get(c.id) ?? null,
         analytics: {
           students: cStudentIds.size,
@@ -206,7 +216,7 @@ export class TeacherService {
           ).length;
           const groupPossible = memberIds.size * cLessonIds.size;
           return {
-            ...g,
+            ...serializeGroup(g),
             studentCount: members.length,
             progress: groupPossible ? Math.round((groupDone / groupPossible) * 100) : 0,
           };
@@ -250,7 +260,7 @@ export class TeacherService {
         categoryId,
       })
       .returning();
-    return course;
+    return serializeCourse(course);
   }
 
   private async ensureTaxonomy(
@@ -300,7 +310,7 @@ export class TeacherService {
     if (before.image && before.image !== updated.image) {
       await this.storage.deleteObject(before.image);
     }
-    return updated;
+    return serializeCourse(updated);
   }
 
   async addModule(
@@ -317,7 +327,7 @@ export class TeacherService {
       .insert(modules)
       .values({ courseId, title, displayOrder: existing.length })
       .returning();
-    return mod;
+    return serializeModule(mod);
   }
 
   async reorderModules(
@@ -353,7 +363,7 @@ export class TeacherService {
       .set(dto)
       .where(eq(modules.id, moduleId))
       .returning();
-    return updated;
+    return serializeModule(updated);
   }
 
   async addLesson(
@@ -385,7 +395,7 @@ export class TeacherService {
           Math.max(-1, ...existing.map((l) => l.displayOrder), unitQuiz?.displayOrder ?? -1) + 1,
       })
       .returning();
-    return lesson;
+    return serializeLesson(lesson);
   }
 
   async updateLesson(
@@ -407,7 +417,7 @@ export class TeacherService {
       .set(dto)
       .where(eq(lessons.id, lessonId))
       .returning();
-    return updated;
+    return serializeLesson(updated);
   }
 
   async reorderModuleItems(
@@ -510,13 +520,15 @@ export class TeacherService {
       }
     }
     const withQuestions = (quiz: typeof quizRows[number]) => ({
-      ...quiz,
+      ...serializeQuiz(quiz),
       questions: questionRows
         .filter((q) => q.quizId === quiz.id)
-        .map((q) => ({
-          ...q,
-          imageUrl: q.imageKey ? imageUrls.get(q.imageKey) ?? null : null,
-        })),
+        .map((q) =>
+          serializeTeacherQuizQuestion(
+            q,
+            q.imageKey ? imageUrls.get(q.imageKey) ?? null : null,
+          ),
+        ),
     });
     const courseQuiz = quizRows.find((q) => q.courseId === courseId);
     return {
@@ -524,16 +536,18 @@ export class TeacherService {
       modules: mods.map((m) => {
         const moduleQuiz = quizRows.find((q) => q.moduleId === m.id);
         return {
-          ...m,
+          ...serializeModule(m),
           quiz: moduleQuiz ? withQuestions(moduleQuiz) : null,
           lessons: allLessons
             .filter((l) => l.moduleId === m.id)
             .map((l) => {
               const quiz = quizRows.find((q) => q.lessonId === l.id);
               return {
-                ...l,
+                ...serializeLesson(l),
                 quiz: quiz ? withQuestions(quiz) : null,
-                attachments: attachments.filter((a) => a.lessonId === l.id),
+                attachments: attachments
+                  .filter((a) => a.lessonId === l.id)
+                  .map(serializeAttachment),
               };
             }),
         };
@@ -647,7 +661,10 @@ export class TeacherService {
           .returning()
       : [];
 
-    return { ...quiz, questions: inserted };
+    return {
+      ...serializeQuiz(quiz),
+      questions: inserted.map((q) => serializeTeacherQuizQuestion(q, null)),
+    };
   }
 
   async deleteLesson(user: { id: string; role: string }, lessonId: string) {
@@ -740,7 +757,7 @@ export class TeacherService {
         joinCode,
       })
       .returning();
-    return group;
+    return serializeGroup(group);
   }
 
   async updateGroup(
@@ -784,7 +801,7 @@ export class TeacherService {
       .set(patch)
       .where(eq(groups.id, groupId))
       .returning();
-    return updated;
+    return serializeGroup(updated);
   }
 
   async groupPacing(user: { id: string; role: string }, groupId: string) {
@@ -846,18 +863,18 @@ export class TeacherService {
       }
     }
     return {
-      group,
+      group: serializeGroup(group),
       lessons: allLessons.map((lesson) => {
         const row = accessRows.find((access) => access.lessonId === lesson.id);
         return {
-          ...lesson,
+          ...serializeLesson(lesson),
           unlocked: row ? row.isUnlocked : group.unlockAllByDefault,
           overridden: !!row,
           hidden: row?.isHidden ?? false,
         };
       }),
       quizzes: orderedQuizzes.map(({ quiz, scope, contextTitle }) => ({
-        ...quiz,
+        ...serializeQuiz(quiz),
         scope,
         contextTitle,
         hidden:
@@ -1002,7 +1019,7 @@ export class TeacherService {
         : [];
 
     return {
-      group,
+      group: serializeGroup(group),
       students: roster.map((r) => {
         const done = completions.filter(
           (c) =>
@@ -1207,8 +1224,8 @@ export class TeacherService {
     });
 
     return {
-      group,
-      startDate: group.createdAt,
+      group: serializeGroup(group),
+      startDate: group.createdAt.toISOString(),
       lessons: {
         taken: lessonsTaken,
         total: courseLessons.length,
@@ -1528,12 +1545,12 @@ export class TeacherService {
       : [];
 
     return {
-      group,
+      group: serializeGroup(group),
       students: roster,
       attendance,
       quizColumns,
       quizCells: cells,
-      manualColumns: manualCols,
+      manualColumns: manualCols.map(serializeManualGradeColumn),
       manualCells: manualVals.map((v) => ({
         columnId: v.columnId,
         studentId: v.studentId,
@@ -1562,7 +1579,7 @@ export class TeacherService {
         displayOrder: existing.length,
       })
       .returning();
-    return col;
+    return serializeManualGradeColumn(col);
   }
 
   async deleteGradeColumn(

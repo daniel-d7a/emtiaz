@@ -66,6 +66,9 @@ describe('Phase 5: admin endpoints', () => {
     expect(salim.courseCount).toBeGreaterThanOrEqual(1);
     expect(salim.groupCount).toBeGreaterThanOrEqual(2);
     expect(salim.uniqueStudentCount).toBeGreaterThanOrEqual(2);
+    expect(salim).not.toHaveProperty('adminRoleId');
+    expect(salim).not.toHaveProperty('image');
+    expect(salim).not.toHaveProperty('landingBanner');
 
     const combined = await admin.get(
       `/api/admin/teachers?name=salim&phone=90000001&subjectId=${salim.subjectCategoryId}`,
@@ -95,6 +98,9 @@ describe('Phase 5: admin endpoints', () => {
     expect(edited.status).toBe(200);
     expect(edited.body.name).toBe('Edited Teacher');
     expect(edited.body.phoneNumber).toBe('+96895550002');
+    expect(edited.body).not.toHaveProperty('adminRoleId');
+    expect(edited.body).not.toHaveProperty('image');
+    expect(edited.body).not.toHaveProperty('landingBanner');
     const filtered = await admin.get('/api/admin/teachers?name=Edited');
     expect(filtered.body).toHaveLength(1);
     const audit = await admin.get('/api/admin/audit?action=teacher.update');
@@ -474,6 +480,7 @@ describe('Phase 5: admin endpoints', () => {
     expect(profile.body.children.map((c: any) => c.id)).toContain(world.s1.id);
     expect(profile.body.feedback[0].message).toBe('Monthly report');
     expect(profile.body.deliveredReports.some((n: any) => n.message === 'Delivered report')).toBe(true);
+    expect(profile.body.deliveredReports.every((n: any) => !('recipient' in n))).toBe(true);
 
     expect(
       (await admin.post('/api/admin/parent-links').send({
@@ -610,6 +617,7 @@ describe('Phase 5: admin endpoints', () => {
     const log = await admin.get('/api/admin/notifications');
     expect(log.status).toBe(200);
     expect(Array.isArray(log.body)).toBe(true);
+    expect(log.body.every((n: any) => !('recipient' in n))).toBe(true);
 
     await admin
       .patch('/api/admin/notification-settings')

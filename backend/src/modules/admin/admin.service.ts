@@ -30,6 +30,24 @@ import {
   users,
 } from '../../db/schema';
 import type { AdminPermission } from '../../lib/admin-permissions';
+import {
+  serializeAdminAuditEntry,
+  serializeAdminCourseRow,
+  serializeAdminDeliveredReport,
+  serializeAdminGroupRow,
+  serializeAdminParentChild,
+  serializeAdminParentLink,
+  serializeAdminParentProfile,
+  serializeAdminParentReport,
+  serializeAdminParentRow,
+  serializeAdminRole,
+  serializeAdminStudentProfile,
+  serializeAdminStudentRow,
+  serializeAdminTeacherRow,
+  serializeAdminUser,
+  serializeCourse,
+  serializeUser,
+} from '../../lib/serializers';
 
 @Injectable()
 export class AdminService implements OnApplicationBootstrap {
@@ -170,12 +188,14 @@ export class AdminService implements OnApplicationBootstrap {
       list: Array<{ teacherId: string; value: number | string }>,
       teacherId: string,
     ) => Number(list.find((row) => row.teacherId === teacherId)?.value ?? 0);
-    return rows.map((row) => ({
-      ...row,
-      courseCount: numberFor(courseCounts, row.id),
-      groupCount: numberFor(groupCounts, row.id),
-      uniqueStudentCount: numberFor(studentCounts, row.id),
-    }));
+    return rows.map((row) =>
+      serializeAdminTeacherRow({
+        ...row,
+        courseCount: numberFor(courseCounts, row.id),
+        groupCount: numberFor(groupCounts, row.id),
+        uniqueStudentCount: numberFor(studentCounts, row.id),
+      }),
+    );
   }
 
   async onApplicationBootstrap() {
@@ -266,7 +286,7 @@ export class AdminService implements OnApplicationBootstrap {
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(auditLogs.createdAt))
       .limit(Math.min(Math.max(limit, 1), 200));
-    return rows;
+    return rows.map(serializeAdminAuditEntry);
   }
 
   async errorTail() {
@@ -339,7 +359,7 @@ export class AdminService implements OnApplicationBootstrap {
         if (error?.code === '23505') throw new ConflictException('Phone number already in use');
         throw error;
       });
-    return updated;
+    return serializeUser(updated);
   }
 
   async restoreUser(userId: string) {
@@ -438,12 +458,14 @@ export class AdminService implements OnApplicationBootstrap {
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
       .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(and(isNull(groups.deletedAt), isNull(courses.deletedAt)));
-    return students.map((s) => ({
-      ...s,
-      enrollments: memberships
-        .filter((m) => m.studentId === s.id)
-        .map((m) => ({ groupName: m.groupName, courseId: m.courseId, courseTitle: m.courseTitle })),
-    }));
+    return students.map((s) =>
+      serializeAdminStudentRow({
+        ...s,
+        enrollments: memberships
+          .filter((m) => m.studentId === s.id)
+          .map((m) => ({ groupName: m.groupName, courseId: m.courseId, courseTitle: m.courseTitle })),
+      }),
+    );
   }
 
   async updateStudent(
@@ -468,7 +490,7 @@ export class AdminService implements OnApplicationBootstrap {
         if (error?.code === '23505') throw new ConflictException('Phone number already in use');
         throw error;
       });
-    return updated;
+    return serializeUser(updated);
   }
 
   async studentProfile(studentId: string) {
@@ -567,7 +589,7 @@ export class AdminService implements OnApplicationBootstrap {
       .where(eq(quizAttempts.studentId, studentId));
     const quizMax = Number(quiz?.maxScore ?? 0);
 
-    return {
+    return serializeAdminStudentProfile({
       ...student,
       parents,
       groups: groupRows.map((group) => {
@@ -586,7 +608,7 @@ export class AdminService implements OnApplicationBootstrap {
           ? Math.round((Number(quiz?.score ?? 0) / quizMax) * 100)
           : 0,
       },
-    };
+    });
   }
 
   async removeStudentFromGroup(studentId: string, groupId: string) {
@@ -699,12 +721,14 @@ export class AdminService implements OnApplicationBootstrap {
             ),
           )
       : [];
-    return parents.map((p) => ({
-      ...p,
-      children: links
-        .filter((l) => l.parentId === p.id)
-        .map(({ parentId: _parentId, ...child }) => child),
-    }));
+    return parents.map((p) =>
+      serializeAdminParentRow({
+        ...p,
+        children: links
+          .filter((l) => l.parentId === p.id)
+          .map(({ parentId: _parentId, ...child }) => child),
+      }),
+    );
   }
 
   async updateParent(
@@ -728,7 +752,7 @@ export class AdminService implements OnApplicationBootstrap {
         if (error?.code === '23505') throw new ConflictException('Phone number already in use');
         throw error;
       });
-    return updated;
+    return serializeUser(updated);
   }
 
   async parentProfile(parentId: string) {
@@ -800,7 +824,12 @@ export class AdminService implements OnApplicationBootstrap {
           .limit(50)
       : [];
 
-    return { ...parent, children, feedback: reports, deliveredReports };
+    return serializeAdminParentProfile({
+      ...parent,
+      children: children.map(serializeAdminParentChild),
+      feedback: reports.map(serializeAdminParentReport),
+      deliveredReports: deliveredReports.map(serializeAdminDeliveredReport),
+    });
   }
 
   async linkParentChild(parentId: string, studentId: string) {
@@ -885,18 +914,22 @@ export class AdminService implements OnApplicationBootstrap {
           .where(inArray(groupStudents.groupId, groupIds))
           .groupBy(groupStudents.groupId)
       : [];
-    return rows.map((r) => ({
-      ...r.course,
-      teacherName: r.teacherName,
-      categoryName: r.categoryName,
-      gradeName: r.gradeName,
-      groups: groupRows
-        .filter((g) => g.courseId === r.course.id)
-        .map((g) => ({
-          ...g,
-          studentCount: Number(counts.find((c) => c.groupId === g.id)?.c ?? 0),
-        })),
-    }));
+    return rows.map((r) =>
+      serializeAdminCourseRow({
+        course: r.course,
+        teacherName: r.teacherName,
+        categoryName: r.categoryName,
+        gradeName: r.gradeName,
+        groups: groupRows
+          .filter((g) => g.courseId === r.course.id)
+          .map((g) => ({
+            id: g.id,
+            name: g.name,
+            joinCode: g.joinCode,
+            studentCount: Number(counts.find((c) => c.groupId === g.id)?.c ?? 0),
+          })),
+      }),
+    );
   }
 
   async createCourse(dto: {
@@ -925,7 +958,7 @@ export class AdminService implements OnApplicationBootstrap {
         semester: dto.semester?.trim() || null,
       })
       .returning();
-    return course;
+    return serializeCourse(course);
   }
 
   async updateCourse(
@@ -963,7 +996,7 @@ export class AdminService implements OnApplicationBootstrap {
       })
       .where(eq(courses.id, courseId))
       .returning();
-    return updated;
+    return serializeCourse(updated);
   }
 
   private async assertTeacher(teacherId: string) {
@@ -987,7 +1020,7 @@ export class AdminService implements OnApplicationBootstrap {
       ...(deleted ? [] : [isNull(courses.deletedAt)]),
     ];
     if (filters.courseId) conditions.push(eq(groups.courseId, filters.courseId));
-    return db
+    const rows = await db
       .select({
         id: groups.id,
         name: groups.name,
@@ -1001,12 +1034,13 @@ export class AdminService implements OnApplicationBootstrap {
       .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(and(...conditions))
       .orderBy(asc(groups.name));
+    return rows.map(serializeAdminGroupRow);
   }
 
   async listParentLinks(filters: { deleted?: string } = {}) {
     const parent = alias(users, 'parent_user');
     const student = alias(users, 'student_user');
-    return db
+    const rows = await db
       .select({
         parentId: parentStudents.parentId,
         parentName: parent.name,
@@ -1023,6 +1057,7 @@ export class AdminService implements OnApplicationBootstrap {
           : isNull(parentStudents.deletedAt),
       )
       .orderBy(asc(parent.name), asc(student.name));
+    return rows.map(serializeAdminParentLink);
   }
 
   async deleteCourse(courseId: string) {
@@ -1127,11 +1162,12 @@ export class AdminService implements OnApplicationBootstrap {
   // ---------- Admin roles ----------
 
   async listAdminRoles() {
-    return db.select().from(adminRoles).orderBy(asc(adminRoles.name));
+    const rows = await db.select().from(adminRoles).orderBy(asc(adminRoles.name));
+    return rows.map(serializeAdminRole);
   }
   async createAdminRole(name: string, permissions: AdminPermission[]) {
     const [row] = await db.insert(adminRoles).values({ name, permissions }).returning();
-    return row;
+    return serializeAdminRole(row);
   }
   async updateAdminRole(id: string, dto: { name?: string; permissions?: AdminPermission[] }) {
     const [row] = await db
@@ -1140,10 +1176,10 @@ export class AdminService implements OnApplicationBootstrap {
       .where(eq(adminRoles.id, id))
       .returning();
     if (!row) throw new NotFoundException('Admin role not found');
-    return row;
+    return serializeAdminRole(row);
   }
   async listAdmins() {
-    return db
+    const rows = await db
       .select({
         id: users.id,
         name: users.name,
@@ -1157,6 +1193,7 @@ export class AdminService implements OnApplicationBootstrap {
       .leftJoin(adminRoles, eq(users.adminRoleId, adminRoles.id))
       .where(and(eq(users.role, 'ADMIN'), isNull(users.deletedAt)))
       .orderBy(asc(users.name));
+    return rows.map(serializeAdminUser);
   }
   async setAdminRole(userId: string, roleId: string | null) {
     if (roleId) {

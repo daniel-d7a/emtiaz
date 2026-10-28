@@ -26,11 +26,9 @@ export type User = {
   emailVerified: boolean;
   phoneNumber: string | null;
   phoneNumberVerified: boolean | null;
-  image: string | null;
   role: Role;
   landingSlug: string | null;
   landingBio: string | null;
-  landingBanner: string | null;
   landingTheme: TeacherTheme | null;
   landingPublished: boolean;
   isActive: boolean;
@@ -39,7 +37,6 @@ export type User = {
   gradeId: string | null;
   createdAt: string;
   updatedAt: string;
-  deletedAt: string | null;
 };
 
 export type AdminPermission =
@@ -57,15 +54,8 @@ export type AdminPermission =
 
 export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
   Partial<
-    Pick<
-      User,
-      | 'subjectCategoryId'
-      | 'phoneNumber'
-      | 'gradeId'
-      | 'image'
-      | 'landingSlug'
-    >
-  > & { permissions?: AdminPermission[] };
+    Pick<User, 'subjectCategoryId' | 'phoneNumber' | 'gradeId' | 'landingSlug'>
+  > & { image?: string | null; permissions?: AdminPermission[] };
 
 export type Session = { user: SessionUser; session?: unknown } | null;
 
@@ -85,6 +75,145 @@ export type AdminUser = {
   adminRoleId: string | null;
   adminRoleName: string | null;
   createdAt: string;
+};
+
+export type AdminTeacherRow = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
+  deletedAt: string | null;
+  landingSlug: string | null;
+  landingPublished: boolean;
+  subjectCategoryId: string | null;
+  subject: { id: string | null; name: string | null } | null;
+  courseCount: number;
+  groupCount: number;
+  uniqueStudentCount: number;
+};
+
+export type AdminStudentRow = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  gradeId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  deletedAt: string | null;
+  enrollments: Array<{ groupName: string; courseTitle: string; courseId: string }>;
+};
+
+export type AdminStudentGroup = {
+  groupId: string;
+  groupName: string;
+  courseId: string;
+  courseTitle: string;
+  teacherId: string;
+  teacherName: string;
+  joinedAt: string;
+  attendancePercent: number;
+};
+
+export type AdminStudentProfile = Omit<AdminStudentRow, 'enrollments'> & {
+  gradeName: string | null;
+  parents: Array<{ id: string; name: string; email: string; phoneNumber: string | null }>;
+  groups: AdminStudentGroup[];
+  quiz: { attempts: number; averagePercent: number };
+};
+
+export type AdminParentChild = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  gradeName: string | null;
+};
+
+export type AdminParentRow = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  isActive: boolean;
+  createdAt: string;
+  deletedAt: string | null;
+  children: Array<Pick<AdminParentChild, 'id' | 'name' | 'email'>>;
+};
+
+export type AdminDeliveredReport = {
+  id: string;
+  channel: string;
+  type: string;
+  message: string;
+  status: string;
+  createdAt: string;
+};
+
+export type AdminParentReport = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  message: string;
+  createdAt: string;
+};
+
+export type AdminParentProfile = Omit<AdminParentRow, 'children'> & {
+  children: AdminParentChild[];
+  feedback: AdminParentReport[];
+  deliveredReports: AdminDeliveredReport[];
+};
+
+export type AdminCourseRow = Course & {
+  deletedAt: string | null;
+  teacherName: string;
+  categoryName: string | null;
+  gradeName: string | null;
+  groups: Array<{ id: string; name: string; joinCode: string; studentCount: number }>;
+};
+
+export type AdminGroupRow = {
+  id: string;
+  name: string;
+  joinCode: string;
+  isActive: boolean;
+  courseId: string;
+  courseTitle: string;
+  deletedAt: string | null;
+};
+
+export type AdminParentLink = {
+  parentId: string;
+  parentName: string;
+  studentId: string;
+  studentName: string;
+  deletedAt: string | null;
+};
+
+export type AdminNotification = {
+  id: string;
+  channel: string;
+  type: string;
+  message: string;
+  status: string;
+  createdAt: string;
+};
+
+export type AdminAuditEntry = {
+  id: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  endpoint: string | null;
+  responseType: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  actorName: string;
+  actorPhone: string | null;
+  actorRole: Role;
 };
 export type MeResponse = {
   user: User;
@@ -228,6 +357,9 @@ export type Attachment = {
   createdAt: string;
 };
 
+/** Student-facing attachment: storage keys stay server-side. */
+export type StudentAttachment = Omit<Attachment, 'r2ObjectKey'>;
+
 export type Quiz = {
   id: string;
   lessonId: string | null;
@@ -286,7 +418,7 @@ export type StudentLesson = Lesson & {
   completed: boolean;
   hasQuiz: boolean;
   bestAttempt: QuizAttempt | null;
-  attachments: Attachment[];
+  attachments: StudentAttachment[];
 };
 
 export type StudentModule = Module & {

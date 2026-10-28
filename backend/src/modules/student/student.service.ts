@@ -25,6 +25,16 @@ import {
   users,
 } from '../../db/schema';
 import { StorageService } from '../storage/storage.service';
+import {
+  serializeCourse,
+  serializeGroup,
+  serializeLesson,
+  serializeModule,
+  serializeQuiz,
+  serializeQuizAttempt,
+  serializeQuizQuestion,
+  serializeStudentAttachment,
+} from '../../lib/serializers';
 
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -195,16 +205,17 @@ export class StudentService {
       );
       const total = unlockedIds.size;
       const done = completions.filter((c) => unlockedIds.has(c.lessonId)).length;
-      const { teacher, ...rest } = r;
+      const { teacher } = r;
       return {
-        ...rest,
+        group: serializeGroup(r.group),
+        course: serializeCourse(r.course),
         teacher: {
           name: teacher.name,
           subject: teacher.subject,
           theme: teacher.theme,
           bannerUrl: teacher.banner ? bannerUrls.get(teacher.banner) ?? null : null,
         },
-        joinedAt: r.joinedAt,
+        joinedAt: r.joinedAt.toISOString(),
         progress: total === 0 ? 0 : Math.round((done / total) * 100),
         completedLessons: done,
         totalLessons: total,
@@ -267,7 +278,7 @@ export class StudentService {
         .insert(groupStudents)
         .values({ groupId: group.group.id, studentId });
     }
-    return { group: group.group, course: group.course };
+    return { group: serializeGroup(group.group), course: serializeCourse(group.course) };
 
   }
 
@@ -347,10 +358,12 @@ export class StudentService {
       return row ? row.isUnlocked : group.unlockAllByDefault;
     };
 
-    const bestFor = (quizId?: string) =>
-      attemptRows
+    const bestFor = (quizId?: string) => {
+      const attempt = attemptRows
         .filter((a) => quizId && a.quizId === quizId)
-        .sort((a, b) => b.score - a.score)[0] ?? null;
+        .sort((a, b) => b.score - a.score)[0];
+      return attempt ? serializeQuizAttempt(attempt) : null;
+    };
     const courseQuiz = quizRows.find(
       (q) => q.courseId === group.courseId && !hiddenQuizIds.has(q.id),
     );
@@ -370,7 +383,7 @@ export class StudentService {
       .where(eq(users.id, course.teacherId));
 
     return {
-      course,
+      course: serializeCourse(course),
       teacher: {
         name: teacher?.name ?? '',
         theme: teacher?.theme ?? null,
@@ -378,15 +391,15 @@ export class StudentService {
         slug: teacher?.published ? teacher.slug : null,
       },
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
-      quiz: courseQuiz ? { ...courseQuiz, bestAttempt: bestFor(courseQuiz.id) } : null,
+      quiz: courseQuiz ? { ...serializeQuiz(courseQuiz), bestAttempt: bestFor(courseQuiz.id) } : null,
       modules: mods.map((m) => {
         const moduleQuiz = quizRows.find(
           (q) => q.moduleId === m.id && !hiddenQuizIds.has(q.id),
         );
         return {
-          ...m,
+          ...serializeModule(m),
           quiz: moduleQuiz
-            ? { ...moduleQuiz, bestAttempt: bestFor(moduleQuiz.id) }
+            ? { ...serializeQuiz(moduleQuiz), bestAttempt: bestFor(moduleQuiz.id) }
             : null,
           lessons: visibleLessons
             .filter((l) => l.moduleId === m.id)
@@ -395,16 +408,18 @@ export class StudentService {
                 (q) => q.lessonId === l.id && !hiddenQuizIds.has(q.id),
               );
               return {
-                ...l,
+                ...serializeLesson(l),
                 unlocked: isUnlocked(l.id),
                 completed: completions.some((c) => c.lessonId === l.id),
                 hasQuiz: !!quiz,
                 bestAttempt: bestFor(quiz?.id),
-                attachments: attachments.filter(
-                  (a) =>
-                    a.lessonId === l.id &&
-                    (!a.groupId || a.groupId === groupId),
-                ),
+                attachments: attachments
+                  .filter(
+                    (a) =>
+                      a.lessonId === l.id &&
+                      (!a.groupId || a.groupId === groupId),
+                  )
+                  .map(serializeStudentAttachment),
               };
             }),
         };
@@ -511,15 +526,10 @@ export class StudentService {
       }
     }
     return {
-      quiz,
-      questions: questions.map((q) => ({
-        id: q.id,
-        questionType: q.questionType,
-        prompt: q.prompt,
-        imageUrl: q.imageKey ? imageUrls.get(q.imageKey) ?? null : null,
-        options: q.options,
-        points: q.points,
-      })),
+      quiz: serializeQuiz(quiz),
+      questions: questions.map((q) =>
+        serializeQuizQuestion(q, q.imageKey ? imageUrls.get(q.imageKey) ?? null : null),
+      ),
     };
   }
 

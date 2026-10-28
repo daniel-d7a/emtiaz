@@ -78,6 +78,7 @@ describe('public teacher landing', () => {
     );
     expect(detail.status).toBe(200);
     expect(detail.body.course.title).toBe('Physics 10');
+    expect(detail.body.course).not.toHaveProperty('deletedAt');
     expect(detail.body.modules[0].lessons.length).toBeGreaterThan(0);
     expect(detail.body.teacher.name).toBe(TEACHER.name);
 

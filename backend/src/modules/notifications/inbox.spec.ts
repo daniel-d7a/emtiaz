@@ -32,7 +32,15 @@ describe('in-app notification inbox', () => {
     const list = await student.get('/api/notifications');
     expect(list.status).toBe(200);
     expect(list.body).toHaveLength(2);
-    expect(list.body.every((n: any) => n.userId === world.s1.id)).toBe(true);
+    expect(list.body.every((n: any) => !('userId' in n))).toBe(true);
+    expect(list.body[0]).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        type: expect.any(String),
+        message: expect.any(String),
+        createdAt: expect.any(String),
+      }),
+    );
 
     expect((await student.get('/api/notifications/unread-count')).body.unread).toBe(2);
     expect((await student.post(`/api/notifications/${rows[0].id}/read`)).status).toBe(201);

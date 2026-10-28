@@ -7,6 +7,7 @@ import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 import { ParentService } from '../parent/parent.service';
+import { serializeCourse, serializeGroup, serializeMe, serializeUser } from '../../lib/serializers';
 
 const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`.slice(0, 6);
@@ -57,7 +58,7 @@ export class OnboardingService {
       await this.notifyEnrolled(studentId, groupRow);
     }
 
-    return { group: groupRow, course };
+    return { group: serializeGroup(groupRow), course: serializeCourse(course) };
   }
 
   /** One welcome note per new enrollment; failure never blocks the join. */
@@ -119,7 +120,8 @@ export class OnboardingService {
       },
       returnHeaders: true,
     });
-    return data.response.user;
+    const [user] = await db.select().from(users).where(eq(users.id, data.response.user.id));
+    return serializeUser(user);
   }
 
   async createParent(dto: {
@@ -143,7 +145,8 @@ export class OnboardingService {
     if (dto.studentPhone) {
       await this.parents.linkByPhone(data.response.user.id, dto.studentPhone);
     }
-    return data.response.user;
+    const [user] = await db.select().from(users).where(eq(users.id, data.response.user.id));
+    return serializeUser(user);
   }
 
   async createTeacher(dto: {
@@ -165,7 +168,8 @@ export class OnboardingService {
       },
       returnHeaders: true,
     });
-    return data.response.user;
+    const [user] = await db.select().from(users).where(eq(users.id, data.response.user.id));
+    return serializeUser(user);
   }
 
   listCategories() {
@@ -226,7 +230,7 @@ export class OnboardingService {
     }
     if (dto.landingTheme !== undefined) allowed.landingTheme = dto.landingTheme;
     if (dto.landingPublished !== undefined) allowed.landingPublished = dto.landingPublished;
-    if (!Object.keys(allowed).length) return user;
+    if (!Object.keys(allowed).length) return serializeUser(user);
     const [updated] = await db
       .update(users)
       .set(allowed)
@@ -254,17 +258,17 @@ export class OnboardingService {
     ) {
       await this.storage.deleteObject(oldBanner);
     }
-    return updated;
+    return serializeUser(updated);
   }
 
   async me(userId: string) {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new NotFoundException('User not found');
-    return {
+    return serializeMe(
       user,
-      avatarUrl: await this.avatarUrl(userId),
-      bannerUrl: await this.bannerUrl(userId),
-    };
+      await this.avatarUrl(userId),
+      await this.bannerUrl(userId),
+    );
   }
 
   /** Signed URL for the caller's public banner, or null when unset/unconfigured. */

@@ -6,6 +6,12 @@ import { db } from '../../db';
 import { StorageService } from '../storage/storage.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
 import { categories, courses, grades, lessons, modules, users } from '../../db/schema';
+import {
+  serializeCourse,
+  serializePublicCourseCard,
+  serializePublicSupport,
+  serializePublicTeacher,
+} from '../../lib/serializers';
 
 @Controller()
 export class PublicController {
@@ -55,20 +61,20 @@ export class PublicController {
   private async publicTeacher(slug: string) {
     const teacher = await this.publishedTeacher(slug);
     const { id: _id, image, banner, ...rest } = teacher;
-    return {
+    return serializePublicTeacher({
       ...rest,
       avatarUrl: image ? `/api/public/teachers/${slug}/avatar` : null,
       bannerUrl: await this.signed(banner),
-    };
+    });
   }
 
   private async support() {
     const settings = await this.settings.get();
-    return {
+    return serializePublicSupport({
       email: settings.supportEmail,
       phone: settings.supportPhone,
       whatsapp: settings.supportWhatsapp,
-    };
+    });
   }
 
   @Public()
@@ -229,8 +235,14 @@ export class PublicController {
     return {
       courses: await Promise.all(
         rows.map(async ({ image, teacherId, teacherName, teacherSlug, teacherTheme, ...course }) => ({
-          ...course,
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          courseType: course.courseType,
+          semester: course.semester,
           teacher: { id: teacherId, name: teacherName, slug: teacherSlug!, theme: teacherTheme },
+          subject: course.subject,
+          grade: course.grade,
           imageUrl: await this.signed(image),
         })),
       ),
@@ -275,10 +287,9 @@ export class PublicController {
       .orderBy(asc(courses.title));
 
     const publicCourses = await Promise.all(
-      list.map(async ({ image, ...course }) => ({
-        ...course,
-        imageUrl: await this.signed(image),
-      })),
+      list.map(async ({ image, ...course }) =>
+        serializePublicCourseCard(course, await this.signed(image)),
+      ),
     );
     return {
       teacher: await this.publicTeacher(slug),
@@ -318,7 +329,7 @@ export class PublicController {
           .orderBy(asc(lessons.displayOrder))
       : [];
 
-    const { image, ...publicCourse } = course;
+    const { image } = course;
     return {
       teacher: {
         name: teacher.name,
@@ -327,7 +338,7 @@ export class PublicController {
         theme: teacher.theme,
         bannerUrl: await this.signed(teacher.banner),
       },
-      course: { ...publicCourse, imageUrl: await this.signed(image) },
+      course: { ...serializeCourse(course), imageUrl: await this.signed(image) },
       modules: mods.map((m) => ({
         ...m,
         lessons: allLessons.filter((l) => l.moduleId === m.id).map((l) => l.title),
