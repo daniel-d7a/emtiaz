@@ -70,6 +70,17 @@ restore); editing course content still belongs to the owning teacher. Admin can
 download any attachment and manually enroll a student. Teacher course creation may resolve a missing shared grade or skill
 name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
+### Billing (planned, behind `BILLING_ENABLED`)
+
+- `POST /api/billing/checkout`, `GET /api/billing/subscription`, and
+  `POST /api/billing/cancel` are teacher-only and scoped to the caller's own
+  subscription.
+- `POST /api/billing/webhook` is `@Public()` at the guard layer, but rejects
+  requests without a valid Thawani HMAC signature and never trusts
+  client-supplied amounts or plan ids.
+- Billing state never grants access to another user's courses, groups, or
+  students. See [ADR-0020](./adr/0020-billing-provider.md).
+
 ## Content access rules
 
 - A student is "in a course" only through `group_students` → `groups.course_id`.
