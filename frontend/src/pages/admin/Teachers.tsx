@@ -12,7 +12,7 @@ import { ArrowUpDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
+import { Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
 import { requireRole, useAdminPermissions } from '../../lib/session';
@@ -221,70 +221,90 @@ export default function AdminTeachers() {
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const hasFilters = !!(name.trim() || phone.trim() || subjectId || showDeleted);
+  const clearFilters = () => {
+    setName('');
+    setPhone('');
+    setSubjectId('');
+    setShowDeleted(false);
+  };
+
   return (
     <Page title={t('teachers')} wide>
-      <Card>
-        <div className="flex flex-wrap items-end gap-3">
-          <button
-            onClick={() => setShowDeleted((v) => !v)}
-            className={`min-h-12 rounded-xl px-4 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-          >
-            {t('showDeleted')}
-          </button>
-          <div className="min-w-40 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="min-w-40 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
-          <div className="min-w-40 grow">
+      <FilterLayout
+        search={
+          <>
+            <div className="min-w-40 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="min-w-40 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
+          </>
+        }
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="inline" size={16} /> {t('createTeacher')}
+          </Button>
+        }
+        filters={
+          <>
+            <button
+              onClick={() => setShowDeleted((v) => !v)}
+              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
+            >
+              {t('showDeleted')}
+            </button>
             <Select label={t('specialization')} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
               <option value="">{t('allSpecializations')}</option>
               {categories.data?.map((category) => (
                 <option key={category.id} value={category.id}>{localizeName(category.name, lang)}</option>
               ))}
             </Select>
-          </div>
-        </div>
-        <div className="mt-3 flex justify-end">
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="inline" size={16} /> {t('createTeacher')}
-          </Button>
-        </div>
-        {(setStatus.error ?? restoreUser.error ?? deleteUser.error) && (
-          <ErrorBox error={setStatus.error ?? restoreUser.error ?? deleteUser.error} />
-        )}
-        {teachers.isLoading ? <Loading /> : teachers.error ? <ErrorBox error={teachers.error} /> : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[860px] text-sm">
-              <thead className="bg-surface">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id} className="text-xs font-bold text-ink-soft">
-                    {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="sticky top-0 whitespace-nowrap bg-surface px-3 py-2 text-start">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-t border-line/60">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-2 align-top">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-                {!table.getRowModel().rows.length && (
-                  <tr><td colSpan={columns.length} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(teachers.data?.length ?? 0) >= limit && limit < 200 && (
-          <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
-        )}
-      </Card>
+            {hasFilters && (
+              <button type="button" onClick={clearFilters} className="text-start text-sm font-semibold text-primary underline">
+                {t('clearFilters')}
+              </button>
+            )}
+          </>
+        }
+      >
+        <Card>
+          {(setStatus.error ?? restoreUser.error ?? deleteUser.error) && (
+            <ErrorBox error={setStatus.error ?? restoreUser.error ?? deleteUser.error} />
+          )}
+          {teachers.isLoading ? <Loading /> : teachers.error ? <ErrorBox error={teachers.error} /> : (
+            <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+              <table className="w-full min-w-[860px] text-sm">
+                <thead className="bg-surface">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id} className="text-xs font-bold text-ink-soft">
+                      {headerGroup.headers.map((header) => (
+                        <th key={header.id} className="sticky top-0 whitespace-nowrap bg-surface px-3 py-2 text-start">
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="border-t border-line/60">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-2 align-top">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  {!table.getRowModel().rows.length && (
+                    <tr><td colSpan={columns.length} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {(teachers.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
+          )}
+        </Card>
+      </FilterLayout>
 
       {createOpen && (
         <CreateTeacherDialog

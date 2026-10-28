@@ -8,7 +8,7 @@ import { useLang } from '../../lib/i18n';
 export default function StudentCourses() {
   const { t } = useLang();
   return (
-    <Page title={t('browseCourses')}>
+    <Page title={t('browseCourses')} wide>
       <CourseBrowser />
     </Page>
   );

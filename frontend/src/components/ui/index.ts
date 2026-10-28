@@ -4,6 +4,7 @@ export { Card } from './Card';
 export { ConfirmDialog, Dialog, Sheet } from './Dialog';
 export { EmptyState } from './EmptyState';
 export { ErrorBox } from './ErrorBox';
+export { FilterLayout } from './FilterLayout';
 export { IconButton } from './IconButton';
 export { Input } from './Input';
 export { Loading } from './Loading';

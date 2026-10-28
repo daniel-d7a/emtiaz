@@ -87,8 +87,8 @@ components:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     rounded: "{rounded.md}"
-    padding: "12px 16px"
-    height: "48px"
+    padding: "8px 12px"
+    height: "40px"
   card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -179,7 +179,7 @@ The app is a single column capped at 768px (`max-w-3xl`) with 16px page padding 
 
 Landing grids use `auto-fit` with 270px feature cards, 240px steps, and 220px compact cards. The hero is a two-column `1.05fr / 0.95fr` grid at a 56px gap; it collapses to one column at 900px, where the parents section also stacks and the inline nav links disappear. At 560px the hero padding tightens, featured plans lose their scale, and CTAs become full width.
 
-Spacing follows an 8px rhythm (`4 / 8 / 12 / 16 / 24 / 32 / 56 / 72`). Inside cards the default padding is 20px in the app and 24px on the landing page, with 8–12px between stacked rows. Controls are at least 48px tall everywhere.
+Spacing follows an 8px rhythm (`4 / 8 / 12 / 16 / 24 / 32 / 56 / 72`). Inside cards the default padding is 20px in the app and 24px on the landing page, with 8–12px between stacked rows. Controls are 40px tall in dense filter and form layouts, and 48px for primary actions and phone navigation.
 
 ## Elevation & Depth
 
@@ -209,7 +209,7 @@ Borders are always 1px solid stone. Dashed borders are reserved for inline divid
 - **Hover / Focus:** color and border shifts only — no lift or shadow. Global focus is a 3px terracotta outline with 2px offset.
 
 ### Inputs / Fields
-- **Style:** 12px radius, 1px stone border, white fill, 48px minimum height, 12px × 16px padding.
+- **Style:** 12px radius, 1px stone border, white fill, 40px height, 12px horizontal padding.
 - **Label:** 13px, 600 weight, Soft Ink, placed above the field.
 - **Focus:** border shifts to Gulf Teal; no glow or shadow.
 - **Error:** Apricot Wash surface with Ink text; errors are announced, not only colored.
@@ -240,7 +240,7 @@ Borders are always 1px solid stone. Dashed borders are reserved for inline divid
 - **Do** place white cards on Warm Sand and separate them with 1px `#E7E5E4` borders.
 - **Do** keep terracotta to one attention point per screen.
 - **Do** design Arabic and RTL first, then mirror spacing and icons for English.
-- **Do** keep every phone control at least 48px tall.
+- **Do** keep primary phone actions and navigation at least 48px tall; dense filter controls may use 40px.
 - **Do** use 12px radii for controls and 16–20px for containers.
 - **Do** use the 3px terracotta focus outline with 2px offset on every interactive element.
 

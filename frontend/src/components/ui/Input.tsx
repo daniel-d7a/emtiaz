@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
         {...rest}
         ref={ref}
         aria-invalid={error ? true : undefined}
-        className={`w-full rounded-xl border bg-white px-4 py-3 min-h-12 outline-none focus:border-primary ${
+        className={`w-full rounded-xl border bg-white px-3 h-10 outline-none focus:border-primary ${
           error ? 'border-secondary' : 'border-line'
         } ${className}`}
       />

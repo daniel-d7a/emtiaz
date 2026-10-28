@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
 import {
-  Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select,
+  Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
@@ -131,122 +131,143 @@ export default function AdminStudents() {
     },
   });
 
+  const hasFilters = !!(name.trim() || phone.trim() || showDeleted);
+  const clearFilters = () => {
+    setName('');
+    setPhone('');
+    setShowDeleted(false);
+  };
+
   return (
     <Page title={t('students')} wide>
-      <Card>
-        <div className="flex flex-wrap items-end gap-3">
-          <button
-            onClick={() => setShowDeleted((v) => !v)}
-            className={`min-h-12 rounded-xl px-4 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-          >
-            {t('showDeleted')}
-          </button>
-          <div className="min-w-44 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="min-w-44 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
-        </div>
-        {linkedGroupId && (
-          <p className="mt-2 text-xs font-semibold text-primary">
-            {t('filteredByGroup')}{' '}
-            <Link to="/admin/students" search={{}} className="underline">{t('clearFilters')}</Link>
-          </p>
-        )}
-        <div className="mt-3 flex justify-end">
+      <FilterLayout
+        search={
+          <>
+            <div className="min-w-44 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="min-w-44 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
+          </>
+        }
+        actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="inline" size={16} /> {t('createStudent')}
           </Button>
-        </div>
-        {(setStatus.error ?? restoreUser.error ?? deleteUser.error) && (
-          <ErrorBox error={setStatus.error ?? restoreUser.error ?? deleteUser.error} />
-        )}
-        {students.isLoading ? <Loading /> : students.error ? <ErrorBox error={students.error} /> : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead className="bg-surface text-xs font-bold text-ink-soft">
-                <tr>
-                  <th className="px-3 py-2 text-start">{t('name')}</th>
-                  <th className="px-3 py-2 text-start">{t('email')}</th>
-                  <th className="px-3 py-2 text-start">{t('phone')}</th>
-                  <th className="px-3 py-2 text-start">{t('groups')}</th>
-                  <th className="px-3 py-2 text-start">{t('settings')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.data?.map((student) => (
-                  <tr key={student.id} className="border-t border-line/60">
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => setProfileId(student.id)}
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        {student.name}
-                      </button>
-                      {student.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
-                    </td>
-                    <td className="px-3 py-2" dir="ltr">{student.email}</td>
-                    <td className="px-3 py-2" dir="ltr">{student.phoneNumber ?? '—'}</td>
-                    <td className="px-3 py-2 text-xs text-ink-soft">
-                      {student.enrollments.map((e) => `${e.courseTitle} · ${e.groupName}`).join(' / ') || '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2">
+        }
+        filters={
+          <>
+            {linkedGroupId && (
+              <p className="text-xs font-semibold text-primary">
+                {t('filteredByGroup')}{' '}
+                <Link to="/admin/students" search={{}} className="underline">{t('clearFilters')}</Link>
+              </p>
+            )}
+            <button
+              onClick={() => setShowDeleted((v) => !v)}
+              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
+            >
+              {t('showDeleted')}
+            </button>
+            {hasFilters && (
+              <button type="button" onClick={clearFilters} className="text-start text-sm font-semibold text-primary underline">
+                {t('clearFilters')}
+              </button>
+            )}
+          </>
+        }
+      >
+        <Card>
+          {(setStatus.error ?? restoreUser.error ?? deleteUser.error) && (
+            <ErrorBox error={setStatus.error ?? restoreUser.error ?? deleteUser.error} />
+          )}
+          {students.isLoading ? <Loading /> : students.error ? <ErrorBox error={students.error} /> : (
+            <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead className="bg-surface text-xs font-bold text-ink-soft">
+                  <tr>
+                    <th className="px-3 py-2 text-start">{t('name')}</th>
+                    <th className="px-3 py-2 text-start">{t('email')}</th>
+                    <th className="px-3 py-2 text-start">{t('phone')}</th>
+                    <th className="px-3 py-2 text-start">{t('groups')}</th>
+                    <th className="px-3 py-2 text-start">{t('settings')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.data?.map((student) => (
+                    <tr key={student.id} className="border-t border-line/60">
+                      <td className="px-3 py-2">
                         <button
                           onClick={() => setProfileId(student.id)}
-                          className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                          title={t('profile')}
+                          className="font-semibold text-primary hover:underline"
                         >
-                          <UserRound className="inline" size={12} /> {t('profile')}
+                          {student.name}
                         </button>
-                        {student.deletedAt ? canManageUsers && (
+                        {student.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
+                      </td>
+                      <td className="px-3 py-2" dir="ltr">{student.email}</td>
+                      <td className="px-3 py-2" dir="ltr">{student.phoneNumber ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs text-ink-soft">
+                        {student.enrollments.map((e) => `${e.courseTitle} · ${e.groupName}`).join(' / ') || '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
-                            onClick={() => restoreUser.mutate(student.id)}
-                            className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
+                            onClick={() => setProfileId(student.id)}
+                            className="rounded-full border border-line px-3 py-1 text-xs font-bold"
+                            title={t('profile')}
                           >
-                            {t('restore')}
+                            <UserRound className="inline" size={12} /> {t('profile')}
                           </button>
-                        ) : (
-                          <>
+                          {student.deletedAt ? canManageUsers && (
                             <button
-                              onClick={() => setEditing(student)}
-                              className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                              title={t('edit')}
+                              onClick={() => restoreUser.mutate(student.id)}
+                              className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
                             >
-                              <Pencil className="inline" size={12} /> {t('edit')}
+                              {t('restore')}
                             </button>
-                            {canManageUsers && (
-                              <>
-                                <button
-                                  onClick={() => setStatus.mutate({ id: student.id, isActive: !student.isActive })}
-                                  className={`rounded-full px-3 py-1 text-xs font-bold ${student.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                                >
-                                  {student.isActive ? t('suspend') : t('activate')}
-                                </button>
-                                <button
-                                  aria-label={`${t('delete')} ${student.name}`}
-                                  onClick={() => setDeleteTarget(student)}
-                                  className="text-ink-soft hover:text-secondary"
-                                  title={t('delete')}
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!students.data?.length && (
-                  <tr><td colSpan={5} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(students.data?.length ?? 0) >= limit && limit < 200 && (
-          <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
-        )}
-      </Card>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setEditing(student)}
+                                className="rounded-full border border-line px-3 py-1 text-xs font-bold"
+                                title={t('edit')}
+                              >
+                                <Pencil className="inline" size={12} /> {t('edit')}
+                              </button>
+                              {canManageUsers && (
+                                <>
+                                  <button
+                                    onClick={() => setStatus.mutate({ id: student.id, isActive: !student.isActive })}
+                                    className={`rounded-full px-3 py-1 text-xs font-bold ${student.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                                  >
+                                    {student.isActive ? t('suspend') : t('activate')}
+                                  </button>
+                                  <button
+                                    aria-label={`${t('delete')} ${student.name}`}
+                                    onClick={() => setDeleteTarget(student)}
+                                    className="text-ink-soft hover:text-secondary"
+                                    title={t('delete')}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!students.data?.length && (
+                    <tr><td colSpan={5} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {(students.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
+          )}
+        </Card>
+      </FilterLayout>
 
       {createOpen && (
         <CreateStudentDialog grades={grades.data ?? []} onClose={() => setCreateOpen(false)} onCreated={invalidate} />

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
 import {
-  Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select,
+  Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
@@ -142,129 +142,145 @@ export default function AdminCourses() {
     },
   });
 
+  const hasFilters = !!(name.trim() || categoryId || teacherId || showDeleted);
+  const clearFilters = () => {
+    setName('');
+    setCategoryId('');
+    setTeacherId('');
+    setShowDeleted(false);
+  };
+
   return (
     <Page title={t('courses')} wide>
-      <Card>
-        <div className="flex flex-wrap items-end gap-3">
-          <button
-            onClick={() => setShowDeleted((v) => !v)}
-            className={`min-h-12 rounded-xl px-4 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-          >
-            {t('showDeleted')}
-          </button>
+      <FilterLayout
+        search={
           <div className="min-w-40 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="min-w-40 grow">
+        }
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="inline" size={16} /> {t('createCourse')}
+          </Button>
+        }
+        filters={
+          <>
+            <button
+              onClick={() => setShowDeleted((v) => !v)}
+              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
+            >
+              {t('showDeleted')}
+            </button>
             <Select label={t('specialization')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">{t('allSpecializations')}</option>
               {categories.data?.map((category) => (
                 <option key={category.id} value={category.id}>{localizeName(category.name, lang)}</option>
               ))}
             </Select>
-          </div>
-          <div className="min-w-40 grow">
             <Select label={t('teachers')} value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
               <option value="">{t('allTeachers')}</option>
               {teachers.data?.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
               ))}
             </Select>
-          </div>
-        </div>
-        <div className="mt-3 flex justify-end">
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="inline" size={16} /> {t('createCourse')}
-          </Button>
-        </div>
-        {(restoreCourse.error ?? deleteCourse.error) && (
-          <ErrorBox error={restoreCourse.error ?? deleteCourse.error} />
-        )}
-        {courses.isLoading ? <Loading /> : courses.error ? <ErrorBox error={courses.error} /> : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-surface text-xs font-bold text-ink-soft">
-                <tr>
-                  <th className="px-3 py-2 text-start">{t('name')}</th>
-                  <th className="px-3 py-2 text-start">{t('teacher')}</th>
-                  <th className="px-3 py-2 text-start">{t('specialization')}</th>
-                  <th className="px-3 py-2 text-start">{t('groups')}</th>
-                  <th className="px-3 py-2 text-start">{t('settings')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {courses.data?.map((course) => (
-                  <tr key={course.id} className="border-t border-line/60">
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => setProfile(course)}
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        {course.title}
-                      </button>
-                      <Badge tone={course.courseType === 'ACADEMIC' ? 'primary' : 'secondary'} className="ms-2">
-                        {course.courseType === 'ACADEMIC' ? t('academic') : t('general')}
-                      </Badge>
-                      {course.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Link
-                        to="/admin/teachers"
-                        search={{ name: course.teacherName }}
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        {course.teacherName}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2">
-                      {course.categoryName
-                        ? localizeName(course.categoryName, lang)
-                        : course.gradeName
-                          ? localizeName(course.gradeName, lang)
-                          : '—'}
-                    </td>
-                    <td className="px-3 py-2 tabular-nums">{course.groups.length}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {course.deletedAt ? (
-                          <button
-                            onClick={() => restoreCourse.mutate(course.id)}
-                            className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
-                          >
-                            {t('restore')}
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setEditing(course)}
-                              className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                              title={t('edit')}
-                            >
-                              <Pencil className="inline" size={12} /> {t('edit')}
-                            </button>
-                            <button
-                              aria-label={`${t('delete')} ${course.title}`}
-                              onClick={() => setDeleteTarget(course)}
-                              className="text-ink-soft hover:text-secondary"
-                              title={t('delete')}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+            {hasFilters && (
+              <button type="button" onClick={clearFilters} className="text-start text-sm font-semibold text-primary underline">
+                {t('clearFilters')}
+              </button>
+            )}
+          </>
+        }
+      >
+        <Card>
+          {(restoreCourse.error ?? deleteCourse.error) && (
+            <ErrorBox error={restoreCourse.error ?? deleteCourse.error} />
+          )}
+          {courses.isLoading ? <Loading /> : courses.error ? <ErrorBox error={courses.error} /> : (
+            <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-surface text-xs font-bold text-ink-soft">
+                  <tr>
+                    <th className="px-3 py-2 text-start">{t('name')}</th>
+                    <th className="px-3 py-2 text-start">{t('teacher')}</th>
+                    <th className="px-3 py-2 text-start">{t('specialization')}</th>
+                    <th className="px-3 py-2 text-start">{t('groups')}</th>
+                    <th className="px-3 py-2 text-start">{t('settings')}</th>
                   </tr>
-                ))}
-                {!courses.data?.length && (
-                  <tr><td colSpan={5} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(courses.data?.length ?? 0) >= limit && limit < 200 && (
-          <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
-        )}
-      </Card>
+                </thead>
+                <tbody>
+                  {courses.data?.map((course) => (
+                    <tr key={course.id} className="border-t border-line/60">
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => setProfile(course)}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          {course.title}
+                        </button>
+                        <Badge tone={course.courseType === 'ACADEMIC' ? 'primary' : 'secondary'} className="ms-2">
+                          {course.courseType === 'ACADEMIC' ? t('academic') : t('general')}
+                        </Badge>
+                        {course.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Link
+                          to="/admin/teachers"
+                          search={{ name: course.teacherName }}
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          {course.teacherName}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2">
+                        {course.categoryName
+                          ? localizeName(course.categoryName, lang)
+                          : course.gradeName
+                            ? localizeName(course.gradeName, lang)
+                            : '—'}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">{course.groups.length}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {course.deletedAt ? (
+                            <button
+                              onClick={() => restoreCourse.mutate(course.id)}
+                              className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
+                            >
+                              {t('restore')}
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setEditing(course)}
+                                className="rounded-full border border-line px-3 py-1 text-xs font-bold"
+                                title={t('edit')}
+                              >
+                                <Pencil className="inline" size={12} /> {t('edit')}
+                              </button>
+                              <button
+                                aria-label={`${t('delete')} ${course.title}`}
+                                onClick={() => setDeleteTarget(course)}
+                                className="text-ink-soft hover:text-secondary"
+                                title={t('delete')}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!courses.data?.length && (
+                    <tr><td colSpan={5} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {(courses.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
+          )}
+        </Card>
+      </FilterLayout>
 
       {showDeleted && (
         <Card className="mt-4">

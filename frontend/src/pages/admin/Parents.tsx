@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import {
-  Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select,
+  Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
 import { rootRoute } from '../../routes/__root';
 import { requireRole, useAdminPermissions } from '../../lib/session';
@@ -141,116 +141,137 @@ export default function AdminParents() {
     },
   });
 
+  const hasFilters = !!(name.trim() || phone.trim() || showDeleted);
+  const clearFilters = () => {
+    setName('');
+    setPhone('');
+    setShowDeleted(false);
+  };
+
   return (
     <Page title={t('parents')} wide>
-      <Card>
-        <div className="flex flex-wrap items-end gap-3">
-          <button
-            onClick={() => setShowDeleted((v) => !v)}
-            className={`min-h-12 rounded-xl px-4 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-          >
-            {t('showDeleted')}
-          </button>
-          <div className="min-w-44 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="min-w-44 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
-        </div>
-        <div className="mt-3 flex justify-end">
+      <FilterLayout
+        search={
+          <>
+            <div className="min-w-44 grow"><Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="min-w-44 grow"><Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" /></div>
+          </>
+        }
+        actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="inline" size={16} /> {t('createParent')}
           </Button>
-        </div>
-        {(setStatus.error ?? restoreUser.error ?? deleteUser.error) && (
-          <ErrorBox error={setStatus.error ?? restoreUser.error ?? deleteUser.error} />
-        )}
-        {parents.isLoading ? <Loading /> : parents.error ? <ErrorBox error={parents.error} /> : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead className="bg-surface text-xs font-bold text-ink-soft">
-                <tr>
-                  <th className="px-3 py-2 text-start">{t('name')}</th>
-                  <th className="px-3 py-2 text-start">{t('email')}</th>
-                  <th className="px-3 py-2 text-start">{t('phone')}</th>
-                  <th className="px-3 py-2 text-start">{t('children')}</th>
-                  <th className="px-3 py-2 text-start">{t('settings')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parents.data?.map((parent) => (
-                  <tr key={parent.id} className="border-t border-line/60">
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => setProfileId(parent.id)}
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        {parent.name}
-                      </button>
-                      {parent.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
-                    </td>
-                    <td className="px-3 py-2" dir="ltr">{parent.email}</td>
-                    <td className="px-3 py-2" dir="ltr">{parent.phoneNumber ?? '—'}</td>
-                    <td className="px-3 py-2 text-xs text-ink-soft">
-                      {parent.children.map((child) => child.name).join(' · ') || '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2">
+        }
+        filters={
+          <>
+            <button
+              onClick={() => setShowDeleted((v) => !v)}
+              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
+            >
+              {t('showDeleted')}
+            </button>
+            {hasFilters && (
+              <button type="button" onClick={clearFilters} className="text-start text-sm font-semibold text-primary underline">
+                {t('clearFilters')}
+              </button>
+            )}
+          </>
+        }
+      >
+        <Card>
+          {(setStatus.error ?? restoreUser.error ?? deleteUser.error) && (
+            <ErrorBox error={setStatus.error ?? restoreUser.error ?? deleteUser.error} />
+          )}
+          {parents.isLoading ? <Loading /> : parents.error ? <ErrorBox error={parents.error} /> : (
+            <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead className="bg-surface text-xs font-bold text-ink-soft">
+                  <tr>
+                    <th className="px-3 py-2 text-start">{t('name')}</th>
+                    <th className="px-3 py-2 text-start">{t('email')}</th>
+                    <th className="px-3 py-2 text-start">{t('phone')}</th>
+                    <th className="px-3 py-2 text-start">{t('children')}</th>
+                    <th className="px-3 py-2 text-start">{t('settings')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parents.data?.map((parent) => (
+                    <tr key={parent.id} className="border-t border-line/60">
+                      <td className="px-3 py-2">
                         <button
                           onClick={() => setProfileId(parent.id)}
-                          className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                          title={t('profile')}
+                          className="font-semibold text-primary hover:underline"
                         >
-                          <UserRound className="inline" size={12} /> {t('profile')}
+                          {parent.name}
                         </button>
-                        {parent.deletedAt ? canManageUsers && (
+                        {parent.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
+                      </td>
+                      <td className="px-3 py-2" dir="ltr">{parent.email}</td>
+                      <td className="px-3 py-2" dir="ltr">{parent.phoneNumber ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs text-ink-soft">
+                        {parent.children.map((child) => child.name).join(' · ') || '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
-                            onClick={() => restoreUser.mutate(parent.id)}
-                            className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
+                            onClick={() => setProfileId(parent.id)}
+                            className="rounded-full border border-line px-3 py-1 text-xs font-bold"
+                            title={t('profile')}
                           >
-                            {t('restore')}
+                            <UserRound className="inline" size={12} /> {t('profile')}
                           </button>
-                        ) : (
-                          <>
+                          {parent.deletedAt ? canManageUsers && (
                             <button
-                              onClick={() => setEditing(parent)}
-                              className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                              title={t('edit')}
+                              onClick={() => restoreUser.mutate(parent.id)}
+                              className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
                             >
-                              <Pencil className="inline" size={12} /> {t('edit')}
+                              {t('restore')}
                             </button>
-                            {canManageUsers && (
-                              <>
-                                <button
-                                  onClick={() => setStatus.mutate({ id: parent.id, isActive: !parent.isActive })}
-                                  className={`rounded-full px-3 py-1 text-xs font-bold ${parent.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                                >
-                                  {parent.isActive ? t('suspend') : t('activate')}
-                                </button>
-                                <button
-                                  aria-label={`${t('delete')} ${parent.name}`}
-                                  onClick={() => setDeleteTarget(parent)}
-                                  className="text-ink-soft hover:text-secondary"
-                                  title={t('delete')}
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!parents.data?.length && (
-                  <tr><td colSpan={5} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {(parents.data?.length ?? 0) >= limit && limit < 200 && (
-          <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
-        )}
-      </Card>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setEditing(parent)}
+                                className="rounded-full border border-line px-3 py-1 text-xs font-bold"
+                                title={t('edit')}
+                              >
+                                <Pencil className="inline" size={12} /> {t('edit')}
+                              </button>
+                              {canManageUsers && (
+                                <>
+                                  <button
+                                    onClick={() => setStatus.mutate({ id: parent.id, isActive: !parent.isActive })}
+                                    className={`rounded-full px-3 py-1 text-xs font-bold ${parent.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                                  >
+                                    {parent.isActive ? t('suspend') : t('activate')}
+                                  </button>
+                                  <button
+                                    aria-label={`${t('delete')} ${parent.name}`}
+                                    onClick={() => setDeleteTarget(parent)}
+                                    className="text-ink-soft hover:text-secondary"
+                                    title={t('delete')}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!parents.data?.length && (
+                    <tr><td colSpan={5} className="px-3 py-4 text-ink-soft">{t('noResults')}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {(parents.data?.length ?? 0) >= limit && limit < 200 && (
+            <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
+          )}
+        </Card>
+      </FilterLayout>
 
       {showDeleted && (
         <Card className="mt-4">

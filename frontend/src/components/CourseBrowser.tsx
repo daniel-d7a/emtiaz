@@ -4,7 +4,7 @@ import { BookOpen, Search } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { localizeName, useLang } from '../lib/i18n';
-import { Badge, Card, EmptyState, ErrorBox, Input, Loading, Select } from './ui';
+import { Badge, Card, EmptyState, ErrorBox, FilterLayout, Input, Loading, Select } from './ui';
 import { ThemeSurface } from './TeacherTheme';
 import type { CourseCatalogue } from '../../../shared/api';
 
@@ -42,9 +42,9 @@ export function CourseBrowser() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <Card className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="sm:col-span-2">
+    <FilterLayout
+      search={
+        <div className="w-full sm:max-w-md">
           <Input
             label={t('search')}
             value={search}
@@ -52,38 +52,42 @@ export function CourseBrowser() {
             placeholder={t('searchCoursesPlaceholder')}
           />
         </div>
-        <Select label={t('teacher')} value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
-          <option value="">{t('all')}</option>
-          {data?.filters.teachers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-        </Select>
-        <Select label={t('specialization')} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-          <option value="">{t('all')}</option>
-          {data?.filters.subjects.map((x) => <option key={x.id} value={x.id}>{localizeName(x.name, lang)}</option>)}
-        </Select>
-        <Select label={t('grade')} value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
-          <option value="">{t('all')}</option>
-          {data?.filters.grades.map((x) => <option key={x.id} value={x.id}>{localizeName(x.name, lang)}</option>)}
-        </Select>
-        <Select label={t('courseType')} value={courseType} onChange={(e) => setCourseType(e.target.value)}>
-          <option value="">{t('all')}</option>
-          <option value="ACADEMIC">{t('academic')}</option>
-          <option value="GENERAL">{t('general')}</option>
-        </Select>
-        <Select label={t('semester')} value={semester} onChange={(e) => setSemester(e.target.value)}>
-          <option value="">{t('all')}</option>
-          {data?.filters.semesters.map((x) => <option key={x} value={x}>{x}</option>)}
-        </Select>
-        {hasFilters && (
-          <button
-            type="button"
-            onClick={clear}
-            className="self-end text-start text-sm font-semibold text-primary underline"
-          >
-            {t('clearFilters')}
-          </button>
-        )}
-      </Card>
-
+      }
+      filters={
+        <>
+          <Select label={t('teacher')} value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
+            <option value="">{t('all')}</option>
+            {data?.filters.teachers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </Select>
+          <Select label={t('specialization')} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+            <option value="">{t('all')}</option>
+            {data?.filters.subjects.map((x) => <option key={x.id} value={x.id}>{localizeName(x.name, lang)}</option>)}
+          </Select>
+          <Select label={t('grade')} value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
+            <option value="">{t('all')}</option>
+            {data?.filters.grades.map((x) => <option key={x.id} value={x.id}>{localizeName(x.name, lang)}</option>)}
+          </Select>
+          <Select label={t('courseType')} value={courseType} onChange={(e) => setCourseType(e.target.value)}>
+            <option value="">{t('all')}</option>
+            <option value="ACADEMIC">{t('academic')}</option>
+            <option value="GENERAL">{t('general')}</option>
+          </Select>
+          <Select label={t('semester')} value={semester} onChange={(e) => setSemester(e.target.value)}>
+            <option value="">{t('all')}</option>
+            {data?.filters.semesters.map((x) => <option key={x} value={x}>{x}</option>)}
+          </Select>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={clear}
+              className="text-start text-sm font-semibold text-primary underline"
+            >
+              {t('clearFilters')}
+            </button>
+          )}
+        </>
+      }
+    >
       {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : data?.courses.length ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.courses.map((c) => (
@@ -127,6 +131,6 @@ export function CourseBrowser() {
           icon={Search}
         />
       )}
-    </div>
+    </FilterLayout>
   );
 }
