@@ -44,8 +44,8 @@ export default function StudentDashboard() {
           <section className="mb-6">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold">{t('latestCourses')}</h2>
-              <Link to="/student/courses" className="text-sm font-semibold text-primary underline">
-                {t('browseCourses')}
+              <Link to="/student/my-courses" className="text-sm font-semibold text-primary underline">
+                {t('myCourses')}
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

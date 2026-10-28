@@ -8,6 +8,7 @@ import { profileRoute } from './pages/Profile';
 import { studentDashboardRoute } from './pages/student/Dashboard';
 import { studentGroupRoute } from './pages/student/Group';
 import { studentCoursesRoute } from './pages/student/Courses';
+import { studentMyCoursesRoute } from './pages/student/MyCourses';
 import { studentLessonRoute } from './pages/student/Lesson';
 import { studentQuizRoute } from './pages/student/Quiz';
 import { teacherDashboardRoute } from './pages/teacher/Dashboard';
@@ -44,6 +45,7 @@ const routeTree = rootRoute.addChildren([
   studentDashboardRoute,
   studentGroupRoute,
   studentCoursesRoute,
+  studentMyCoursesRoute,
   studentLessonRoute,
   studentQuizRoute,
   teacherDashboardRoute,

@@ -345,6 +345,7 @@ const dict = {
   },
   noGroupsTitle: { ar: 'لم تنضم إلى أي مجموعة بعد', en: 'No groups yet' },
   noGroupsHint: { ar: 'استخدم رمز المجموعة أعلاه للانضمام.', en: 'Use the group code above to join.' },
+  myCoursesHint: { ar: 'انضم إلى مجموعة لعرض مقرراتك هنا.', en: 'Join a group to see your courses here.' },
   fileFormats: { ar: 'PNG/JPG · ≤ ٢ ميجابايت', en: 'PNG/JPG · ≤ 2 MB' },
   switchToEnglish: { ar: 'التبديل إلى الإنجليزية', en: 'Switch to English' },
   switchToArabic: { ar: 'التبديل إلى العربية', en: 'Switch to Arabic' },

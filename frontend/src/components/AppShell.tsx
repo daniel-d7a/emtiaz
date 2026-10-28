@@ -16,6 +16,7 @@ import { BrandMark } from './SiteBranding';
 
 type NavTarget =
   | '/student/dashboard'
+  | '/student/my-courses'
   | '/student/courses'
   | '/teacher/dashboard'
   | '/parent/children'
@@ -47,6 +48,7 @@ const ROLE_LABEL: Record<SessionUser['role'], Key> = {
 const ROLE_NAV: Record<SessionUser['role'], NavItem[]> = {
   STUDENT: [
     { to: '/student/dashboard', label: 'home', icon: Home },
+    { to: '/student/my-courses', label: 'myCourses', icon: BookOpen },
     { to: '/student/courses', label: 'browseCourses', icon: BookOpen },
   ],
   TEACHER: [{ to: '/teacher/dashboard', label: 'myWorkspace', icon: LayoutDashboard }],
