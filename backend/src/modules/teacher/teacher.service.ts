@@ -998,6 +998,212 @@ export class TeacherService {
     };
   }
 
+  async groupStats(user: { id: string; role: string }, groupId: string) {
+    const { course, group } = await this.assertOwnsGroup(user, groupId);
+    const mods = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.courseId, course.id))
+      .orderBy(asc(modules.displayOrder));
+    const courseLessons = mods.length
+      ? await db
+          .select()
+          .from(lessons)
+          .where(inArray(lessons.moduleId, mods.map((m) => m.id)))
+          .orderBy(asc(lessons.displayOrder))
+      : [];
+    const roster = await db
+      .select({ id: users.id, name: users.name })
+      .from(groupStudents)
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
+      .where(eq(groupStudents.groupId, groupId))
+      .orderBy(asc(users.name));
+    const lessonIds = courseLessons.map((lesson) => lesson.id);
+    const completions =
+      roster.length && lessonIds.length
+        ? await db
+            .select({
+              studentId: lessonCompletions.studentId,
+              lessonId: lessonCompletions.lessonId,
+            })
+            .from(lessonCompletions)
+            .where(
+              and(
+                inArray(
+                  lessonCompletions.studentId,
+                  roster.map((student) => student.id),
+                ),
+                inArray(lessonCompletions.lessonId, lessonIds),
+              ),
+            )
+        : [];
+    const presentRows =
+      roster.length && lessonIds.length
+        ? await db
+            .select({
+              studentId: lessonAttendance.studentId,
+              lessonId: lessonAttendance.lessonId,
+            })
+            .from(lessonAttendance)
+            .where(
+              and(
+                eq(lessonAttendance.isPresent, true),
+                inArray(
+                  lessonAttendance.studentId,
+                  roster.map((student) => student.id),
+                ),
+                inArray(lessonAttendance.lessonId, lessonIds),
+              ),
+            )
+        : [];
+    const quizTargets = [
+      eq(quizzes.courseId, course.id),
+      ...(mods.length ? [inArray(quizzes.moduleId, mods.map((m) => m.id))] : []),
+      ...(lessonIds.length ? [inArray(quizzes.lessonId, lessonIds)] : []),
+    ];
+    const quizRows = await db.select().from(quizzes).where(or(...quizTargets));
+    const questions = quizRows.length
+      ? await db
+          .select()
+          .from(quizQuestions)
+          .where(inArray(quizQuestions.quizId, quizRows.map((quiz) => quiz.id)))
+      : [];
+    const questionTotals: Record<string, number> = {};
+    for (const question of questions) {
+      questionTotals[question.quizId] =
+        (questionTotals[question.quizId] ?? 0) + question.points;
+    }
+    const attempts =
+      roster.length && quizRows.length
+        ? await db
+            .select()
+            .from(quizAttempts)
+            .where(
+              and(
+                eq(quizAttempts.groupId, groupId),
+                inArray(
+                  quizAttempts.studentId,
+                  roster.map((student) => student.id),
+                ),
+                inArray(
+                  quizAttempts.quizId,
+                  quizRows.map((quiz) => quiz.id),
+                ),
+              ),
+            )
+        : [];
+    const best = new Map<string, number>();
+    for (const attempt of attempts) {
+      const key = `${attempt.studentId}:${attempt.quizId}`;
+      if ((best.get(key) ?? -1) < attempt.score) best.set(key, attempt.score);
+    }
+
+    const completedLessons = new Set(completions.map((row) => row.lessonId));
+    const lessonsTaken = courseLessons.filter((lesson) =>
+      completedLessons.has(lesson.id),
+    ).length;
+    const unitsTaken = mods.filter((mod) =>
+      courseLessons.some(
+        (lesson) =>
+          lesson.moduleId === mod.id && completedLessons.has(lesson.id),
+      ),
+    ).length;
+    const percent = (part: number, total: number) =>
+      total ? Math.round((part / total) * 100) : 0;
+
+    const attendance = courseLessons.map((lesson) => {
+      const present = presentRows.filter(
+        (row) => row.lessonId === lesson.id,
+      ).length;
+      return {
+        lessonId: lesson.id,
+        title: lesson.title,
+        moduleTitle:
+          mods.find((mod) => mod.id === lesson.moduleId)?.title ?? '',
+        present,
+        total: roster.length,
+        percent: percent(present, roster.length),
+      };
+    });
+
+    const quizAverages = quizRows.map((quiz) => {
+      const max = questionTotals[quiz.id] ?? 0;
+      const scores = roster
+        .map((student) => best.get(`${student.id}:${quiz.id}`))
+        .filter((score): score is number => score !== undefined);
+      return {
+        quizId: quiz.id,
+        title: quiz.title,
+        contextTitle:
+          courseLessons.find((lesson) => lesson.id === quiz.lessonId)?.title ??
+          mods.find((mod) => mod.id === quiz.moduleId)?.title ??
+          course.title,
+        average:
+          max && scores.length
+            ? Math.round(
+                (scores.reduce(
+                  (sum, score) => sum + Math.min(score, max) / max,
+                  0,
+                ) /
+                  scores.length) *
+                  100,
+              )
+            : null,
+        attempts: scores.length,
+      };
+    });
+
+    const totalMax = quizRows.reduce(
+      (sum, quiz) => sum + (questionTotals[quiz.id] ?? 0),
+      0,
+    );
+    const students = roster.map((student) => {
+      const earned = quizRows.reduce((sum, quiz) => {
+        const max = questionTotals[quiz.id] ?? 0;
+        const score = best.get(`${student.id}:${quiz.id}`) ?? 0;
+        return sum + (max ? Math.min(score, max) : 0);
+      }, 0);
+      const gradePercent = totalMax ? percent(earned, totalMax) : null;
+      const present = presentRows.filter(
+        (row) => row.studentId === student.id,
+      ).length;
+      const attendancePercent = percent(present, courseLessons.length);
+      const parts = [
+        gradePercent,
+        attendancePercent,
+      ].filter((value): value is number => value !== null);
+      return {
+        id: student.id,
+        name: student.name,
+        gradePercent,
+        attendancePercent,
+        combined: parts.length
+          ? Math.round(
+              parts.reduce((sum, value) => sum + value, 0) / parts.length,
+            )
+          : 0,
+      };
+    });
+
+    return {
+      group,
+      startDate: group.createdAt,
+      lessons: {
+        taken: lessonsTaken,
+        total: courseLessons.length,
+        percent: percent(lessonsTaken, courseLessons.length),
+      },
+      units: {
+        taken: unitsTaken,
+        total: mods.length,
+        percent: percent(unitsTaken, mods.length),
+      },
+      attendance,
+      quizAverages,
+      students,
+    };
+  }
+
   async announce(user: { id: string; role: string }, groupId: string, message: string) {
     const { group } = await this.assertOwnsGroup(user, groupId);
     const students = await db

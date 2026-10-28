@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, BarChart3, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, UserPlus, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, UserPlus, Users } from 'lucide-react';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
   useReactTable, type ColumnDef, type PaginationState, type SortingState,
@@ -9,12 +9,13 @@ import {
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Select } from '../../components/ui';
+import { Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Progress, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   Group,
   StudentSearchResult,
   TeacherGradebook as Gradebook,
+  TeacherGroupStats,
   TeacherPacing as Pacing,
   TeacherRoster as Roster,
 } from '../../../../shared/api';
@@ -67,7 +68,7 @@ export default function TeacherGroup() {
         {tab === 'pacing' && <PacingTab groupId={groupId} />}
         {tab === 'gradebook' && <GradebookTab groupId={groupId} />}
         {tab === 'roster' && <RosterTab groupId={groupId} />}
-        {tab === 'stats' && <StatsTab />}
+        {tab === 'stats' && <StatsTab groupId={groupId} />}
         {tab === 'settings' && <SettingsTab groupId={groupId} />}
       </div>
     </Page>
@@ -817,11 +818,174 @@ function AddStudentDialog({
   );
 }
 
-export function StatsTab() {
-  const { t } = useLang();
+export function StatsTab({ groupId }: { groupId: string }) {
+  const { t, lang } = useLang();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['group-stats', groupId],
+    queryFn: () => api<TeacherGroupStats>(`/api/teacher/groups/${groupId}/stats`),
+  });
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return null;
+
+  const students = [...data.students].sort((a, b) => b.combined - a.combined);
+  const hasAttendance = data.attendance.some((row) => row.present > 0);
+  const startDate = new Intl.DateTimeFormat(
+    lang === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB',
+    { dateStyle: 'medium' },
+  ).format(new Date(data.startDate));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <p className="text-sm font-semibold text-ink-soft">{t('startDate')}</p>
+          <p className="mt-1 text-xl font-bold">{startDate}</p>
+        </Card>
+        <Card>
+          <p className="text-sm font-semibold text-ink-soft">{t('lessonsTaken')}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums">
+            {data.lessons.taken}/{data.lessons.total} ({data.lessons.percent}%)
+          </p>
+          <div className="mt-2"><Progress value={data.lessons.percent} /></div>
+        </Card>
+        <Card>
+          <p className="text-sm font-semibold text-ink-soft">{t('unitsTaken')}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums">
+            {data.units.taken}/{data.units.total} ({data.units.percent}%)
+          </p>
+          <div className="mt-2"><Progress value={data.units.percent} /></div>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StatsChart
+          title={t('attendanceChart')}
+          bars={
+            hasAttendance
+              ? data.attendance.map((row) => ({
+                  label: row.title,
+                  detail: `${row.moduleTitle} · ${row.present}/${row.total}`,
+                  value: row.percent,
+                }))
+              : []
+          }
+          empty={t('noAttendanceYet')}
+        />
+        <StatsChart
+          title={t('quizAverages')}
+          bars={data.quizAverages.map((quiz) => ({
+            label: quiz.title,
+            detail: quiz.contextTitle,
+            value: quiz.average,
+          }))}
+          empty={t('noQuizzesYet')}
+        />
+      </div>
+
+      {students.length === 0 ? (
+        <Card>
+          <EmptyState icon={Users} title={t('noStatsStudents')} />
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <h3 className="font-bold">{t('podium')}</h3>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {students.slice(0, 3).map((student, index) => (
+                <div
+                  key={student.id}
+                  className={`rounded-xl border p-3 text-center ${
+                    index === 0
+                      ? 'border-primary bg-primary-light'
+                      : 'border-line bg-background'
+                  }`}
+                >
+                  <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface font-bold text-primary">
+                    {index + 1}
+                  </span>
+                  <p className="mt-2 truncate font-bold" title={student.name}>{student.name}</p>
+                  <p className="mt-1 text-lg font-bold tabular-nums">{student.combined}%</p>
+                  <p className="text-xs text-ink-soft">{t('combinedAverage')}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="!p-0">
+            <h3 className="p-3 font-bold">{t('studentTotals')}</h3>
+            <div className="overflow-x-auto border-t border-line">
+              <table className="w-full text-sm">
+                <thead className="bg-surface">
+                  <tr className="text-xs font-bold text-ink-soft">
+                    <th className="px-3 py-2 text-start">{t('roster')}</th>
+                    <th className="px-3 py-2 text-end">{t('gradeTotal')}</th>
+                    <th className="px-3 py-2 text-end">{t('attendance')}</th>
+                    <th className="px-3 py-2 text-end">{t('combinedAverage')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((student) => (
+                    <tr key={student.id} className="border-t border-line/60">
+                      <td className="px-3 py-2 font-semibold">{student.name}</td>
+                      <td className="px-3 py-2 text-end font-bold tabular-nums">
+                        {student.gradePercent === null ? '—' : `${student.gradePercent}%`}
+                      </td>
+                      <td className="px-3 py-2 text-end font-bold tabular-nums">
+                        {student.attendancePercent}%
+                      </td>
+                      <td className="px-3 py-2 text-end font-bold tabular-nums">
+                        {student.combined}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StatsChart({
+  title, bars, empty,
+}: {
+  title: string;
+  bars: Array<{ label: string; detail: string; value: number | null }>;
+  empty: string;
+}) {
   return (
     <Card>
-      <EmptyState icon={BarChart3} title={t('stats')} description={t('statsEmpty')} />
+      <h3 className="font-bold">{title}</h3>
+      {bars.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-soft">{empty}</p>
+      ) : (
+        <div className="mt-4 flex h-52 items-end gap-3 overflow-x-auto pb-1">
+          {bars.map((bar, index) => (
+            <div
+              key={`${bar.label}-${index}`}
+              className="flex w-20 shrink-0 flex-col items-center justify-end gap-1"
+              title={bar.detail}
+            >
+              <span className="text-xs font-bold tabular-nums">
+                {bar.value === null ? '—' : `${bar.value}%`}
+              </span>
+              <div className="flex h-32 w-10 items-end rounded-t bg-background">
+                <div
+                  className="w-full rounded-t bg-primary"
+                  style={{ height: `${Math.max(0, Math.min(100, bar.value ?? 0))}%` }}
+                />
+              </div>
+              <span className="max-h-8 max-w-20 break-words text-center text-xs leading-4">
+                {bar.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

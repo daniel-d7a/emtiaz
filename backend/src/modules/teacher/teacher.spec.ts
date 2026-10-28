@@ -643,6 +643,61 @@ describe('Phase 4: teacher endpoints', () => {
       );
     });
 
+    it('builds group statistics from completions, attendance, and quizzes', async () => {
+      const s1 = await getUserByEmail(STUDENT1.email);
+      await testPool.query(
+        `INSERT INTO lesson_completions (student_id, lesson_id) VALUES ($1,$2)
+         ON CONFLICT DO NOTHING`,
+        [s1.id, world.lesson1],
+      );
+      const res = await t.get(`/api/teacher/groups/${world.group1}/stats`);
+      expect(res.status).toBe(200);
+      expect(res.body.startDate).toBeTruthy();
+      expect(res.body.lessons).toEqual({ taken: 1, total: 2, percent: 50 });
+      expect(res.body.units).toEqual({ taken: 1, total: 1, percent: 100 });
+      expect(res.body.attendance).toHaveLength(2);
+      expect(
+        res.body.attendance.find((row: any) => row.lessonId === world.lesson1)
+          .percent,
+      ).toBe(50);
+      const quiz = res.body.quizAverages.find(
+        (row: any) => row.quizId === world.quiz,
+      );
+      expect(quiz).toMatchObject({ average: 100, attempts: 1 });
+      const student = res.body.students.find(
+        (row: any) => row.id === s1.id,
+      );
+      expect(student).toMatchObject({
+        gradePercent: 100,
+        attendancePercent: 50,
+        combined: 75,
+      });
+    });
+
+    it('returns sensible zeros for an empty group', async () => {
+      const course = (
+        await t
+          .post('/api/teacher/courses')
+          .send({
+            title: 'Empty stats course',
+            courseType: 'ACADEMIC',
+            gradeId: world.gradeId,
+          })
+      ).body;
+      const group = (
+        await t
+          .post(`/api/teacher/courses/${course.id}/groups`)
+          .send({ name: 'Empty stats group' })
+      ).body;
+      const res = await t.get(`/api/teacher/groups/${group.id}/stats`);
+      expect(res.status).toBe(200);
+      expect(res.body.lessons).toEqual({ taken: 0, total: 0, percent: 0 });
+      expect(res.body.units).toEqual({ taken: 0, total: 0, percent: 0 });
+      expect(res.body.attendance).toEqual([]);
+      expect(res.body.quizAverages).toEqual([]);
+      expect(res.body.students).toEqual([]);
+    });
+
     it('another teacher cannot read my gradebook', async () => {
       const other = await t
         .post('/api/onboarding/teacher')

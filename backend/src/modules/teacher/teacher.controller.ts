@@ -223,6 +223,12 @@ export class TeacherController {
     return this.teachers.groupPacing(req.user!, groupId);
   }
 
+  @Get('api/teacher/groups/:groupId/stats')
+  @Roles('TEACHER')
+  groupStats(@Req() req: Request, @Param('groupId') groupId: string) {
+    return this.teachers.groupStats(req.user!, groupId);
+  }
+
   @Patch('api/teacher/groups/:groupId/lessons/:lessonId/access')
   @Roles('TEACHER')
   setAccess(

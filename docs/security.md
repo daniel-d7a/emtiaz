@@ -39,6 +39,7 @@ alone never grants access to another user's course, group, or child.
 | Global metrics, directories, suspend/delete, taxonomy, audit | yes | no | no | no |
 | Create/edit own courses, modules, lessons, quizzes | no* | owner | no | no |
 | Create groups, pacing, roster, announcements, gradebook | no* | owner | no | no |
+| Read group statistics | no* | owner | no | no |
 | Search students by phone to add to a roster | no | students only | no | no |
 | Join a group by code | no | no | yes | no |
 | Read own groups, curriculum, lessons, quizzes | no | no | enrolled | no |

@@ -355,6 +355,35 @@ export type TeacherPacing = {
   quizzes: PacingQuiz[];
 };
 
+export type TeacherGroupStats = {
+  group: Group;
+  startDate: string;
+  lessons: { taken: number; total: number; percent: number };
+  units: { taken: number; total: number; percent: number };
+  attendance: Array<{
+    lessonId: string;
+    title: string;
+    moduleTitle: string;
+    present: number;
+    total: number;
+    percent: number;
+  }>;
+  quizAverages: Array<{
+    quizId: string;
+    title: string;
+    contextTitle: string;
+    average: number | null;
+    attempts: number;
+  }>;
+  students: Array<{
+    id: string;
+    name: string;
+    gradePercent: number | null;
+    attendancePercent: number;
+    combined: number;
+  }>;
+};
+
 export type StudentSearchResult = {
   id: string;
   name: string;
