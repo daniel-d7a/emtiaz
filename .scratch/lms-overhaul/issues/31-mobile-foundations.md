@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Arabic renders RTL across navigation, rows, forms, and headers.
-- [ ] Web and mobile use the same font families and colour tokens.
-- [ ] Buttons show pressed, disabled, and loading states.
-- [ ] Bottom tabs respect safe areas and content clears them.
-- [ ] Avatar and material uploads succeed or show a real, localized error.
-- [ ] Layout works on a small phone without clipped controls or sub-44px targets.
+- [x] Arabic renders RTL across navigation, rows, forms, and headers.
+- [x] Web and mobile use the same font families and colour tokens.
+- [x] Buttons show pressed, disabled, and loading states.
+- [x] Bottom tabs respect safe areas and content clears them.
+- [x] Avatar and material uploads succeed or show a real, localized error.
+- [x] Layout works on a small phone without clipped controls or sub-44px targets.
