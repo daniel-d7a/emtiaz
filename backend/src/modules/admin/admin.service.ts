@@ -17,6 +17,8 @@ import {
   lessonAttendance,
   lessons,
   modules,
+  notifications,
+  parentReports,
   parentStudents,
   quizAttempts,
   users,
@@ -560,7 +562,14 @@ export class AdminService {
     return { ok: true };
   }
 
-  async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED'; deleted?: string; limit?: string }) {
+  async listParents(filters: {
+    search?: string;
+    name?: string;
+    phone?: string;
+    status?: 'ACTIVE' | 'SUSPENDED';
+    deleted?: string;
+    limit?: string;
+  }) {
     const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
     const deleted = filters.deleted === 'true';
     const conditions = [
@@ -569,6 +578,8 @@ export class AdminService {
     ];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
+    if (filters.name) conditions.push(ilike(users.name, `%${filters.name}%`));
+    if (filters.phone) conditions.push(ilike(users.phoneNumber, `%${filters.phone}%`));
     if (filters.search) {
       conditions.push(
         or(
@@ -617,6 +628,135 @@ export class AdminService {
         .filter((l) => l.parentId === p.id)
         .map(({ parentId: _parentId, ...child }) => child),
     }));
+  }
+
+  async updateParent(
+    parentId: string,
+    dto: { name?: string; phoneNumber?: string },
+  ) {
+    const [parent] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, parentId), eq(users.role, 'PARENT')));
+    if (!parent || parent.deletedAt) throw new NotFoundException('Parent not found');
+    const patch: Partial<typeof users.$inferInsert> = {};
+    if (dto.name !== undefined) patch.name = dto.name;
+    if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber;
+    const [updated] = await db
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, parentId))
+      .returning()
+      .catch((error) => {
+        if (error?.code === '23505') throw new ConflictException('Phone number already in use');
+        throw error;
+      });
+    return updated;
+  }
+
+  async parentProfile(parentId: string) {
+    const [parent] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        deletedAt: users.deletedAt,
+      })
+      .from(users)
+      .where(and(eq(users.id, parentId), eq(users.role, 'PARENT')));
+    if (!parent) throw new NotFoundException('Parent not found');
+
+    const children = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        gradeName: grades.name,
+      })
+      .from(parentStudents)
+      .innerJoin(users, eq(parentStudents.studentId, users.id))
+      .leftJoin(grades, eq(users.gradeId, grades.id))
+      .where(
+        and(
+          eq(parentStudents.parentId, parentId),
+          isNull(parentStudents.deletedAt),
+          isNull(users.deletedAt),
+        ),
+      )
+      .orderBy(asc(users.name));
+
+    const reports = await db
+      .select({
+        id: parentReports.id,
+        studentId: parentReports.studentId,
+        studentName: users.name,
+        message: parentReports.message,
+        createdAt: parentReports.createdAt,
+      })
+      .from(parentReports)
+      .innerJoin(users, eq(parentReports.studentId, users.id))
+      .where(eq(parentReports.parentId, parentId))
+      .orderBy(desc(parentReports.createdAt))
+      .limit(50);
+
+    const recipients = [parent.phoneNumber, parent.email].filter(
+      (value): value is string => Boolean(value),
+    );
+    const deliveredReports = recipients.length
+      ? await db
+          .select({
+            id: notifications.id,
+            channel: notifications.channel,
+            type: notifications.type,
+            recipient: notifications.recipient,
+            message: notifications.message,
+            status: notifications.status,
+            createdAt: notifications.createdAt,
+          })
+          .from(notifications)
+          .where(or(...recipients.map((recipient) => eq(notifications.recipient, recipient))))
+          .orderBy(desc(notifications.createdAt))
+          .limit(50)
+      : [];
+
+    return { ...parent, children, feedback: reports, deliveredReports };
+  }
+
+  async linkParentChild(parentId: string, studentId: string) {
+    const [parent] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, parentId),
+          eq(users.role, 'PARENT'),
+          isNull(users.deletedAt),
+        ),
+      );
+    if (!parent) throw new NotFoundException('Parent not found');
+    const [student] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, studentId),
+          eq(users.role, 'STUDENT'),
+          isNull(users.deletedAt),
+        ),
+      );
+    if (!student) throw new NotFoundException('Student not found');
+    await db
+      .insert(parentStudents)
+      .values({ parentId, studentId })
+      .onConflictDoUpdate({
+        target: [parentStudents.parentId, parentStudents.studentId],
+        set: { deletedAt: null },
+      });
+    return { ok: true };
   }
 
   async listCourses(filters: {

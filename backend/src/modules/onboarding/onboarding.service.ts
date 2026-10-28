@@ -6,6 +6,7 @@ import { categories, courses, groupStudents, groups, parentStudents, users } fro
 import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
+import { ParentService } from '../parent/parent.service';
 
 const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`.slice(0, 6);
@@ -17,6 +18,7 @@ export class OnboardingService {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly parents: ParentService,
   ) {}
 
   /** Adds the given student to a group identified by its join code. */
@@ -117,6 +119,30 @@ export class OnboardingService {
       },
       returnHeaders: true,
     });
+    return data.response.user;
+  }
+
+  async createParent(dto: {
+    name: string;
+    email: string;
+    password: string;
+    phoneNumber?: string;
+    studentPhone?: string;
+  }) {
+    if (dto.studentPhone) await this.parents.resolveStudent(dto.studentPhone);
+    const data = await auth.api.signUpEmail({
+      body: {
+        name: dto.name,
+        email: dto.email,
+        password: dto.password,
+        role: 'PARENT',
+        phoneNumber: dto.phoneNumber,
+      },
+      returnHeaders: true,
+    });
+    if (dto.studentPhone) {
+      await this.parents.linkByPhone(data.response.user.id, dto.studentPhone);
+    }
     return data.response.user;
   }
 

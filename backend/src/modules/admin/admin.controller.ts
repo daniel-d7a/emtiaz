@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto } from '../../lib/schemas';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto, CreateParentDto, UpdateParentDto, AdminParentLinkDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
@@ -154,9 +154,57 @@ export class AdminController {
   @Get('api/admin/parents')
   @Roles('ADMIN')
   parents(
-    @Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; deleted?: string; limit?: string },
+    @Query()
+    q: {
+      status?: 'ACTIVE' | 'SUSPENDED';
+      search?: string;
+      name?: string;
+      phone?: string;
+      deleted?: string;
+      limit?: string;
+    },
   ) {
     return this.admin.listParents(q);
+  }
+
+  @Post('api/admin/parents')
+  @Roles('ADMIN')
+  async createParent(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(CreateParentDto)) dto: z.infer<typeof CreateParentDto>,
+  ) {
+    const parent = await this.onboarding.createParent(dto);
+    await this.admin.audit(req.user!.id, 'parent.create', 'user', parent.id);
+    return parent;
+  }
+
+  @Get('api/admin/parents/:parentId')
+  @Roles('ADMIN')
+  parentProfile(@Param('parentId') parentId: string) {
+    return this.admin.parentProfile(parentId);
+  }
+
+  @Patch('api/admin/parents/:parentId')
+  @Roles('ADMIN')
+  async updateParent(
+    @Req() req: Request,
+    @Param('parentId') parentId: string,
+    @Body(new ZodBodyPipe(UpdateParentDto)) dto: z.infer<typeof UpdateParentDto>,
+  ) {
+    await this.admin.audit(req.user!.id, 'parent.update', 'user', parentId, dto);
+    return this.admin.updateParent(parentId, dto);
+  }
+
+  @Post('api/admin/parent-links')
+  @Roles('ADMIN')
+  async linkParentChild(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(AdminParentLinkDto)) dto: z.infer<typeof AdminParentLinkDto>,
+  ) {
+    await this.admin.audit(req.user!.id, 'parent.link.create', 'parent_link', dto.studentId, {
+      parentId: dto.parentId,
+    });
+    return this.admin.linkParentChild(dto.parentId, dto.studentId);
   }
 
   @Get('api/admin/courses')

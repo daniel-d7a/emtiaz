@@ -51,22 +51,8 @@ export class OnboardingController {
     @Body(new ZodBodyPipe(ParentSignupDto))
     dto: z.infer<typeof ParentSignupDto>,
   ) {
-    // Validate the phone before creating the account so a typo does not leave an orphan login.
-    if (dto.studentPhone) await this.parents.resolveStudent(dto.studentPhone);
-    const data = await auth.api.signUpEmail({
-      body: {
-        name: dto.name,
-        email: dto.email,
-        password: dto.password,
-        role: 'PARENT',
-        phoneNumber: dto.phoneNumber,
-      },
-      returnHeaders: true,
-    });
-    if (dto.studentPhone) {
-      await this.parents.linkByPhone(data.response.user.id, dto.studentPhone);
-    }
-    return { user: data.response.user, status: 'ok' };
+    const user = await this.onboarding.createParent(dto);
+    return { user, status: 'ok' };
   }
 
   @Get('api/me')

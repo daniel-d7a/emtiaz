@@ -380,6 +380,68 @@ describe('Phase 5: admin endpoints', () => {
     expect(res.body[0].children.map((c: any) => c.id)).toContain(world.s1.id);
   });
 
+  it('parent directory creates, edits, filters, profiles, and manages children', async () => {
+    const email = 'created-parent@test.om';
+    const created = await admin.post('/api/admin/parents').send({
+      name: 'Created Parent',
+      email,
+      password: 'Passw0rd!123',
+      phoneNumber: '+96895550020',
+      studentPhone: STUDENT1.phoneNumber,
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.id;
+    expect(created.body.role).toBe('PARENT');
+    expect((await login(server, email, 'Passw0rd!123')).status).toBe(200);
+
+    const byName = await admin.get('/api/admin/parents?name=Created');
+    expect(byName.body.map((p: any) => p.id)).toContain(id);
+    const byPhone = await admin.get('/api/admin/parents?phone=95550020');
+    expect(byPhone.body.map((p: any) => p.id)).toContain(id);
+
+    const edited = await admin
+      .patch(`/api/admin/parents/${id}`)
+      .send({ name: 'Edited Parent', phoneNumber: '+96895550021' });
+    expect(edited.status).toBe(200);
+    expect(edited.body.name).toBe('Edited Parent');
+
+    await testPool.query(
+      `INSERT INTO parent_reports (parent_id, student_id, message) VALUES ($1,$2,'Monthly report')`,
+      [id, world.s1.id],
+    );
+    await testPool.query(
+      `INSERT INTO notifications (channel, type, recipient, message) VALUES ('whatsapp','PARENT','+96895550021','Delivered report')`,
+    );
+    let profile = await admin.get(`/api/admin/parents/${id}`);
+    expect(profile.status).toBe(200);
+    expect(profile.body.children.map((c: any) => c.id)).toContain(world.s1.id);
+    expect(profile.body.feedback[0].message).toBe('Monthly report');
+    expect(profile.body.deliveredReports.some((n: any) => n.message === 'Delivered report')).toBe(true);
+
+    expect(
+      (await admin.post('/api/admin/parent-links').send({
+        parentId: id,
+        studentId: world.s2.id,
+      })).status,
+    ).toBe(201);
+    profile = await admin.get(`/api/admin/parents/${id}`);
+    expect(profile.body.children).toHaveLength(2);
+
+    expect(
+      (await admin.delete(`/api/admin/parent-links/${id}/${world.s2.id}`)).status,
+    ).toBe(200);
+    profile = await admin.get(`/api/admin/parents/${id}`);
+    expect(profile.body.children.map((c: any) => c.id)).not.toContain(world.s2.id);
+
+    expect((await admin.delete(`/api/admin/users/${id}`)).status).toBe(200);
+    expect((await admin.get('/api/admin/parents?name=Edited')).body).toHaveLength(0);
+    expect((await admin.post(`/api/admin/users/${id}/restore`)).status).toBe(201);
+    expect((await admin.get('/api/admin/parents?name=Edited')).body.map((p: any) => p.id)).toContain(id);
+
+    const audit = await admin.get('/api/admin/audit?action=parent.link.create');
+    expect(audit.body.some((r: any) => r.targetId === world.s2.id)).toBe(true);
+  });
+
   it('caps admin lists with limit', async () => {
     expect((await admin.get('/api/admin/teachers?limit=1')).body).toHaveLength(1);
     expect((await admin.get('/api/admin/students?limit=1')).body).toHaveLength(1);

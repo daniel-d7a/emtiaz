@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -78,6 +78,10 @@ export default function AdminStudents() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<StudentRow | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const { studentId: linkedStudentId } = adminStudentsRoute.useSearch();
+  useEffect(() => {
+    if (linkedStudentId) setProfileId(linkedStudentId);
+  }, [linkedStudentId]);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const students = useQuery({
@@ -554,6 +558,9 @@ function enrollmentError(...errors: Array<Error | null>) {
 export const adminStudentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin/students',
+  validateSearch: (search: Record<string, unknown>): { studentId?: string } => ({
+    studentId: typeof search.studentId === 'string' ? search.studentId : undefined,
+  }),
   beforeLoad: () => requireRole('ADMIN'),
   component: AdminStudents,
 });

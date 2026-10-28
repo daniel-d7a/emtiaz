@@ -294,6 +294,33 @@ export const TaxonomyCreateDto = z
 export const TaxonomyUpdateDto = TaxonomyCreateDto.partial();
 export const AdminEnrollDto = z.object({ groupId: uuid });
 export const AdminMoveStudentDto = z.object({ targetGroupId: uuid });
+export const AdminParentLinkDto = z.object({
+  parentId: z.string().min(1),
+  studentId: z.string().min(1),
+});
+export const CreateParentDto = z.object({
+  name: safeText(120),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(128),
+  phoneNumber: phone,
+  studentPhone: phone.optional(),
+});
+export const UpdateParentDto = z
+  .object({
+    name: safeText(120).optional(),
+    phoneNumber: z
+      .string()
+      .trim()
+      .max(20)
+      .refine((v) => v !== '' && /^\+?[1-9]\d{6,14}$/.test(v), {
+        message: 'phone must be a valid number (+XXXXXXXXX)',
+      })
+      .transform(normalizePhone)
+      .optional(),
+  })
+  .refine((dto) => dto.name !== undefined || dto.phoneNumber !== undefined, {
+    message: 'nothing to update',
+  });
 export const CreateStudentDto = StudentSignupDto;
 export const UpdateStudentDto = z
   .object({
