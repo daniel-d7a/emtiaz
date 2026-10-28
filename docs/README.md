@@ -36,3 +36,4 @@ actually implemented.
 | [0015](./adr/0015-single-user-table.md) | One `user` identity table with a role column | current, reaffirmed 2026-10-29 |
 | [0018](./adr/0018-admin-permissions.md) | Admin roles carry permission sets enforced by a global guard | current |
 | [0019](./adr/0019-mobile-bottom-tabs.md) | Mobile role stacks use bottom tabs for home, notifications, profile | current |
+| [0020](./adr/0020-billing-provider.md) | Thawani hosted checkout in OMR, with monthly teacher and family plans | current, checkout not built |
