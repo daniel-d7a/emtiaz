@@ -149,7 +149,6 @@ export default function Profile() {
     : null;
   return (
     <Page
-      wide
       title={t('profile')}
       right={
         <Button onClick={() => save.mutate()} disabled={!name.trim() || save.isPending}>
@@ -157,7 +156,7 @@ export default function Profile() {
         </Button>
       }
     >
-      <div className={`grid gap-6 ${user.role === 'TEACHER' ? 'lg:grid-cols-2' : 'max-w-xl'}`}>
+      <div className="flex flex-col gap-6">
         <Card>
           <h2 className="mb-4 text-lg font-bold">{t('accountData')}</h2>
           <div className="mb-4 flex items-center gap-4">
@@ -190,7 +189,7 @@ export default function Profile() {
           </div>
           {avatarErr && <div className="mb-3"><ErrorBox error={avatarErr} /></div>}
           <p className="mb-4 text-sm text-ink-soft" dir="ltr">{user.email || user.phoneNumber}</p>
-          <div className="flex flex-col gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
             <Input label={t('phone')} value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />
             {user.role === 'STUDENT' && (
@@ -209,10 +208,10 @@ export default function Profile() {
               </>
             )}
             {user.role === 'TEACHER' && (
-              <label className="block">
+              <label className="block sm:col-span-2">
                 <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('specialization')}</span>
                 <input
-                  className="min-h-12 w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
+                  className="h-10 w-full rounded-xl border border-line bg-white px-3 outline-none focus:border-primary"
                   list="profile-subjects"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
@@ -223,32 +222,34 @@ export default function Profile() {
                 </datalist>
               </label>
             )}
-            {save.error && <ErrorBox error={save.error} />}
+            {save.error && <div className="sm:col-span-2"><ErrorBox error={save.error} /></div>}
           </div>
         </Card>
 
         {user.role === 'TEACHER' && (
           <Card>
             <h2 className="mb-4 text-lg font-bold">{t('landingPage')}</h2>
-            <div className="flex flex-col gap-3">
-              <Input
-                label={t('landingSlug')}
-                value={landingSlug}
-                onChange={(e) => setLandingSlug(e.target.value.toLowerCase())}
-                placeholder={t('landingSlugPlaceholder')}
-                dir="ltr"
-              />
-              <label className="block">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Input
+                  label={t('landingSlug')}
+                  value={landingSlug}
+                  onChange={(e) => setLandingSlug(e.target.value.toLowerCase())}
+                  placeholder={t('landingSlugPlaceholder')}
+                  dir="ltr"
+                />
+              </div>
+              <label className="block sm:col-span-2">
                 <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('landingBio')}</span>
                 <textarea
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3"
+                  className="w-full rounded-xl border border-line bg-white px-3 py-2"
                   rows={3}
                   maxLength={500}
                   value={landingBio}
                   onChange={(e) => setLandingBio(e.target.value)}
                 />
               </label>
-              <label className="flex items-center gap-2 text-sm font-semibold">
+              <label className="flex items-center gap-2 text-sm font-semibold sm:col-span-2">
                 <input
                   type="checkbox"
                   className="size-4 accent-primary"
@@ -258,12 +259,12 @@ export default function Profile() {
                 {t('publishLanding')}
               </label>
               {landingSlug && (
-                <a className="text-sm text-primary underline" href={`/t/${landingSlug}`} target="_blank" rel="noreferrer">
+                <a className="text-sm text-primary underline sm:col-span-2" href={`/t/${landingSlug}`} target="_blank" rel="noreferrer">
                   {t('viewLanding')}: /t/{landingSlug}
                 </a>
               )}
 
-              <div className="mt-2 border-t border-line pt-4">
+              <div className="mt-2 border-t border-line pt-4 sm:col-span-2">
                 <h3 className="mb-3 font-bold">{t('theme')}</h3>
                 <div className="flex flex-col gap-3">
                   <Select
