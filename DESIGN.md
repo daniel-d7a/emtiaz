@@ -175,7 +175,7 @@ A warm, trust-building palette: cool teal for guidance, terracotta for warmth, s
 
 ## Layout
 
-The app is a single column capped at 768px (`max-w-3xl`) with 16px page padding and 96px bottom clearance for phone navigation. The teacher profile editor is the exception: it widens to 1152px (`max-w-6xl`) so account data and the public-page/theme editor sit side by side, collapsing to one column below `lg`. The landing page uses a 1120px wrap with 20px side padding and a 72px section rhythm, reduced to 52px below 560px.
+The app is a single column that fills medium and large screens with 16px page padding, then caps at 768px (`max-w-3xl`) on extra-large screens and keeps 96px bottom clearance for phone navigation. Wide admin pages cap at 1152px (`max-w-6xl`) on extra-large screens. The landing page uses a 1120px wrap with 20px side padding and a 72px section rhythm, reduced to 52px below 560px.
 
 Landing grids use `auto-fit` with 270px feature cards, 240px steps, and 220px compact cards. The hero is a two-column `1.05fr / 0.95fr` grid at a 56px gap; it collapses to one column at 900px, where the parents section also stacks and the inline nav links disappear. At 560px the hero padding tightens, featured plans lose their scale, and CTAs become full width.
 
