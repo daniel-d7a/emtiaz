@@ -4,10 +4,10 @@
 
 **Blocked by:** 03, 04, 22.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The table shows the required columns and correct group counts.
-- [ ] Name, specialization, and teacher filters combine correctly.
-- [ ] The course profile links to each group and to the teacher profile.
-- [ ] Edit, soft delete, restore, and create work with toast feedback.
-- [ ] The create modal handles ACADEMIC and GENERAL taxonomies.
+- [x] The table shows the required columns and correct group counts.
+- [x] Name, specialization, and teacher filters combine correctly.
+- [x] The course profile links to each group and to the teacher profile.
+- [x] Edit, soft delete, restore, and create work with toast feedback.
+- [x] The create modal handles ACADEMIC and GENERAL taxonomies.
