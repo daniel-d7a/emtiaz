@@ -1,22 +1,69 @@
 import { useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
+import { Image, Linking, ScrollView, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api';
+import { api, resolveAttachmentUrl } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
-import type { StudentLessonView as Lesson } from '../../../shared/api';
+import type { AttachmentType, StudentLessonView as Lesson } from '../../../shared/api';
 
-export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId: string; onBack: (refresh?: boolean) => void; onOpenQuiz?: () => void }) {
+type LessonAttachment = Lesson['attachments'][number];
+
+const typeLabel: Record<AttachmentType, string> = {
+  IMAGE: 'صورة',
+  PDF: 'PDF',
+  DOC: 'مستند',
+  AUDIO: 'صوت',
+  ARCHIVE: 'أرشيف',
+  LINK: 'رابط',
+  VIDEO: 'فيديو',
+};
+
+function AttachmentRow({ attachment }: { attachment: LessonAttachment }) {
+  const [error, setError] = useState<Error | null>(null);
+  const image = useQuery({
+    queryKey: ['attachment-url', attachment.id],
+    queryFn: () => resolveAttachmentUrl(attachment),
+    enabled: attachment.fileType === 'IMAGE',
+    staleTime: Infinity,
+  });
+  const open = () => {
+    setError(null);
+    resolveAttachmentUrl(attachment)
+      .then((url) => Linking.openURL(url))
+      .catch((e) => setError(e as Error));
+  };
+  return (
+    <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, marginTop: 8 }}>
+      <View style={s.row}>
+        <Text style={{ flexShrink: 1, fontWeight: '600' }}>{attachment.title}</Text>
+        <Text style={{ color: c.inkSoft, fontSize: 12 }}>{typeLabel[attachment.fileType]}</Text>
+      </View>
+      {attachment.fileType === 'IMAGE' && image.data ? (
+        <Image
+          source={{ uri: image.data }}
+          resizeMode="contain"
+          style={{ width: '100%', height: 220, borderRadius: 12, marginTop: 8, backgroundColor: c.line }}
+        />
+      ) : null}
+      {image.error && <ErrorBox error={image.error} />}
+      {error && <ErrorBox error={error} />}
+      <Btn label="فتح" variant="ghost" onPress={open} />
+    </View>
+  );
+}
+
+export default function LessonView({ lessonId, groupId, onBack, onOpenQuiz }: { lessonId: string; groupId?: string; onBack: (refresh?: boolean) => void; onOpenQuiz?: () => void }) {
   const qc = useQueryClient();
-  const [downloadError, setDownloadError] = useState<Error | null>(null);
   const lesson = useQuery({
-    queryKey: ['lesson', lessonId],
-    queryFn: () => api<Lesson>(`/api/student/lessons/${lessonId}/view`),
+    queryKey: ['lesson', lessonId, groupId],
+    queryFn: () =>
+      api<Lesson>(`/api/student/lessons/${lessonId}/view${groupId ? `?groupId=${groupId}` : ''}`),
   });
   const complete = useMutation({
     mutationFn: () => api(`/api/student/lessons/${lessonId}/complete`, { method: 'POST', body: {} }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['lesson', lessonId] });
       void qc.invalidateQueries({ queryKey: ['curriculum'] });
+      void qc.invalidateQueries({ queryKey: ['student-home'] });
     },
   });
 
@@ -44,19 +91,7 @@ export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId:
         <Card>
           <Text style={s.h2}>المرفقات</Text>
           {data.attachments.map((a) => (
-            <View key={a.id} style={[s.row, { paddingVertical: 4 }]}>
-              <Text style={{ flexShrink: 1 }}>{a.title}</Text>
-              <Btn
-                label="فتح"
-                variant="ghost"
-                onPress={() => {
-                  setDownloadError(null);
-                  api<{ url: string }>(`/api/storage/attachments/${a.id}/download`)
-                    .then((d) => Linking.openURL(d.url))
-                    .catch((e) => setDownloadError(e as Error));
-                }}
-              />
-            </View>
+            <AttachmentRow key={a.id} attachment={a} />
           ))}
         </Card>
       )}
@@ -68,7 +103,6 @@ export default function LessonView({ lessonId, onBack, onOpenQuiz }: { lessonId:
         disabled={data.completed}
         onPress={() => !data.completed && complete.mutate()}
       />
-      {downloadError && <ErrorBox error={downloadError} />}
       {complete.error && <ErrorBox error={complete.error} />}
     </ScrollView>
   );

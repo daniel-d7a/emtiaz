@@ -1,25 +1,32 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, TextInput, TouchableHighlight, View } from 'react-native';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, ErrorBox, Loading, Text, c, s } from '../ui';
 import type { QuizPayload, QuizSubmission } from '../../../shared/api';
 
 export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?: string; quizId?: string; groupId: string; onBack: (refresh: boolean) => void }) {
+  const qc = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<QuizSubmission | null>(null);
+  const [retry, setRetry] = useState(false);
   const quiz = useQuery({
-    queryKey: ['quiz', quizId ?? lessonId],
+    queryKey: ['quiz', groupId, quizId ?? lessonId],
     queryFn: () =>
       quizId
         ? api<QuizPayload>(`/api/student/groups/${groupId}/quizzes/${quizId}`)
-        : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz`),
+        : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz?groupId=${groupId}`),
     enabled: !!(quizId || lessonId),
   });
   const submit = useMutation({
     mutationFn: (vars: { quizId: string; answers: Record<string, string> }) =>
       api<QuizSubmission>(`/api/student/quizzes/${vars.quizId}/submit`, { body: { groupId, answers: vars.answers } }),
-    onSuccess: (res) => setResult(res),
+    onSuccess: (res) => {
+      setRetry(false);
+      setResult(res);
+      void qc.invalidateQueries({ queryKey: ['student-home'] });
+      void qc.invalidateQueries({ queryKey: ['curriculum'] });
+    },
   });
 
   useEffect(() => {
@@ -32,20 +39,22 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
   const data = quiz.data;
   const quizData = data.quiz;
   if (!quizData) return <Loading />;
+  const shown = retry ? null : result ?? data.attempt ?? null;
 
   return (
     <ScrollView style={s.page}>
-      <Btn label="رجوع" variant="ghost" onPress={() => onBack(!!result)} />
-      {result ? (
+      <Btn label="رجوع" variant="ghost" onPress={() => onBack(!!shown)} />
+      {shown ? (
         <>
-          <Text style={s.h1}>{result.score} / {result.maxScore}</Text>
-          {result.result.map((r, i) => (
+          <Text style={s.h1}>{quizData.title}</Text>
+          <Text style={s.h2}>{shown.score} / {shown.maxScore}</Text>
+          {shown.result.map((r, i) => (
             <Card key={r.questionId}>
               <Text style={{ fontWeight: '700' }}>{r.correct ? '✓ صحيح' : '✗ خطأ'} — سؤال {i + 1}</Text>
               <Text style={{ color: c.inkSoft }}>الجواب الصحيح: {r.expected}{r.explanation ? ` — ${r.explanation}` : ''}</Text>
             </Card>
           ))}
-          <Btn label="إعادة المحاولة" variant="ghost" onPress={() => { setResult(null); setAnswers({}); submit.reset(); }} />
+          <Btn label="إعادة المحاولة" variant="ghost" onPress={() => { setRetry(true); setResult(null); setAnswers({}); submit.reset(); }} />
         </>
       ) : (
         <>

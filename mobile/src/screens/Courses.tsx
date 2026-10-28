@@ -3,11 +3,21 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
-import type { StudentGroup as Group } from '../../../shared/api';
+import type { StudentGroup as Group, StudentHome } from '../../../shared/api';
 
-export default function Courses({ onOpen }: { onOpen: (groupId: string) => void }) {
+export default function Courses({
+  onOpen,
+  onBrowse,
+}: {
+  onOpen: (groupId: string) => void;
+  onBrowse: () => void;
+}) {
   const qc = useQueryClient();
   const [joinCode, setJoin] = useState('');
+  const home = useQuery({
+    queryKey: ['student-home'],
+    queryFn: () => api<StudentHome>('/api/student/home'),
+  });
   const groups = useQuery({
     queryKey: ['student-groups'],
     queryFn: () => api<Group[]>('/api/student/groups'),
@@ -17,15 +27,53 @@ export default function Courses({ onOpen }: { onOpen: (groupId: string) => void 
     onSuccess: () => {
       setJoin('');
       void qc.invalidateQueries({ queryKey: ['student-groups'] });
+      void qc.invalidateQueries({ queryKey: ['student-home'] });
     },
   });
 
-  if (groups.error) return <View style={s.page}><ErrorBox error={groups.error} /></View>;
-  if (!groups.data) return <Loading />;
+  const error = home.error ?? groups.error;
+  if (error) return <View style={s.page}><ErrorBox error={error} /></View>;
+  if (!home.data || !groups.data) return <Loading />;
+
+  const stats = home.data.stats;
 
   return (
-    <ScrollView style={s.page} keyboardShouldPersistTaps="handled">
-      <Text style={s.h1}>مقرراتي</Text>
+    <ScrollView style={s.screen} contentContainerStyle={s.pageContent} keyboardShouldPersistTaps="handled">
+      <Text style={s.h1}>الرئيسية</Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+        {[
+          { label: 'المجموعات', value: stats.activeGroups },
+          { label: 'دروس مكتملة', value: stats.lessonsDone },
+          { label: 'المعدل', value: `${stats.averageGrade}%` },
+        ].map((item) => (
+          <View key={item.label} style={[s.card, { flex: 1, marginBottom: 0, padding: 12 }]}>
+            <Text style={{ color: c.inkSoft, fontSize: 12 }}>{item.label}</Text>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: c.primaryDark }}>{item.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={[s.row, { marginBottom: 8 }]}>
+        <Text style={s.h2}>أحدث المقررات</Text>
+        <Btn label="تصفح المقررات" variant="ghost" onPress={onBrowse} />
+      </View>
+      {home.data.latestCourses.length === 0 && <Empty text="لا توجد مجموعات بعد" />}
+      {home.data.latestCourses.map((g) => (
+        <Card key={g.group.id}>
+          <Text style={s.h2}>{g.course.title}</Text>
+          <Text style={{ color: c.inkSoft, marginBottom: 4 }}>
+            {g.group.name} · {g.teacher.name}
+          </Text>
+          <View style={s.progress}>
+            <View
+              style={[s.progressFill, { width: `${Math.min(100, Math.max(0, g.progress))}%` }]}
+            />
+          </View>
+          <Text style={{ color: c.inkSoft, fontSize: 12 }}>التقدم: {Math.round(g.progress)}%</Text>
+          <Btn label="افتح" onPress={() => onOpen(g.group.id)} />
+        </Card>
+      ))}
+
       <Card>
         <Text style={s.h2}>رمز مجموعة</Text>
         <Text style={{ color: c.inkSoft, marginBottom: 8 }}>مثال OM123456</Text>
@@ -45,6 +93,8 @@ export default function Courses({ onOpen }: { onOpen: (groupId: string) => void 
           loading={join.isPending}
         />
       </Card>
+
+      <Text style={s.h2}>مقرراتي</Text>
       {groups.data.length === 0 && <Empty text="لا توجد مجموعات بعد" />}
       {groups.data.map((g) => (
         <Card key={g.group.id}>

@@ -22,6 +22,7 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz, onOpe
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['curriculum', groupId] });
       void qc.invalidateQueries({ queryKey: ['student-groups'] });
+      void qc.invalidateQueries({ queryKey: ['student-home'] });
     },
   });
 
@@ -68,6 +69,11 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz, onOpe
                   </Text>
                   {!l.unlocked && <Text style={s.badge}>🔒 مقفل</Text>}
                 </View>
+                {l.attachments.length > 0 && (
+                  <Text style={{ color: c.inkSoft, fontSize: 12, marginBottom: 4 }}>
+                    المرفقات: {l.attachments.length}
+                  </Text>
+                )}
                 {l.unlocked && (
                   <View style={[s.row, { justifyContent: 'flex-start' }]}>
                     <Btn label="فتح الدرس" variant="ghost" onPress={() => onOpenLesson(l.id)} />

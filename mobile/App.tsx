@@ -13,6 +13,7 @@ import { DMSans_400Regular } from '@expo-google-fonts/dm-sans/400Regular';
 import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
 import { authApi } from './src/api';
 import Courses from './src/screens/Courses';
+import CourseBrowser from './src/screens/CourseBrowser';
 import Group from './src/screens/Group';
 import LessonView from './src/screens/Lesson';
 import Notifications from './src/screens/Notifications';
@@ -38,6 +39,7 @@ type RootStackParamList = {
   TeacherCourse: { courseId: string };
   TeacherCurriculum: { courseId: string };
   TeacherNewCourse: undefined;
+  CourseBrowser: undefined;
   Group: { groupId: string };
   Lesson: { lessonId: string; groupId: string };
   Quiz: { groupId: string; lessonId?: string; quizId?: string };
@@ -91,10 +93,14 @@ function StudentStack({ onLogout }: { onLogout: () => void }) {
             home={
               <Courses
                 onOpen={(groupId) => navigation.navigate('Group', { groupId })}
+                onBrowse={() => navigation.navigate('CourseBrowser')}
               />
             }
           />
         )}
+      </Stack.Screen>
+      <Stack.Screen name="CourseBrowser">
+        {({ navigation }) => <CourseBrowser onBack={() => navigation.goBack()} />}
       </Stack.Screen>
       <Stack.Screen name="Group">
         {({ navigation, route }) => (
@@ -117,6 +123,7 @@ function StudentStack({ onLogout }: { onLogout: () => void }) {
         {({ navigation, route }) => (
           <LessonView
             lessonId={route.params.lessonId}
+            groupId={route.params.groupId}
             onBack={() => navigation.goBack()}
             onOpenQuiz={() =>
               navigation.navigate('Quiz', {
