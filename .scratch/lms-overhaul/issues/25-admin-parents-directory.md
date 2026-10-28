@@ -4,10 +4,10 @@
 
 **Blocked by:** 03, 22.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The table filters by name and phone and shows identity columns.
-- [ ] The profile lists children with working links, feedback, and delivered reports.
-- [ ] Add and remove child actions update the parent link and are audited.
-- [ ] Suspend, soft delete, and restore behave correctly.
-- [ ] A create-parent modal creates a usable account.
+- [x] The table filters by name and phone and shows identity columns.
+- [x] The profile lists children with working links, feedback, and delivered reports.
+- [x] Add and remove child actions update the parent link and are audited.
+- [x] Suspend, soft delete, and restore behave correctly.
+- [x] A create-parent modal creates a usable account.
