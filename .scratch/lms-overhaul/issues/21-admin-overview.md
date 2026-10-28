@@ -4,9 +4,15 @@
 
 **Blocked by:** 01, 02.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Overview shows stats, charts, and notifications; no directory tables or forms.
-- [ ] Stat cards carry an icon, one number, and one label.
-- [ ] Navigation matches the admin shell and contains no teacher-only destinations.
-- [ ] Loading and empty states are present in both languages.
+- [x] Overview shows stats, charts, and notifications; no directory tables or forms.
+- [x] Stat cards carry an icon, one number, and one label.
+- [x] Navigation matches the admin shell and contains no teacher-only destinations.
+- [x] Loading and empty states are present in both languages.
+
+## Close-out notes
+
+- Overview now shows four icon stat cards, course-type and group-status charts, and recent notifications only.
+- Existing management tabs moved to separate admin pages: teachers, students, parents, courses, settings, and audit.
+- Admin shell navigation links to those pages with role-appropriate icons.
