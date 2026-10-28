@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { and, asc, eq, ilike } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { categories, courses, groupStudents, groups, parentStudents, users } from '../../db/schema';
 import * as schema from '../../db/schema';
@@ -21,13 +21,20 @@ export class OnboardingService {
   /** Adds the given student to a group identified by its join code. */
   async joinByCode(studentId: string, joinCode: string) {
     const group = await db
-      .select()
+      .select({ group: groups, course: courses })
       .from(groups)
-      .where(eq(groups.joinCode, joinCode))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          eq(groups.joinCode, joinCode),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      )
       .limit(1);
     if (!group.length) throw new NotFoundException('Invalid group code');
 
-    const [groupRow] = group;
+    const { group: groupRow, course } = group[0];
     if (!groupRow.isActive) throw new NotFoundException('Group inactive');
 
     const existing = await db
@@ -47,9 +54,6 @@ export class OnboardingService {
       await this.notifyEnrolled(studentId, groupRow);
     }
 
-    const course = (
-      await db.select().from(courses).where(eq(courses.id, groupRow.courseId))
-    )[0];
     return { group: groupRow, course };
   }
 
@@ -63,7 +67,12 @@ export class OnboardingService {
       const parents = await db
         .select({ id: parentStudents.parentId })
         .from(parentStudents)
-        .where(eq(parentStudents.studentId, studentId));
+        .where(
+          and(
+            eq(parentStudents.studentId, studentId),
+            isNull(parentStudents.deletedAt),
+          ),
+        );
       await Promise.all(
         parents.map((p) =>
           this.notifications.sendInApp(p.id, `تم تسجيل ${student.name} في «${groupRow.name}»`, 'PARENT'),

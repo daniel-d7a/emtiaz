@@ -76,6 +76,7 @@ export class MonthlySummaryService implements OnModuleInit, OnModuleDestroy {
           eq(parent.isActive, true),
           isNull(parent.deletedAt),
           isNull(student.deletedAt),
+          isNull(parentStudents.deletedAt),
         ),
       );
 

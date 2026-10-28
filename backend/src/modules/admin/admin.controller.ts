@@ -38,7 +38,7 @@ export class AdminController {
   @Roles('ADMIN')
   teachers(
     @Query()
-    q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; subjectId?: string; limit?: string },
+    q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; subjectId?: string; deleted?: string; limit?: string },
   ) {
     return this.admin.listTeachers(q);
   }
@@ -53,6 +53,7 @@ export class AdminController {
       groupId?: string;
       teacherId?: string;
       search?: string;
+      deleted?: string;
       limit?: string;
     },
   ) {
@@ -62,7 +63,7 @@ export class AdminController {
   @Get('api/admin/parents')
   @Roles('ADMIN')
   parents(
-    @Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; limit?: string },
+    @Query() q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; deleted?: string; limit?: string },
   ) {
     return this.admin.listParents(q);
   }
@@ -76,6 +77,7 @@ export class AdminController {
       gradeId?: string;
       categoryId?: string;
       teacherId?: string;
+      deleted?: string;
       limit?: string;
     },
   ) {
@@ -84,9 +86,14 @@ export class AdminController {
 
   @Get('api/admin/groups')
   @Roles('ADMIN')
-  async groups() {
-    const courses = await this.admin.listCourses({});
-    return courses.flatMap((c) => c.groups);
+  groups(@Query() q: { deleted?: string; courseId?: string }) {
+    return this.admin.listGroups(q);
+  }
+
+  @Get('api/admin/parent-links')
+  @Roles('ADMIN')
+  parentLinks(@Query() q: { deleted?: string }) {
+    return this.admin.listParentLinks(q);
   }
 
   @Patch('api/admin/users/:userId/status')
@@ -108,6 +115,67 @@ export class AdminController {
   async deleteUser(@Req() req: Request, @Param('userId') userId: string) {
     await this.admin.audit(req.user!.id, 'user.delete', 'user', userId);
     return this.admin.deleteUser(userId);
+  }
+
+  @Post('api/admin/users/:userId/restore')
+  @Roles('ADMIN')
+  async restoreUser(@Req() req: Request, @Param('userId') userId: string) {
+    await this.admin.audit(req.user!.id, 'user.restore', 'user', userId);
+    return this.admin.restoreUser(userId);
+  }
+
+  @Delete('api/admin/courses/:courseId')
+  @Roles('ADMIN')
+  async deleteCourse(@Req() req: Request, @Param('courseId') courseId: string) {
+    await this.admin.audit(req.user!.id, 'course.delete', 'course', courseId);
+    return this.admin.deleteCourse(courseId);
+  }
+
+  @Post('api/admin/courses/:courseId/restore')
+  @Roles('ADMIN')
+  async restoreCourse(@Req() req: Request, @Param('courseId') courseId: string) {
+    await this.admin.audit(req.user!.id, 'course.restore', 'course', courseId);
+    return this.admin.restoreCourse(courseId);
+  }
+
+  @Delete('api/admin/groups/:groupId')
+  @Roles('ADMIN')
+  async deleteGroup(@Req() req: Request, @Param('groupId') groupId: string) {
+    await this.admin.audit(req.user!.id, 'group.delete', 'group', groupId);
+    return this.admin.deleteGroup(groupId);
+  }
+
+  @Post('api/admin/groups/:groupId/restore')
+  @Roles('ADMIN')
+  async restoreGroup(@Req() req: Request, @Param('groupId') groupId: string) {
+    await this.admin.audit(req.user!.id, 'group.restore', 'group', groupId);
+    return this.admin.restoreGroup(groupId);
+  }
+
+  @Delete('api/admin/parent-links/:parentId/:studentId')
+  @Roles('ADMIN')
+  async deleteParentLink(
+    @Req() req: Request,
+    @Param('parentId') parentId: string,
+    @Param('studentId') studentId: string,
+  ) {
+    await this.admin.audit(req.user!.id, 'parent.link.delete', 'parent_link', studentId, {
+      parentId,
+    });
+    return this.admin.deleteParentLink(parentId, studentId);
+  }
+
+  @Post('api/admin/parent-links/:parentId/:studentId/restore')
+  @Roles('ADMIN')
+  async restoreParentLink(
+    @Req() req: Request,
+    @Param('parentId') parentId: string,
+    @Param('studentId') studentId: string,
+  ) {
+    await this.admin.audit(req.user!.id, 'parent.link.restore', 'parent_link', studentId, {
+      parentId,
+    });
+    return this.admin.restoreParentLink(parentId, studentId);
   }
 
   @Post('api/admin/students/:studentId/enroll')

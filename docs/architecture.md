@@ -42,7 +42,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `onboarding` | Role signup, `GET/PATCH /api/me`, avatar URL, categories, health |
 | `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades, parent-code rotation |
 | `teacher` | Home stats, course/module/lesson CRUD, quizzes, group settings/pacing/visibility, roster, announcements, gradebook, group statistics |
-| `admin` | Global metrics, directories, suspend/delete, manual enrollment, taxonomy, notifications, audit |
+| `admin` | Global metrics, directories, suspend/delete/restore, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
 | `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
 | `storage` | Presigned uploads, attachment records/downloads, avatars, banners |

@@ -2,8 +2,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
+import { alias } from 'drizzle-orm/pg-core';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
   auditLogs,
@@ -31,20 +32,34 @@ export class AdminService {
       .select({ c: count() })
       .from(users)
       .where(and(eq(users.role, 'STUDENT'), isNull(users.deletedAt)));
-    const [allCourses] = await db.select({ c: count() }).from(courses);
+    const [allCourses] = await db
+      .select({ c: count() })
+      .from(courses)
+      .where(isNull(courses.deletedAt));
     const [academic] = await db
       .select({ c: count() })
       .from(courses)
-      .where(eq(courses.courseType, 'ACADEMIC'));
+      .where(and(eq(courses.courseType, 'ACADEMIC'), isNull(courses.deletedAt)));
     const [general] = await db
       .select({ c: count() })
       .from(courses)
-      .where(eq(courses.courseType, 'GENERAL'));
-    const [allGroups] = await db.select({ c: count() }).from(groups);
+      .where(and(eq(courses.courseType, 'GENERAL'), isNull(courses.deletedAt)));
+    const [allGroups] = await db
+      .select({ c: count() })
+      .from(groups)
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(and(isNull(groups.deletedAt), isNull(courses.deletedAt)));
     const [activeGroups] = await db
       .select({ c: count() })
       .from(groups)
-      .where(eq(groups.isActive, true));
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          eq(groups.isActive, true),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      );
     return {
       totalTeachers: Number(teachers.c),
       totalStudents: Number(students.c),
@@ -60,10 +75,15 @@ export class AdminService {
     status?: 'ACTIVE' | 'SUSPENDED';
     search?: string;
     subjectId?: string;
+    deleted?: string;
     limit?: string;
   }) {
     const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
-    const conditions = [eq(users.role, 'TEACHER'), isNull(users.deletedAt)];
+    const deleted = filters.deleted === 'true';
+    const conditions = [
+      eq(users.role, 'TEACHER'),
+      deleted ? isNotNull(users.deletedAt) : isNull(users.deletedAt),
+    ];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
     if (filters.subjectId) conditions.push(eq(users.subjectCategoryId, filters.subjectId));
@@ -85,6 +105,7 @@ export class AdminService {
         role: users.role,
         isActive: users.isActive,
         createdAt: users.createdAt,
+        deletedAt: users.deletedAt,
         subjectCategoryId: users.subjectCategoryId,
         subject: { id: categories.id, name: categories.name },
       })
@@ -164,12 +185,23 @@ export class AdminService {
     return { ok: true };
   }
 
+  async restoreUser(userId: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user || !user.deletedAt) throw new NotFoundException('Deleted user not found');
+    await db
+      .update(users)
+      .set({ isActive: true, deletedAt: null })
+      .where(eq(users.id, userId));
+    return { ok: true };
+  }
+
   async listStudents(filters: {
     gradeId?: string;
     courseId?: string;
     groupId?: string;
     teacherId?: string;
     search?: string;
+    deleted?: string;
     limit?: string;
   }) {
     const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
@@ -183,13 +215,23 @@ export class AdminService {
         .select({ groupId: groups.id })
         .from(groups)
         .innerJoin(courses, eq(groups.courseId, courses.id))
-        .where(and(...conditions));
+        .where(
+          and(
+            ...conditions,
+            isNull(groups.deletedAt),
+            isNull(courses.deletedAt),
+          ),
+        );
       if (!rows.length) return [];
       groupIds = rows.map((r) => r.groupId);
     }
     if (filters.groupId) groupIds = [filters.groupId];
 
-    const conditions = [eq(users.role, 'STUDENT'), isNull(users.deletedAt)];
+    const deleted = filters.deleted === 'true';
+    const conditions = [
+      eq(users.role, 'STUDENT'),
+      deleted ? isNotNull(users.deletedAt) : isNull(users.deletedAt),
+    ];
     if (filters.gradeId) conditions.push(eq(users.gradeId, filters.gradeId));
     if (filters.search) {
       conditions.push(
@@ -218,6 +260,7 @@ export class AdminService {
         gradeId: users.gradeId,
         isActive: users.isActive,
         createdAt: users.createdAt,
+        deletedAt: users.deletedAt,
       })
       .from(users)
       .where(and(...conditions))
@@ -232,7 +275,8 @@ export class AdminService {
       })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
-      .innerJoin(courses, eq(groups.courseId, courses.id));
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(and(isNull(groups.deletedAt), isNull(courses.deletedAt)));
     return students.map((s) => ({
       ...s,
       enrollments: memberships
@@ -241,9 +285,13 @@ export class AdminService {
     }));
   }
 
-  async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED'; limit?: string }) {
+  async listParents(filters: { search?: string; status?: 'ACTIVE' | 'SUSPENDED'; deleted?: string; limit?: string }) {
     const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
-    const conditions = [eq(users.role, 'PARENT'), isNull(users.deletedAt)];
+    const deleted = filters.deleted === 'true';
+    const conditions = [
+      eq(users.role, 'PARENT'),
+      deleted ? isNotNull(users.deletedAt) : isNull(users.deletedAt),
+    ];
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
     if (filters.search) {
@@ -263,6 +311,7 @@ export class AdminService {
         phoneNumber: users.phoneNumber,
         isActive: users.isActive,
         createdAt: users.createdAt,
+        deletedAt: users.deletedAt,
       })
       .from(users)
       .where(and(...conditions))
@@ -279,7 +328,13 @@ export class AdminService {
           })
           .from(parentStudents)
           .innerJoin(users, eq(parentStudents.studentId, users.id))
-          .where(inArray(parentStudents.parentId, parentIds))
+          .where(
+            and(
+              inArray(parentStudents.parentId, parentIds),
+              isNull(parentStudents.deletedAt),
+              isNull(users.deletedAt),
+            ),
+          )
       : [];
     return parents.map((p) => ({
       ...p,
@@ -294,10 +349,13 @@ export class AdminService {
     gradeId?: string;
     categoryId?: string;
     teacherId?: string;
+    deleted?: string;
     limit?: string;
   }) {
     const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 200);
-    const conditions = [];
+    const conditions = [
+      filters.deleted === 'true' ? isNotNull(courses.deletedAt) : isNull(courses.deletedAt),
+    ];
     if (filters.courseType)
       conditions.push(eq(courses.courseType, filters.courseType));
     if (filters.gradeId) conditions.push(eq(courses.gradeId, filters.gradeId));
@@ -316,7 +374,10 @@ export class AdminService {
     const rows = limit ? await query.limit(limit) : await query;
     const courseIds = rows.map((r) => r.course.id);
     const groupRows = courseIds.length
-      ? await db.select().from(groups).where(inArray(groups.courseId, courseIds))
+      ? await db
+          .select()
+          .from(groups)
+          .where(and(inArray(groups.courseId, courseIds), isNull(groups.deletedAt)))
       : [];
     const groupIds = groupRows.map((g) => g.id);
     const counts = groupIds.length
@@ -338,8 +399,118 @@ export class AdminService {
     }));
   }
 
-  async adminEnroll(studentId: string, groupId: string) {
+  async listGroups(filters: { deleted?: string; courseId?: string } = {}) {
+    const deleted = filters.deleted === 'true';
+    const conditions = [
+      deleted ? isNotNull(groups.deletedAt) : isNull(groups.deletedAt),
+      ...(deleted ? [] : [isNull(courses.deletedAt)]),
+    ];
+    if (filters.courseId) conditions.push(eq(groups.courseId, filters.courseId));
+    return db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        joinCode: groups.joinCode,
+        isActive: groups.isActive,
+        courseId: groups.courseId,
+        courseTitle: courses.title,
+        deletedAt: groups.deletedAt,
+      })
+      .from(groups)
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(and(...conditions))
+      .orderBy(asc(groups.name));
+  }
+
+  async listParentLinks(filters: { deleted?: string } = {}) {
+    const parent = alias(users, 'parent_user');
+    const student = alias(users, 'student_user');
+    return db
+      .select({
+        parentId: parentStudents.parentId,
+        parentName: parent.name,
+        studentId: parentStudents.studentId,
+        studentName: student.name,
+        deletedAt: parentStudents.deletedAt,
+      })
+      .from(parentStudents)
+      .innerJoin(parent, eq(parentStudents.parentId, parent.id))
+      .innerJoin(student, eq(parentStudents.studentId, student.id))
+      .where(
+        filters.deleted === 'true'
+          ? isNotNull(parentStudents.deletedAt)
+          : isNull(parentStudents.deletedAt),
+      )
+      .orderBy(asc(parent.name), asc(student.name));
+  }
+
+  async deleteCourse(courseId: string) {
+    const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
+    if (!course || course.deletedAt) throw new NotFoundException('Course not found');
+    await db.update(courses).set({ deletedAt: new Date() }).where(eq(courses.id, courseId));
+    return { ok: true };
+  }
+
+  async restoreCourse(courseId: string) {
+    const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
+    if (!course || !course.deletedAt) throw new NotFoundException('Deleted course not found');
+    await db.update(courses).set({ deletedAt: null }).where(eq(courses.id, courseId));
+    return { ok: true };
+  }
+
+  async deleteGroup(groupId: string) {
     const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+    if (!group || group.deletedAt) throw new NotFoundException('Group not found');
+    await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, groupId));
+    return { ok: true };
+  }
+
+  async restoreGroup(groupId: string) {
+    const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+    if (!group || !group.deletedAt) throw new NotFoundException('Deleted group not found');
+    await db.update(groups).set({ deletedAt: null }).where(eq(groups.id, groupId));
+    return { ok: true };
+  }
+
+  async deleteParentLink(parentId: string, studentId: string) {
+    const [link] = await db
+      .select()
+      .from(parentStudents)
+      .where(and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)));
+    if (!link || link.deletedAt) throw new NotFoundException('Parent link not found');
+    await db
+      .update(parentStudents)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)));
+    return { ok: true };
+  }
+
+  async restoreParentLink(parentId: string, studentId: string) {
+    const [link] = await db
+      .select()
+      .from(parentStudents)
+      .where(and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)));
+    if (!link || !link.deletedAt) throw new NotFoundException('Deleted parent link not found');
+    await db
+      .update(parentStudents)
+      .set({ deletedAt: null })
+      .where(and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)));
+    return { ok: true };
+  }
+
+  async adminEnroll(studentId: string, groupId: string) {
+    const [group] = await db
+      .select({ group: groups })
+      .from(groups)
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          eq(groups.id, groupId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      )
+      .then((rows) => rows.map((row) => row.group));
     if (!group) throw new NotFoundException('Group not found');
     const [user] = await db.select().from(users).where(eq(users.id, studentId));
     if (!user || user.deletedAt) throw new NotFoundException('Student not found');
@@ -355,7 +526,12 @@ export class AdminService {
       const parents = await db
         .select({ id: parentStudents.parentId })
         .from(parentStudents)
-        .where(eq(parentStudents.studentId, studentId));
+        .where(
+          and(
+            eq(parentStudents.studentId, studentId),
+            isNull(parentStudents.deletedAt),
+          ),
+        );
       await Promise.all(
         parents.map((p) =>
           this.notifications.sendInApp(p.id, `تم تسجيل ${user.name} في «${group.name}»`, 'PARENT'),

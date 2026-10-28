@@ -43,7 +43,10 @@ export class ParentService {
     await db
       .insert(parentStudents)
       .values({ parentId, studentId: student.id })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: [parentStudents.parentId, parentStudents.studentId],
+        set: { deletedAt: null },
+      });
     return student;
   }
 
@@ -58,7 +61,13 @@ export class ParentService {
       })
       .from(parentStudents)
       .innerJoin(users, eq(parentStudents.studentId, users.id))
-      .where(and(eq(parentStudents.parentId, parentId), isNull(users.deletedAt)));
+      .where(
+        and(
+          eq(parentStudents.parentId, parentId),
+          isNull(parentStudents.deletedAt),
+          isNull(users.deletedAt),
+        ),
+      );
 
     return Promise.all(
       rows.map(async (student) => {
@@ -131,9 +140,14 @@ export class ParentService {
 
   async unlink(parentId: string, studentId: string) {
     await db
-      .delete(parentStudents)
+      .update(parentStudents)
+      .set({ deletedAt: new Date() })
       .where(
-        and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)),
+        and(
+          eq(parentStudents.parentId, parentId),
+          eq(parentStudents.studentId, studentId),
+          isNull(parentStudents.deletedAt),
+        ),
       );
     return { ok: true };
   }
@@ -147,7 +161,13 @@ export class ParentService {
     const [link] = await db
       .select()
       .from(parentStudents)
-      .where(and(eq(parentStudents.parentId, parentId), eq(parentStudents.studentId, studentId)))
+      .where(
+        and(
+          eq(parentStudents.parentId, parentId),
+          eq(parentStudents.studentId, studentId),
+          isNull(parentStudents.deletedAt),
+        ),
+      )
       .limit(1);
     if (!link) throw new ForbiddenException('Not linked to this student');
   }

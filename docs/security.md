@@ -13,7 +13,11 @@ the checklist to keep in mind when adding endpoints or screens.
   suspended or deleted user cannot keep using a cached session.
 - Suspended users (`is_active = false`) get `403`. Deleting a user is a soft
   delete that also sets `is_active = false`, revokes sessions, and removes group
-  memberships; admin/public queries filter `deleted_at`.
+  memberships. Courses, groups, and parent-child links are soft-deleted too:
+  every non-deleted admin, teacher, student, parent, and public query filters
+  `deleted_at`. Admins can restore any soft-deleted row from the matching
+  directory; restored users are active again, and restored courses/groups return
+  to their owner's lists. Restores are audited.
 - Sign-in lockout: after `LOGIN_LOCKOUT_MAX` failures (default 5) for one email
   inside `LOGIN_LOCKOUT_WINDOW_MS` (default 15 min), sign-in returns `429` with
   `Retry-After` for `LOGIN_LOCKOUT_MS` (default 15 min). A successful sign-in
@@ -36,7 +40,7 @@ alone never grants access to another user's course, group, or child.
 
 | Action | Admin | Teacher | Student | Parent |
 |---|---|---|---|---|
-| Global metrics, directories, suspend/delete, taxonomy, audit | yes | no | no | no |
+| Global metrics, directories, suspend/delete/restore, taxonomy, audit | yes | no | no | no |
 | Create/edit own courses, modules, lessons, quizzes | no* | owner | no | no |
 | Create groups, pacing, roster, announcements, gradebook | no* | owner | no | no |
 | Read group statistics | no* | owner | no | no |
@@ -55,9 +59,9 @@ alone never grants access to another user's course, group, or child.
 | Read own inbox / mark read | yes | yes | yes | yes |
 | Public course catalogue/teacher page/course, avatar/banner, sitemap, robots | public | public | public | public |
 
-\* Admin endpoints are read-only for courses/groups; admin does not call the
-teacher endpoints. Admin can download any attachment and manually enroll a
-student. Teacher course creation may resolve a missing shared grade or skill
+\* Admin endpoints manage courses/groups only for moderation (soft-delete and
+restore); editing course content still belongs to the owning teacher. Admin can
+download any attachment and manually enroll a student. Teacher course creation may resolve a missing shared grade or skill
 name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
 ## Content access rules

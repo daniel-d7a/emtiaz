@@ -16,17 +16,19 @@ type TeacherRow = {
   phoneNumber: string | null;
   isActive: boolean;
   createdAt: string;
+  deletedAt: string | null;
 };
 
 export default function AdminTeachers() {
   const { t } = useLang();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
   const [limit, setLimit] = useState(20);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const teachers = useQuery({
-    queryKey: ['admin-teachers', search, limit],
-    queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?limit=${limit}&search=${encodeURIComponent(search)}`),
+    queryKey: ['admin-teachers', search, limit, showDeleted],
+    queryFn: () => api<TeacherRow[]>(`/api/admin/teachers?limit=${limit}&search=${encodeURIComponent(search)}&deleted=${showDeleted}`),
   });
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['admin-teachers'] });
@@ -37,6 +39,13 @@ export default function AdminTeachers() {
       api(`/api/admin/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
     onSuccess: () => {
       toast.success(t('saved'));
+      invalidate();
+    },
+  });
+  const restoreUser = useMutation({
+    mutationFn: (id: string) => api(`/api/admin/users/${id}/restore`, { method: 'POST' }),
+    onSuccess: () => {
+      toast.success(t('restored'));
       invalidate();
     },
   });
@@ -51,7 +60,14 @@ export default function AdminTeachers() {
   return (
     <Page title={t('teachers')}>
       <Card>
-        <div className="mb-3">
+        <div className="mb-3 flex flex-wrap items-end gap-3">
+          <button
+            onClick={() => setShowDeleted((v) => !v)}
+            className={`min-h-12 rounded-xl px-4 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
+          >
+            {t('showDeleted')}
+          </button>
+          <div className="grow">
           <Input
             label={t('search')}
             value={search}
@@ -61,6 +77,7 @@ export default function AdminTeachers() {
             }}
             placeholder={t('search')}
           />
+          </div>
         </div>
         {teachers.isLoading ? <Loading /> : teachers.error ? <ErrorBox error={teachers.error} /> : (
           <ul className="flex flex-col divide-y divide-line">
@@ -71,20 +88,31 @@ export default function AdminTeachers() {
                   <p className="text-sm text-ink-soft" dir="ltr">{u.email}{u.phoneNumber ? ` · ${u.phoneNumber}` : ''}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                  >
-                    {u.isActive ? t('suspend') : t('activate')}
-                  </button>
-                  <button
-                    aria-label={`${t('delete')} ${u.name}`}
-                    onClick={() => setDeleteTarget(u)}
-                    className="text-ink-soft hover:text-secondary"
-                    title={t('delete')}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {u.deletedAt ? (
+                    <button
+                      onClick={() => restoreUser.mutate(u.id)}
+                      className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
+                    >
+                      {t('restore')}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setStatus.mutate({ id: u.id, isActive: !u.isActive })}
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${u.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
+                      >
+                        {u.isActive ? t('suspend') : t('activate')}
+                      </button>
+                      <button
+                        aria-label={`${t('delete')} ${u.name}`}
+                        onClick={() => setDeleteTarget(u)}
+                        className="text-ink-soft hover:text-secondary"
+                        title={t('delete')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}
@@ -95,6 +123,7 @@ export default function AdminTeachers() {
           <div className="mt-3"><Button variant="ghost" onClick={() => setLimit((l) => l + 20)}>{t('loadMore')}</Button></div>
         )}
         {setStatus.error && <ErrorBox error={setStatus.error} />}
+        {restoreUser.error && <ErrorBox error={restoreUser.error} />}
       </Card>
       <ConfirmDialog
         open={Boolean(deleteTarget)}

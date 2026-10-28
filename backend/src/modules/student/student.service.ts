@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   categories,
@@ -43,17 +43,21 @@ export class StudentService {
 
   private async assertEnrolled(studentId: string, groupId: string) {
     const rows = await db
-      .select()
+      .select({ membership: groupStudents })
       .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(
         and(
           eq(groupStudents.groupId, groupId),
           eq(groupStudents.studentId, studentId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
         ),
       )
       .limit(1);
     if (!rows.length) throw new ForbiddenException('Not enrolled in this group');
-    return rows[0];
+    return rows[0].membership;
   }
 
   private async lessonEnrollments(studentId: string, lessonId: string) {
@@ -64,10 +68,13 @@ export class StudentService {
       .select({ group: groups })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(
         and(
           eq(groupStudents.studentId, studentId),
           eq(groups.courseId, mod.courseId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
         ),
       );
     if (!enrollments.length) throw new ForbiddenException('Not enrolled in this course');
@@ -125,7 +132,14 @@ export class StudentService {
       .innerJoin(courses, eq(groups.courseId, courses.id))
       .innerJoin(users, eq(courses.teacherId, users.id))
       .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
-      .where(eq(groupStudents.studentId, studentId));
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+          isNull(users.deletedAt),
+        ),
+      );
 
     if (!enrolled.length) return [];
 
@@ -224,9 +238,17 @@ export class StudentService {
 
   async joinByCode(studentId: string, joinCode: string) {
     const [group] = await db
-      .select()
+      .select({ group: groups, course: courses })
       .from(groups)
-      .where(and(eq(groups.joinCode, joinCode), eq(groups.isActive, true)))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          eq(groups.joinCode, joinCode),
+          eq(groups.isActive, true),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      )
       .limit(1);
     if (!group) throw new NotFoundException('Invalid group code');
 
@@ -235,7 +257,7 @@ export class StudentService {
       .from(groupStudents)
       .where(
         and(
-          eq(groupStudents.groupId, group.id),
+          eq(groupStudents.groupId, group.group.id),
           eq(groupStudents.studentId, studentId),
         ),
       )
@@ -243,13 +265,10 @@ export class StudentService {
     if (!existing.length) {
       await db
         .insert(groupStudents)
-        .values({ groupId: group.id, studentId });
+        .values({ groupId: group.group.id, studentId });
     }
-    const [course] = await db
-      .select()
-      .from(courses)
-      .where(eq(courses.id, group.courseId));
-    return { group, course };
+    return { group: group.group, course: group.course };
+
   }
 
   async curriculum(studentId: string, groupId: string) {
@@ -592,10 +611,13 @@ export class StudentService {
       .select({ group: groups })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(
         and(
           eq(groupStudents.studentId, studentId),
           eq(groups.courseId, courseId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
         ),
       );
     if (!enrollments.length) throw new ForbiddenException('Not enrolled in this course');
@@ -641,7 +663,17 @@ export class StudentService {
     quiz: typeof quizzes.$inferSelect,
     groupId: string,
   ) {
-    const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+    const [group] = await db
+      .select({ group: groups, course: courses })
+      .from(groups)
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          eq(groups.id, groupId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      );
     if (!group) throw new NotFoundException('Group not found');
     let courseId: string | null = quiz.courseId;
     if (quiz.moduleId) {
@@ -654,7 +686,7 @@ export class StudentService {
         : [];
       courseId = mod?.courseId ?? null;
     }
-    if (!courseId || courseId !== group.courseId) {
+    if (!courseId || courseId !== group.group.courseId) {
       throw new ForbiddenException('Quiz not in this course');
     }
   }

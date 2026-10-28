@@ -126,6 +126,112 @@ describe('Phase 5: admin endpoints', () => {
     expect((await admin.delete(`/api/admin/users/${id}`)).status).toBe(404);
   });
 
+  it('lists deleted users and restores sign-in', async () => {
+    const email = 'restore-me@student.om';
+    const created = await admin.post('/api/onboarding/student').send({
+      email,
+      password: 'Passw0rd!123',
+      name: 'Restore Me',
+      phoneNumber: '+96895551234',
+    });
+    expect(created.status).toBe(201);
+    const user = await getUserByEmail(email);
+
+    expect((await admin.delete(`/api/admin/users/${user.id}`)).status).toBe(200);
+    const normal = await admin.get('/api/admin/students?search=restore-me');
+    expect(normal.body.some((u: any) => u.id === user.id)).toBe(false);
+    const deleted = await admin.get('/api/admin/students?deleted=true&search=restore-me');
+    expect(deleted.body.some((u: any) => u.id === user.id)).toBe(true);
+
+    expect((await admin.delete(`/api/admin/users/${user.id}`)).status).toBe(404);
+    expect(
+      (await admin.post(`/api/admin/users/${user.id}/restore`)).status,
+    ).toBe(201);
+    const restored = (await login(server, email, 'Passw0rd!123')).session;
+    expect((await restored.get('/api/student/groups')).status).toBe(200);
+    expect(
+      (await admin.post(`/api/admin/users/${user.id}/restore`)).status,
+    ).toBe(404);
+  });
+
+  it('lists and restores deleted courses, groups, and parent links', async () => {
+    const teacher = (await login(server, 't@teacher.om', 'Passw0rd!123')).session;
+
+    expect((await admin.delete(`/api/admin/courses/${world.courseId}`)).status).toBe(200);
+    expect(
+      (await admin.get('/api/admin/courses?deleted=true')).body.some(
+        (c: any) => c.id === world.courseId,
+      ),
+    ).toBe(true);
+    expect(
+      (await admin.get('/api/admin/courses')).body.some(
+        (c: any) => c.id === world.courseId,
+      ),
+    ).toBe(false);
+    expect(
+      (await teacher.get('/api/teacher/courses')).body.some(
+        (c: any) => c.id === world.courseId,
+      ),
+    ).toBe(false);
+    expect(
+      (await admin.post(`/api/admin/courses/${world.courseId}/restore`)).status,
+    ).toBe(201);
+    expect(
+      (await teacher.get('/api/teacher/courses')).body.some(
+        (c: any) => c.id === world.courseId,
+      ),
+    ).toBe(true);
+
+    expect((await admin.delete(`/api/admin/groups/${world.group2}`)).status).toBe(200);
+    expect(
+      (await admin.get('/api/admin/groups?deleted=true')).body.some(
+        (g: any) => g.id === world.group2,
+      ),
+    ).toBe(true);
+    expect(
+      (await admin.get('/api/admin/groups')).body.some(
+        (g: any) => g.id === world.group2,
+      ),
+    ).toBe(false);
+    expect(
+      (await admin.post(`/api/admin/groups/${world.group2}/restore`)).status,
+    ).toBe(201);
+    expect(
+      (await admin.get('/api/admin/groups')).body.some(
+        (g: any) => g.id === world.group2,
+      ),
+    ).toBe(true);
+
+    const parentId = 'test-parent-admin';
+    await testPool.query(
+      `INSERT INTO "user" (id, name, email, role) VALUES ($1, 'Umm Aisha', 'parent-admin@test.om', 'PARENT') ON CONFLICT DO NOTHING`,
+      [parentId],
+    );
+    await testPool.query(
+      `INSERT INTO parent_students (parent_id, student_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [parentId, world.s1.id],
+    );
+    expect(
+      (await admin.delete(`/api/admin/parent-links/${parentId}/${world.s1.id}`)).status,
+    ).toBe(200);
+    const deletedLinks = await admin.get('/api/admin/parent-links?deleted=true');
+    expect(
+      deletedLinks.body.some(
+        (l: any) => l.parentId === parentId && l.studentId === world.s1.id,
+      ),
+    ).toBe(true);
+    const noChild = await admin.get('/api/admin/parents?search=parent-admin');
+    expect(noChild.body[0].children).toHaveLength(0);
+    expect(
+      (await admin.post(`/api/admin/parent-links/${parentId}/${world.s1.id}/restore`)).status,
+    ).toBe(201);
+    const withChild = await admin.get('/api/admin/parents?search=parent-admin');
+    expect(withChild.body[0].children.map((c: any) => c.id)).toContain(world.s1.id);
+
+    const audit = await admin.get('/api/admin/audit?action=course.restore');
+    expect(audit.body.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('student directory filters by grade, group and shrieking search', async () => {
     const res = await admin.get('/api/admin/students');
     expect(res.body).toHaveLength(await countStudents());

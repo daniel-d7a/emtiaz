@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Injectable, Module, Param, Post, Req, Re
 import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto, QuizImageUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   courses,
@@ -51,7 +51,10 @@ export class StorageController {
     @Body(new ZodBodyPipe(CourseImageUploadDto))
     dto: z.infer<typeof CourseImageUploadDto>,
   ) {
-    const [course] = await db.select().from(courses).where(eq(courses.id, dto.courseId));
+    const [course] = await db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, dto.courseId), isNull(courses.deletedAt)));
     if (!course) throw new NotFoundException('Course not found');
     if (course.teacherId !== req.user!.id) throw new ForbiddenException('Not your course');
     const objectKey = StorageService.buildCourseImageKey(dto.courseId, dto.fileName);
@@ -65,7 +68,10 @@ export class StorageController {
     @Body(new ZodBodyPipe(QuizImageUploadDto))
     dto: z.infer<typeof QuizImageUploadDto>,
   ) {
-    const [course] = await db.select().from(courses).where(eq(courses.id, dto.courseId));
+    const [course] = await db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, dto.courseId), isNull(courses.deletedAt)));
     if (!course) throw new NotFoundException('Course not found');
     if (course.teacherId !== req.user!.id) throw new ForbiddenException('Not your course');
     const objectKey = StorageService.buildQuizImageKey(dto.courseId, dto.fileName);
@@ -112,7 +118,13 @@ export class StorageController {
       const [group] = await db
         .select()
         .from(groups)
-        .where(and(eq(groups.id, dto.groupId), eq(groups.courseId, course.id)));
+        .where(
+          and(
+            eq(groups.id, dto.groupId),
+            eq(groups.courseId, course.id),
+            isNull(groups.deletedAt),
+          ),
+        );
       if (!group) throw new ForbiddenException('Group not in this course');
     }
     const [row] = await db
@@ -184,7 +196,10 @@ export class StorageController {
     if (!lesson) throw new NotFoundException('Lesson not found');
     const [mod] = await db.select().from(modules).where(eq(modules.id, lesson.moduleId));
     if (!mod) throw new NotFoundException('Module not found');
-    const [course] = await db.select().from(courses).where(eq(courses.id, mod.courseId));
+    const [course] = await db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, mod.courseId), isNull(courses.deletedAt)));
     if (!course) throw new NotFoundException('Course not found');
     return course;
   }
@@ -207,10 +222,13 @@ export class StorageController {
       .select({ group: groups })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(
         and(
           eq(groupStudents.studentId, studentId),
           eq(groups.courseId, courseId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
         ),
       );
     const relevant = groupId

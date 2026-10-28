@@ -145,6 +145,7 @@ export class PublicController {
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const visible = [
       eq(courses.isPublished, true),
+      isNull(courses.deletedAt),
       eq(users.role, 'TEACHER'),
       eq(users.landingPublished, true),
       isNotNull(users.landingSlug),
@@ -250,7 +251,13 @@ export class PublicController {
         image: courses.image,
       })
       .from(courses)
-      .where(and(eq(courses.teacherId, teacher.id), eq(courses.isPublished, true)))
+      .where(
+        and(
+          eq(courses.teacherId, teacher.id),
+          eq(courses.isPublished, true),
+          isNull(courses.deletedAt),
+        ),
+      )
       .orderBy(asc(courses.title));
 
     const publicCourses = await Promise.all(
@@ -278,6 +285,7 @@ export class PublicController {
           eq(courses.id, courseId),
           eq(courses.teacherId, teacher.id),
           eq(courses.isPublished, true),
+          isNull(courses.deletedAt),
         ),
       )
       .limit(1);

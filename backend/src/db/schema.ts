@@ -139,6 +139,7 @@ export const courses = pgTable('courses', {
   previewUrl: text('preview_url'),
   isPublished: boolean('is_published').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 }, (t) => [index('course_teacher_idx').on(t.teacherId)]);
 
 export const modules = pgTable('modules', {
@@ -177,6 +178,7 @@ export const groups = pgTable('groups', {
   unlockAllByDefault: boolean('unlock_all_by_default').notNull().default(true),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 }, (t) => [index('group_course_idx').on(t.courseId)]);
 
 export const groupStudents = pgTable(
@@ -418,6 +420,7 @@ export const parentStudents = pgTable(
     parentId: text('parent_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     studentId: text('student_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'),
   },
   (t) => [
     uniqueIndex('parent_students_pair').on(t.parentId, t.studentId),

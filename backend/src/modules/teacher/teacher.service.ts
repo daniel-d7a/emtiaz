@@ -58,18 +58,30 @@ export class TeacherService {
     const [courseRow] = await db
       .select({ value: count() })
       .from(courses)
-      .where(eq(courses.teacherId, teacherId));
+      .where(and(eq(courses.teacherId, teacherId), isNull(courses.deletedAt)));
     const [groupRow] = await db
       .select({ value: count() })
       .from(groups)
       .innerJoin(courses, eq(groups.courseId, courses.id))
-      .where(eq(courses.teacherId, teacherId));
+      .where(
+        and(
+          eq(courses.teacherId, teacherId),
+          isNull(courses.deletedAt),
+          isNull(groups.deletedAt),
+        ),
+      );
     const [studentRow] = await db
       .select({ value: countDistinct(groupStudents.studentId) })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
       .innerJoin(courses, eq(groups.courseId, courses.id))
-      .where(eq(courses.teacherId, teacherId));
+      .where(
+        and(
+          eq(courses.teacherId, teacherId),
+          isNull(courses.deletedAt),
+          isNull(groups.deletedAt),
+        ),
+      );
     return {
       curricula: Number(courseRow?.value ?? 0),
       groups: Number(groupRow?.value ?? 0),
@@ -90,7 +102,7 @@ export class TeacherService {
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, courseId));
+      .where(and(eq(courses.id, courseId), isNull(courses.deletedAt)));
     if (!course) throw new NotFoundException('Course not found');
     // Admins may manage any course; teachers only their own
     return course;
@@ -111,11 +123,14 @@ export class TeacherService {
     const coursesList = await db
       .select()
       .from(courses)
-      .where(eq(courses.teacherId, teacherId))
+      .where(and(eq(courses.teacherId, teacherId), isNull(courses.deletedAt)))
       .orderBy(asc(courses.createdAt));
     const courseIds = coursesList.map((c) => c.id);
     const groupsList = courseIds.length
-      ? await db.select().from(groups).where(inArray(groups.courseId, courseIds))
+      ? await db
+          .select()
+          .from(groups)
+          .where(and(inArray(groups.courseId, courseIds), isNull(groups.deletedAt)))
       : [];
     const groupIds = groupsList.map((g) => g.id);
     const memberships = groupIds.length
@@ -664,7 +679,13 @@ export class TeacherService {
       .select({ group: groups, course: courses })
       .from(groups)
       .innerJoin(courses, eq(groups.courseId, courses.id))
-      .where(eq(groups.id, groupId));
+      .where(
+        and(
+          eq(groups.id, groupId),
+          isNull(groups.deletedAt),
+          isNull(courses.deletedAt),
+        ),
+      );
     if (!row) throw new NotFoundException('Group not found');
     if (row.course.teacherId !== user.id && user.role !== 'ADMIN') {
       throw new ForbiddenException('Not your group');
@@ -680,7 +701,7 @@ export class TeacherService {
     const rows = await db
       .select({ id: groups.id, name: groups.name })
       .from(groups)
-      .where(eq(groups.courseId, courseId));
+      .where(and(eq(groups.courseId, courseId), isNull(groups.deletedAt)));
     const index = groupId ? rows.findIndex((row) => row.id === groupId) : -1;
     let n = index >= 0 ? index + 1 : rows.length + 1;
     const used = new Set(
@@ -1215,7 +1236,12 @@ export class TeacherService {
       ? await db
           .select({ id: parentStudents.parentId })
           .from(parentStudents)
-          .where(inArray(parentStudents.studentId, studentIds))
+          .where(
+            and(
+              inArray(parentStudents.studentId, studentIds),
+              isNull(parentStudents.deletedAt),
+            ),
+          )
       : [];
     const text = `📣 ${group.name}: ${message}`;
     const parentIds = [...new Set(parents.map((p) => p.id))];
@@ -1314,7 +1340,12 @@ export class TeacherService {
       const parents = await db
         .select({ id: parentStudents.parentId })
         .from(parentStudents)
-        .where(eq(parentStudents.studentId, studentId));
+        .where(
+          and(
+            eq(parentStudents.studentId, studentId),
+            isNull(parentStudents.deletedAt),
+          ),
+        );
       await Promise.all(
         parents.map((p) =>
           this.notifications.sendInApp(

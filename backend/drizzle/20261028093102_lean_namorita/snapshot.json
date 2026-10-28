@@ -1,0 +1,115 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "845d22ad-8bb9-4ed4-b1f9-08707fca657f",
+  "prevIds": [
+    "4514f29e-aec2-4d42-8fdd-d48d862eccf6"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "courses",
+        "deleted_at"
+      ],
+      "writes": [
+        "s|col|public.courses.deleted_at",
+        "n|col|public.courses.deleted_at",
+        "e|col|public.courses.deleted_at"
+      ],
+      "reads": [
+        "n|tbl|public.courses",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "groups",
+        "deleted_at"
+      ],
+      "writes": [
+        "s|col|public.groups.deleted_at",
+        "n|col|public.groups.deleted_at",
+        "e|col|public.groups.deleted_at"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "parent_students",
+        "deleted_at"
+      ],
+      "writes": [
+        "s|col|public.parent_students.deleted_at",
+        "n|col|public.parent_students.deleted_at",
+        "e|col|public.parent_students.deleted_at"
+      ],
+      "reads": [
+        "n|tbl|public.parent_students",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "courses",
+        "name": "deleted_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "groups",
+        "name": "deleted_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "parent_students",
+        "name": "deleted_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}
