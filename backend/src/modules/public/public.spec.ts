@@ -79,8 +79,13 @@ describe('public teacher landing', () => {
     expect(detail.status).toBe(200);
     expect(detail.body.course.title).toBe('Physics 10');
     expect(detail.body.course).not.toHaveProperty('deletedAt');
+    expect(detail.body.course).not.toHaveProperty('image');
+    expect(detail.body.course).toHaveProperty('gradeName');
+    expect(detail.body.course).toHaveProperty('categoryName');
     expect(detail.body.modules[0].lessons.length).toBeGreaterThan(0);
     expect(detail.body.teacher.name).toBe(TEACHER.name);
+    expect(detail.body.teacher).toHaveProperty('avatarUrl');
+    expect(detail.body.teacher).toHaveProperty('subject');
 
     const sitemap = await request(server).get('/sitemap.xml');
     expect(sitemap.status).toBe(200);

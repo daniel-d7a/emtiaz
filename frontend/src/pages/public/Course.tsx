@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { createRoute, Link, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, ExternalLink, PlayCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Mail, Phone, PlayCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { rootRoute } from '../../routes/__root';
-import { useLang } from '../../lib/i18n';
+import { localizeName, useLang } from '../../lib/i18n';
 import { applyPageMeta } from '../../lib/meta';
-import { Card, ErrorBox, Loading } from '../../components/ui';
+import { Badge, Card, ErrorBox, Loading } from '../../components/ui';
 import { ThemeHero, ThemeSurface } from '../../components/TeacherTheme';
 import { PublicFooter } from '../../components/PublicFooter';
 import type { PublicCoursePage } from '../../../../shared/api';
@@ -48,29 +48,38 @@ export default function PublicCourse() {
         bannerUrl={data.course.imageUrl}
         name={data.course.title}
         subject={data.teacher.name}
-      />
-
-      <Card>
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-primary">
-          <BookOpen size={18} />
-          <span className="text-xs font-semibold uppercase tracking-wide">
+        avatarUrl={data.teacher.avatarUrl}
+        bio={data.course.description}
+        showMarquee={false}
+      >
+        <div className="flex flex-wrap gap-2">
+          <Badge tone={data.course.courseType === 'ACADEMIC' ? 'primary' : 'secondary'}>
             {data.course.courseType === 'ACADEMIC' ? t('academic') : t('general')}
-          </span>
-          {data.course.semester && <span className="text-xs text-ink-soft">{data.course.semester}</span>}
+          </Badge>
+          {data.course.gradeName && (
+            <Badge>{t('grade')}: {localizeName(data.course.gradeName, lang)}</Badge>
+          )}
+          {data.course.semester && <Badge>{t('semester')}: {data.course.semester}</Badge>}
+          {data.course.categoryName && (
+            <Badge>{t('subject')}: {localizeName(data.course.categoryName, lang)}</Badge>
+          )}
+          {data.teacher.subject && (
+            <Badge>{t('specialization')}: {localizeName(data.teacher.subject, lang)}</Badge>
+          )}
         </div>
-        {data.course.imageUrl && (
-          <img
-            src={data.course.imageUrl}
-            alt=""
-            className="mb-4 aspect-video w-full rounded-xl border border-line object-cover"
-          />
-        )}
-        {data.course.description ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-soft">{data.course.description}</p>
-        ) : (
-          <p className="text-sm text-ink-soft">—</p>
-        )}
-      </Card>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-soft">
+          {data.teacher.email && (
+            <a href={`mailto:${data.teacher.email}`} className="flex items-center gap-1 text-primary hover:underline">
+              <Mail size={15} /> <span dir="ltr">{data.teacher.email}</span>
+            </a>
+          )}
+          {data.teacher.phoneNumber && (
+            <a href={`tel:${data.teacher.phoneNumber}`} className="flex items-center gap-1 text-primary hover:underline">
+              <Phone size={15} /> <span dir="ltr">{data.teacher.phoneNumber}</span>
+            </a>
+          )}
+        </div>
+      </ThemeHero>
 
       {data.course.previewUrl && (
         <section>

@@ -309,8 +309,12 @@ export type CourseCatalogue = {
 };
 
 export type PublicCoursePage = {
-  teacher: Omit<PublicTeacher, 'avatarUrl' | 'bio' | 'subject'>;
-  course: Course & { imageUrl: string | null };
+  teacher: PublicTeacher;
+  course: Omit<Course, 'image'> & {
+    imageUrl: string | null;
+    gradeName: string | null;
+    categoryName: string | null;
+  };
   modules: Array<{ id: string; title: string; lessons: string[] }>;
   support: PublicSupport;
 };

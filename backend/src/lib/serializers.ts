@@ -24,6 +24,7 @@ import type {
   MeResponse,
   Module,
   PublicCourseCard,
+  PublicCoursePage,
   PublicSupport,
   PublicTeacher,
   Quiz,
@@ -32,7 +33,7 @@ import type {
   StudentAttachment,
   TeacherQuizQuestion,
   User,
-} from '../../../shared/api';
+} from '../../shared/api';
 import type {
   adminRoles,
   courses,
@@ -494,6 +495,19 @@ export function serializePublicCourseCard(
   imageUrl: string | null,
 ): PublicCourseCard {
   return { ...row, imageUrl };
+}
+
+/** Public course detail: no storage key, and taxonomy names resolved for the hero. */
+export function serializePublicCourseDetail(
+  row: CourseRow,
+  extras: {
+    imageUrl: string | null;
+    gradeName: string | null;
+    categoryName: string | null;
+  },
+): PublicCoursePage['course'] {
+  const { image: _image, ...course } = serializeCourse(row);
+  return { ...course, ...extras };
 }
 
 export function serializePublicSupport(row: {

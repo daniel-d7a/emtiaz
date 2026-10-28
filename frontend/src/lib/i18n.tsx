@@ -25,6 +25,7 @@ const dict = {
   recentNotifications: { ar: 'أحدث الإشعارات', en: 'Recent notifications' },
   noNotifications: { ar: 'لا توجد إشعارات بعد.', en: 'No notifications yet.' },
   specialization: { ar: 'التخصص', en: 'Specialization' },
+  subject: { ar: 'المادة', en: 'Subject' },
   teacher: { ar: 'معلم', en: 'Teacher' },
   student: { ar: 'طالب', en: 'Student' },
   parent: { ar: 'ولي أمر', en: 'Parent' },

@@ -1,11 +1,12 @@
 # ---------- build ----------
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --legacy-peer-deps
-COPY tsconfig.json ./
-COPY src ./src
-COPY scripts ./scripts
+COPY backend/tsconfig.json ./
+COPY backend/src ./src
+COPY backend/scripts ./scripts
+COPY shared ./shared
 RUN npx nest build
 
 # ---------- runtime ----------
@@ -14,9 +15,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 # dist layout is flat in this container (no tests/ dir => no src/ nesting)
 ENV MIGRATIONS_DIR=/app/drizzle
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --legacy-peer-deps --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
-COPY drizzle ./drizzle
+COPY backend/drizzle ./drizzle
 EXPOSE 3000
 CMD ["sh", "-c", "test -f dist/src/main.js && n=src || n=; node dist/${n:+src/}run-migrate.js && node dist/${n:+src/}db/seed.js; node dist/${n:+src/}main.js"]

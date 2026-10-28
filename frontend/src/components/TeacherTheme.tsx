@@ -27,6 +27,7 @@ export function ThemeHero({
   subject,
   bio,
   avatarUrl,
+  showMarquee = true,
   children,
 }: {
   theme: TeacherTheme | null | undefined;
@@ -35,6 +36,7 @@ export function ThemeHero({
   subject?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
+  showMarquee?: boolean;
   children?: ReactNode;
 }) {
   const t = normalizeTheme(theme);
@@ -68,7 +70,7 @@ export function ThemeHero({
           {children && <div className="mt-4">{children}</div>}
         </div>
       </div>
-      {t.marquee && (
+      {showMarquee && t.marquee && (
         <div className="overflow-hidden border-t border-line bg-primary-light/40 py-2" >
           <div className="marquee-track w-max whitespace-nowrap px-4 text-sm font-semibold text-primary">
             {t.marquee}

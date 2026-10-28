@@ -64,6 +64,7 @@ export default function StudentGroup() {
               bannerUrl={data.teacher.bannerUrl}
               name={data.teacher.name}
               subject={data.course.title}
+              showMarquee={false}
             />
 
             <Card className="flex flex-wrap items-center gap-3">

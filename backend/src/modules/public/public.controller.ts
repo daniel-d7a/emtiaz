@@ -7,8 +7,8 @@ import { StorageService } from '../storage/storage.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
 import { categories, courses, grades, lessons, modules, users } from '../../db/schema';
 import {
-  serializeCourse,
   serializePublicCourseCard,
+  serializePublicCourseDetail,
   serializePublicSupport,
   serializePublicTeacher,
 } from '../../lib/serializers';
@@ -302,9 +302,15 @@ export class PublicController {
   @Get('api/public/teachers/:slug/courses/:courseId')
   async course(@Param('slug') slug: string, @Param('courseId') courseId: string) {
     const teacher = await this.publishedTeacher(slug);
-    const [course] = await db
-      .select()
+    const [row] = await db
+      .select({
+        course: courses,
+        gradeName: grades.name,
+        categoryName: categories.name,
+      })
       .from(courses)
+      .leftJoin(grades, eq(courses.gradeId, grades.id))
+      .leftJoin(categories, eq(courses.categoryId, categories.id))
       .where(
         and(
           eq(courses.id, courseId),
@@ -314,7 +320,8 @@ export class PublicController {
         ),
       )
       .limit(1);
-    if (!course) throw new NotFoundException('Course not found');
+    if (!row) throw new NotFoundException('Course not found');
+    const { course, gradeName, categoryName } = row;
 
     const mods = await db
       .select({ id: modules.id, title: modules.title })
@@ -329,16 +336,13 @@ export class PublicController {
           .orderBy(asc(lessons.displayOrder))
       : [];
 
-    const { image } = course;
     return {
-      teacher: {
-        name: teacher.name,
-        email: teacher.email,
-        phoneNumber: teacher.phoneNumber,
-        theme: teacher.theme,
-        bannerUrl: await this.signed(teacher.banner),
-      },
-      course: { ...serializeCourse(course), imageUrl: await this.signed(image) },
+      teacher: await this.publicTeacher(slug),
+      course: serializePublicCourseDetail(course, {
+        imageUrl: await this.signed(course.image),
+        gradeName,
+        categoryName,
+      }),
       modules: mods.map((m) => ({
         ...m,
         lessons: allLessons.filter((l) => l.moduleId === m.id).map((l) => l.title),

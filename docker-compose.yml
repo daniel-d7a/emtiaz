@@ -62,7 +62,9 @@ services:
       retries: 15
 
   rustfs-init:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: emtiaz-rustfs-init
     depends_on:
       rustfs:
@@ -77,7 +79,9 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
 
   api:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: emtiaz-api-docker
     restart: unless-stopped
     depends_on:
