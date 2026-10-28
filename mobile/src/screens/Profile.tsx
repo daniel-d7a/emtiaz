@@ -5,6 +5,7 @@ import { File } from 'expo-file-system';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, authApi, uploadFile } from '../api';
 import { Btn, Card, ErrorBox, Loading, Text, c, f, s } from '../ui';
+import TeacherLandingFields from './TeacherLandingFields';
 import type { MeResponse as Me, PresignedUpload } from '../../../shared/api';
 
 export default function Profile({ onBack, onLogout }: { onBack?: () => void; onLogout: () => void }) {
@@ -13,7 +14,13 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
   const [loggingOut, setLoggingOut] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [subject, setSubject] = useState('');
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/api/me') });
+  const categories = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api<Array<{ id: string; name: string }>>('/api/categories'),
+    enabled: me.data?.user.role === 'TEACHER',
+  });
 
   useEffect(() => {
     if (!me.data) return;
@@ -21,8 +28,26 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
     setPhone(me.data.user.phoneNumber ?? '');
   }, [me.data]);
 
+  useEffect(() => {
+    if (!me.data || !categories.data) return;
+    const category = me.data.user.subjectCategoryId
+      ? categories.data.find((item) => item.id === me.data?.user.subjectCategoryId)
+      : null;
+    setSubject(category?.name ?? '');
+  }, [me.data?.user.subjectCategoryId, categories.data]);
+
   const save = useMutation({
-    mutationFn: () => api('/api/me', { method: 'PATCH', body: { name, phoneNumber: phone } }),
+    mutationFn: () =>
+      api('/api/me', {
+        method: 'PATCH',
+        body: {
+          name,
+          phoneNumber: phone,
+          ...(me.data?.user.role === 'TEACHER' && subject.trim()
+            ? { subject: subject.trim() }
+            : {}),
+        },
+      }),
     onSuccess: () => {
       setSaved(true);
       void qc.invalidateQueries({ queryKey: ['me'] });
@@ -73,7 +98,7 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
   const data = me.data;
 
   return (
-    <ScrollView style={s.page} keyboardShouldPersistTaps="handled">
+    <ScrollView style={s.screen} contentContainerStyle={s.pageContent} keyboardShouldPersistTaps="handled">
       <Text style={s.h1}>حسابي</Text>
       <Card>
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
@@ -132,6 +157,22 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
           keyboardType="phone-pad"
           editable={!busy}
         />
+        {data.user.role === 'TEACHER' ? (
+          <>
+            <Text style={s.label}>التخصص</Text>
+            <TextInput
+              style={s.input}
+              value={subject}
+              onChangeText={(value) => {
+                setSubject(value);
+                setSaved(false);
+              }}
+              placeholder="مثال: الرياضيات"
+              placeholderTextColor={c.inkSoft}
+              editable={!busy}
+            />
+          </>
+        ) : null}
         {saved && <Text style={{ color: c.primary, marginBottom: 8 }}>تم الحفظ ✓</Text>}
         {error && <ErrorBox error={error} />}
         <Btn
@@ -157,6 +198,7 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
           variant="ghost"
         />
       </Card>
+      {data.user.role === 'TEACHER' ? <TeacherLandingFields me={data} /> : null}
     </ScrollView>
   );
 }

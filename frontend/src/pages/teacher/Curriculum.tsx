@@ -8,35 +8,14 @@ import { api } from '../../lib/api';
 import { attachmentIcon, attachmentUrl } from '../../lib/attachment';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select, StatCard } from '../../components/ui';
-import type { Attachment } from '../../../../shared/api';
+import type {
+  Attachment,
+  TeacherCurriculum as Curriculum,
+  TeacherQuiz,
+  TeacherQuizQuestion as QuizQuestionData,
+} from '../../../../shared/api';
 
-type QuizQuestionData = {
-  id: string;
-  questionType: 'MCQ' | 'TRUE_FALSE';
-  prompt: string;
-  imageKey: string | null;
-  imageUrl: string | null;
-  options: string[] | null;
-  correctAnswer: string;
-  points: number;
-};
-type QuizData = { id: string; title: string; displayOrder: number; questions: QuizQuestionData[] } | null;
-type Curriculum = {
-  quiz: QuizData;
-  modules: Array<{
-    id: string;
-    title: string;
-    quiz: QuizData;
-    lessons: Array<{
-      id: string;
-      title: string;
-      content: string | null;
-      displayOrder: number;
-      quiz: QuizData;
-      attachments: Attachment[];
-    }>;
-  }>;
-};
+type QuizData = TeacherQuiz | null;
 
 function swap<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;

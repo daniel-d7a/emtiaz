@@ -20,7 +20,10 @@ import Login from './src/screens/Login';
 import ParentHome from './src/screens/ParentHome';
 import Profile from './src/screens/Profile';
 import TeacherHome from './src/screens/TeacherHome';
+import TeacherCourse from './src/screens/TeacherCourse';
+import TeacherCurriculum from './src/screens/TeacherCurriculum';
 import TeacherGroup from './src/screens/TeacherGroup';
+import TeacherNewCourse from './src/screens/TeacherNewCourse';
 import Quiz from './src/screens/Quiz';
 import { Loading, Text, c, f, s } from './src/ui';
 import { queryClient } from './src/query';
@@ -32,6 +35,9 @@ I18nManager.forceRTL(true);
 type RootStackParamList = {
   Main: undefined;
   TeacherGroup: { groupId: string };
+  TeacherCourse: { courseId: string };
+  TeacherCurriculum: { courseId: string };
+  TeacherNewCourse: undefined;
   Group: { groupId: string };
   Lesson: { lessonId: string; groupId: string };
   Quiz: { groupId: string; lessonId?: string; quizId?: string };
@@ -153,7 +159,12 @@ function TeacherStack({ onLogout }: { onLogout: () => void }) {
             onLogout={onLogout}
             home={
               <TeacherHome
+                onOpenCourse={(courseId) => navigation.navigate('TeacherCourse', { courseId })}
+                onOpenCurriculum={(courseId) =>
+                  navigation.navigate('TeacherCurriculum', { courseId })
+                }
                 onOpenGroup={(groupId) => navigation.navigate('TeacherGroup', { groupId })}
+                onNewCourse={() => navigation.navigate('TeacherNewCourse')}
               />
             }
           />
@@ -162,6 +173,34 @@ function TeacherStack({ onLogout }: { onLogout: () => void }) {
       <Stack.Screen name="TeacherGroup">
         {({ navigation, route }) => (
           <TeacherGroup groupId={route.params.groupId} onBack={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="TeacherCourse">
+        {({ navigation, route }) => (
+          <TeacherCourse
+            courseId={route.params.courseId}
+            onBack={() => navigation.goBack()}
+            onOpenGroup={(groupId) => navigation.navigate('TeacherGroup', { groupId })}
+            onOpenCurriculum={(courseId) =>
+              navigation.navigate('TeacherCurriculum', { courseId })
+            }
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="TeacherCurriculum">
+        {({ navigation, route }) => (
+          <TeacherCurriculum
+            courseId={route.params.courseId}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="TeacherNewCourse">
+        {({ navigation }) => (
+          <TeacherNewCourse
+            onBack={() => navigation.goBack()}
+            onCreated={(courseId) => navigation.replace('TeacherCourse', { courseId })}
+          />
         )}
       </Stack.Screen>
     </Stack.Navigator>

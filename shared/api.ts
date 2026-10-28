@@ -379,6 +379,28 @@ export type TeacherCourse = Course & {
   groups: TeacherGroup[];
 };
 
+export type TeacherQuizQuestion = QuizQuestion & {
+  imageKey: string | null;
+  correctAnswer: string;
+};
+
+export type TeacherQuiz = Quiz & { questions: TeacherQuizQuestion[] };
+
+export type TeacherCurriculumLesson = Lesson & {
+  quiz: TeacherQuiz | null;
+  attachments: Attachment[];
+};
+
+export type TeacherCurriculumModule = Module & {
+  quiz: TeacherQuiz | null;
+  lessons: TeacherCurriculumLesson[];
+};
+
+export type TeacherCurriculum = {
+  quiz: TeacherQuiz | null;
+  modules: TeacherCurriculumModule[];
+};
+
 export type PacingLesson = Lesson & {
   unlocked: boolean;
   overridden: boolean;

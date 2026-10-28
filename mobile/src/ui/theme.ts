@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import type { TeacherTheme } from '../../../shared/api';
 
 export const f = {
   regular: 'Cairo_400Regular',
@@ -26,6 +27,7 @@ export const c = {
 };
 
 export const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.background, direction: 'rtl' },
   page: {
     flex: 1,
     backgroundColor: c.background,
@@ -157,3 +159,32 @@ export const s = StyleSheet.create({
     writingDirection: 'rtl',
   },
 });
+
+export const defaultTeacherTheme: TeacherTheme = {
+  layout: 'banner',
+  primary: '#0F766E',
+  secondary: '#EA580C',
+  marquee: '',
+  arabicFont: 'cairo',
+  englishFont: 'dm-sans',
+};
+
+const isHex = (value: unknown): value is string =>
+  typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+
+export function normalizeTeacherTheme(theme: TeacherTheme | null | undefined): TeacherTheme {
+  return {
+    layout: theme?.layout === 'split' ? 'split' : 'banner',
+    primary: isHex(theme?.primary) ? theme.primary : defaultTeacherTheme.primary,
+    secondary: isHex(theme?.secondary) ? theme.secondary : defaultTeacherTheme.secondary,
+    marquee: typeof theme?.marquee === 'string' ? theme.marquee.slice(0, 200) : '',
+    arabicFont:
+      theme?.arabicFont === 'readex' || theme?.arabicFont === 'tajawal'
+        ? theme.arabicFont
+        : 'cairo',
+    englishFont:
+      theme?.englishFont === 'inter' || theme?.englishFont === 'cairo'
+        ? theme.englishFont
+        : 'dm-sans',
+  };
+}

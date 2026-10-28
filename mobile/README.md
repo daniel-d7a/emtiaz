@@ -54,9 +54,11 @@ automatically. Override it with `EXPO_PUBLIC_API_URL` (required with
   (marks lesson as viewed), quizzes with retry, and notifications/profile tabs
   (avatar upload, name/phone, logout). Parent-code display/rotation stays on
   the web profile.
-- **Teacher**: login, course/group list with student/group/lesson/progress
-  summaries, per-group pacing with lesson unlock toggles, roster with progress,
-  group announcements, material upload, and notifications/profile tabs.
+- **Teacher**: login, course cards with stats and publishing, course editing,
+  new courses, curriculum with module/lesson reorder, materials and quiz
+  builder, per-group pacing, roster (search, bulk add, move, remove),
+  gradebook, stats, group settings, announcements, landing-page theme, and
+  notifications/profile tabs.
 - **Parent**: login, link/unlink a child by the student's phone number, see
   each child's groups and progress, open quiz/manual grades, plus
   notifications/profile tabs.
