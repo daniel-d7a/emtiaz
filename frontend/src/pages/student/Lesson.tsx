@@ -47,7 +47,7 @@ export default function StudentLesson() {
             params={{ groupId }}
             className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
           >
-            <ArrowLeft size={16} className="ltr:rotate-180 rtl:rotate-0" /> {t('backToGroup')}
+            <ArrowLeft size={16} className="rtl:rotate-180" /> {t('backToGroup')}
           </Link>
         </div>
 

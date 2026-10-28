@@ -35,7 +35,7 @@ export default function TeacherCourseGroups() {
     <Page
       title={course.title}
       wide
-      right={<Link to="/teacher/dashboard" className="inline-flex items-center gap-1 text-sm font-semibold text-primary"><ArrowLeft size={16} /> {t('backToCourses')}</Link>}
+      right={<Link to="/teacher/dashboard" className="inline-flex items-center gap-1 text-sm font-semibold text-primary"><ArrowLeft size={16} className="rtl:rotate-180" /> {t('backToCourses')}</Link>}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">

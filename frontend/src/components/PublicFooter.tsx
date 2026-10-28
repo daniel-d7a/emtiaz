@@ -14,15 +14,15 @@ function ContactRows({ contact }: { contact: Contact }) {
     <ul className="flex flex-col gap-2 text-sm">
       {contact.email && (
         <li>
-          <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-primary hover:underline" dir="ltr">
-            <Mail size={16} /> {contact.email}
+          <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-primary hover:underline">
+            <Mail size={16} /> <span dir="ltr">{contact.email}</span>
           </a>
         </li>
       )}
       {contact.phone && (
         <li>
-          <a href={`tel:${contact.phone}`} className="flex items-center gap-2 text-primary hover:underline" dir="ltr">
-            <Phone size={16} /> {contact.phone}
+          <a href={`tel:${contact.phone}`} className="flex items-center gap-2 text-primary hover:underline">
+            <Phone size={16} /> <span dir="ltr">{contact.phone}</span>
           </a>
         </li>
       )}

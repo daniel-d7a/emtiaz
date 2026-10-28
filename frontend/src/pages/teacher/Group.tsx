@@ -278,7 +278,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
   };
   const setCell = useMutation({
     mutationFn: (v: { studentId: string; columnId: string; score: number | null }) =>
-      api(`/api/teacher/groups/${groupId}/gradebook/cell`, { body: v }),
+      api(`/api/teacher/groups/${groupId}/gradebook/cell`, { method: 'PUT', body: v }),
     onSuccess: invalidate,
   });
   const [sorting, setSorting] = useState<SortingState>([]);

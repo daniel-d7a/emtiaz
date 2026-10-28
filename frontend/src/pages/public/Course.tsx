@@ -40,7 +40,7 @@ export default function PublicCourse() {
   return (
     <ThemeSurface theme={data.teacher.theme} className="mx-auto flex max-w-5xl flex-col gap-6 p-4">
       <Link to="/t/$slug" params={{ slug }} className="flex items-center gap-2 text-sm font-semibold text-primary">
-        <ArrowLeft size={16} className="ltr:rotate-180 rtl:rotate-0" /> {t('backToTeacher')}
+        <ArrowLeft size={16} className="rtl:rotate-180" /> {t('backToTeacher')}
       </Link>
 
       <ThemeHero

@@ -190,7 +190,7 @@ function LessonRow({ lesson, groupId, current }: { lesson: StudentLesson; groupI
         ) : current ? (
           <Badge tone="primary">{t('current')}</Badge>
         ) : null}
-        {lesson.unlocked && <ArrowRight size={16} className="shrink-0 text-ink-soft ltr:rotate-180 rtl:rotate-0" />}
+        {lesson.unlocked && <ArrowRight size={16} className="shrink-0 text-ink-soft rtl:rotate-180" />}
       </span>
     </Card>
   );

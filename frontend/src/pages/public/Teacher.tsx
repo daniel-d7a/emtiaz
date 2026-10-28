@@ -139,7 +139,7 @@ function CourseSection({
                   <p className="mt-1 line-clamp-2 text-sm text-ink-soft">{c.description}</p>
                 )}
               </div>
-              <ArrowRight size={18} className="shrink-0 text-ink-soft ltr:rotate-180 rtl:rotate-0" />
+              <ArrowRight size={18} className="shrink-0 text-ink-soft rtl:rotate-180" />
             </Card>
           </Link>
         ))}
