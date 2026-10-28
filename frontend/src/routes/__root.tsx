@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
 import { AppShell, PublicTopBar } from '../components/AppShell';
+import { SiteBranding } from '../components/SiteBranding';
 import { useLang } from '../lib/i18n';
 import { useSession } from '../lib/session';
 
@@ -14,6 +15,7 @@ function RootLayout() {
 
   return (
     <div className="min-h-screen min-w-0 bg-background">
+      <SiteBranding />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-white"

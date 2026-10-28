@@ -88,6 +88,17 @@ export type PublicSupport = {
   whatsapp: string | null;
 };
 
+export type SiteBranding = {
+  primaryColor: string;
+  secondaryColor: string;
+  logoUrl: string | null;
+};
+
+export type PublicSite = {
+  branding: SiteBranding;
+  support: PublicSupport;
+};
+
 export type PublicTeacher = {
   name: string;
   email: string;

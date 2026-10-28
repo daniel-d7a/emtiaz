@@ -72,6 +72,20 @@ export class PublicController {
   }
 
   @Public()
+  @Get('api/public/site')
+  async site() {
+    const settings = await this.settings.get();
+    return {
+      branding: {
+        primaryColor: settings.primaryColor,
+        secondaryColor: settings.secondaryColor,
+        logoUrl: settings.logoUrl,
+      },
+      support: await this.support(),
+    };
+  }
+
+  @Public()
   @Get('api/public/teachers/:slug/avatar')
   async avatar(@Param('slug') slug: string, @Res() res: Response) {
     const teacher = await this.publishedTeacher(slug);

@@ -44,6 +44,9 @@ export class NotificationSettingsService {
         | 'supportEmail'
         | 'supportPhone'
         | 'supportWhatsapp'
+        | 'primaryColor'
+        | 'secondaryColor'
+        | 'logoUrl'
       >
     >,
   ) {

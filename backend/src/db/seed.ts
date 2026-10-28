@@ -14,6 +14,7 @@ import {
   parentStudents,
   modules,
   notificationSettings,
+  semesters,
   quizQuestions,
   quizzes,
   sessions,
@@ -135,6 +136,10 @@ async function seed() {
     { name: 'Grammar' },
     { name: 'IELTS' },
     { name: 'IELTS Preparation' },
+  ]);
+  await db.insert(semesters).values([
+    { name: 'Semester 1', displayOrder: 1 },
+    { name: 'Semester 2', displayOrder: 2 },
   ]);
   await signUp('Platform Admin', 'admin@emtiaz.om', process.env.SEED_ADMIN_PASSWORD ?? 'admin-password-123', 'ADMIN');
   await db.delete(sessions); // don't seed a live session

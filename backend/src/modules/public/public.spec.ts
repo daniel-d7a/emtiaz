@@ -17,6 +17,14 @@ afterAll(async () => {
 });
 
 describe('public teacher landing', () => {
+  it('serves site branding and support contacts', async () => {
+    const res = await request(server).get('/api/public/site');
+    expect(res.status).toBe(200);
+    expect(res.body.branding.primaryColor).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(res.body.branding.secondaryColor).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(res.body.support).toHaveProperty('email');
+  });
+
   it('serves a published teacher page without private fields', async () => {
     const teacher = (await login(server, TEACHER.email, TEACHER.password)).session;
     const theme = {

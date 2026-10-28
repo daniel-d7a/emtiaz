@@ -25,6 +25,7 @@ import {
   parentReports,
   parentStudents,
   quizAttempts,
+  semesters,
   users,
 } from '../../db/schema';
 
@@ -1142,6 +1143,29 @@ export class AdminService implements OnApplicationBootstrap {
   }
   async deleteGrade(id: string) {
     await db.delete(grades).where(eq(grades.id, id));
+    return { ok: true };
+  }
+  async listSemesters() {
+    return db.select().from(semesters).orderBy(asc(semesters.displayOrder));
+  }
+  async createSemester(name: string, displayOrder?: number) {
+    const [row] = await db
+      .insert(semesters)
+      .values({ name, displayOrder: displayOrder ?? 0 })
+      .returning();
+    return row;
+  }
+  async updateSemester(id: string, dto: { name?: string; displayOrder?: number }) {
+    const [row] = await db
+      .update(semesters)
+      .set(dto)
+      .where(eq(semesters.id, id))
+      .returning();
+    if (!row) throw new NotFoundException('Semester not found');
+    return row;
+  }
+  async deleteSemester(id: string) {
+    await db.delete(semesters).where(eq(semesters.id, id));
     return { ok: true };
   }
   async listCategories() {

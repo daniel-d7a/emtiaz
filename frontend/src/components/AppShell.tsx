@@ -12,6 +12,7 @@ import { useLang, type Key } from '../lib/i18n';
 import { sessionQuery } from '../lib/session';
 import type { SessionUser } from '../../../shared/api';
 import { NotificationBell } from './NotificationBell';
+import { BrandMark } from './SiteBranding';
 
 type NavTarget =
   | '/student/dashboard'
@@ -94,7 +95,7 @@ export function PublicTopBar() {
   return (
     <header className="flex min-h-16 items-center justify-between gap-3 border-b border-line bg-background px-4">
       <Link to="/" className="flex items-center gap-2 font-bold text-primary">
-        <GraduationCap size={22} /> {t('appName')}
+        <BrandMark />
       </Link>
       <button
         type="button"
@@ -130,7 +131,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
     <div className="flex min-h-screen min-w-0">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-line bg-surface lg:flex">
         <Link to={home} className="flex min-h-16 items-center gap-2 border-b border-line px-5 font-bold text-primary">
-          <GraduationCap size={22} /> {t('appName')}
+          <BrandMark />
         </Link>
         <nav aria-label={t('appName')} className="flex flex-1 flex-col gap-1 p-3">
           {items.map((item) => (
@@ -149,8 +150,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-line bg-background/95 px-4 backdrop-blur">
           <Link to={home} className="flex min-w-0 items-center gap-2 font-bold text-primary lg:hidden">
-            <GraduationCap size={22} />
-            <span className="truncate">{t('appName')}</span>
+            <BrandMark />
           </Link>
           <div className="ms-auto flex items-center gap-1">
             <NotificationBell />

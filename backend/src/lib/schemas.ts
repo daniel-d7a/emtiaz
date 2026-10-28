@@ -362,6 +362,8 @@ export const UpdateStudentDto = z
       dto.gradeId !== undefined,
     { message: 'nothing to update' },
   );
+const hexColor = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, 'must be a hex colour');
+
 export const NotificationSettingsDto = z
   .object({
     whatsappEnabled: z.boolean().optional(),
@@ -373,6 +375,9 @@ export const NotificationSettingsDto = z
     supportEmail: z.string().trim().max(200).optional(),
     supportPhone: z.string().trim().max(30).optional(),
     supportWhatsapp: z.string().trim().max(30).optional(),
+    primaryColor: hexColor.optional(),
+    secondaryColor: hexColor.optional(),
+    logoUrl: z.string().trim().url().max(500).nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'at least one setting is required');
 

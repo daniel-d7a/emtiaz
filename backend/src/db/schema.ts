@@ -53,6 +53,12 @@ export const categories = pgTable('categories', {
   name: text('name').notNull(), // e.g., "English Speaking"
 });
 
+export const semesters = pgTable('semesters', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(), // e.g., "Semester 1"
+  displayOrder: integer('display_order').notNull().default(0),
+});
+
 // ==========================================
 // 3. BETTER AUTH + USER TABLES (Sessions)
 // ==========================================
@@ -455,6 +461,9 @@ export const notificationSettings = pgTable('notification_settings', {
   supportEmail: text('support_email'),
   supportPhone: text('support_phone'),
   supportWhatsapp: text('support_whatsapp'),
+  primaryColor: text('primary_color').notNull().default('#0F766E'),
+  secondaryColor: text('secondary_color').notNull().default('#EA580C'),
+  logoUrl: text('logo_url'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 

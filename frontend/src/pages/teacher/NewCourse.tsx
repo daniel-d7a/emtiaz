@@ -35,7 +35,6 @@ export default function NewCourse() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<Error | null>(null);
-  const { data: courses } = useQuery(teacherCoursesQuery);
   const { data: grades } = useQuery({
     queryKey: ['grades-list'],
     queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/grades'),
@@ -44,12 +43,15 @@ export default function NewCourse() {
     queryKey: ['categories-list'],
     queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/categories'),
   });
+  const { data: semesters } = useQuery({
+    queryKey: ['semesters-list'],
+    queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/semesters'),
+  });
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { title: '', courseType: 'ACADEMIC', grade: '', semester: '', skill: '' },
   });
   const type = watch('courseType');
-  const semesters = [...new Set((courses ?? []).map((course) => course.semester).filter((value): value is string => Boolean(value)))];
 
   const create = useMutation({
     mutationFn: (values: FormValues) => {
@@ -121,7 +123,7 @@ export default function NewCourse() {
                   {...register('semester')}
                 />
                 <datalist id="teacher-semesters">
-                  {semesters.map((semester) => <option key={semester} value={semester} />)}
+                  {semesters?.map((semester) => <option key={semester.id} value={semester.name} />)}
                 </datalist>
               </div>
             </>

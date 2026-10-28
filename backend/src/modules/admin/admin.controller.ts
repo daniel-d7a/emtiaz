@@ -444,6 +444,34 @@ export class AdminController {
     return this.admin.deleteGrade(id);
   }
 
+  @Get('api/admin/taxonomy/semesters')
+  @Roles('ADMIN', 'TEACHER', 'STUDENT')
+  semesters() {
+    return this.admin.listSemesters();
+  }
+
+  @Post('api/admin/taxonomy/semesters')
+  @Roles('ADMIN')
+  createSemester(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
+    return this.admin.createSemester(dto.name, dto.displayOrder);
+  }
+
+  @Put('api/admin/taxonomy/semesters/:id')
+  @Roles('ADMIN')
+  updateSemester(
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(TaxonomyUpdateDto))
+    dto: z.infer<typeof TaxonomyUpdateDto>,
+  ) {
+    return this.admin.updateSemester(id, dto);
+  }
+
+  @Delete('api/admin/taxonomy/semesters/:id')
+  @Roles('ADMIN')
+  deleteSemester(@Param('id') id: string) {
+    return this.admin.deleteSemester(id);
+  }
+
   @Get('api/admin/taxonomy/categories')
   @Roles('ADMIN', 'TEACHER', 'STUDENT')
   categories() {

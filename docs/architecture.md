@@ -44,7 +44,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 | `teacher` | Home stats, course/module/lesson CRUD, quizzes, group settings/pacing/visibility, roster, announcements, gradebook, group statistics |
 | `admin` | Global metrics, directories, suspend/delete/restore, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
-| `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, support contacts, sitemap, robots |
+| `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, branding/support, sitemap, robots |
 | `storage` | Presigned uploads, attachment records/downloads, avatars, banners |
 | `notifications` | In-app inbox, announcements, enrollment notices, monthly parent summaries, channel settings |
 
@@ -78,7 +78,10 @@ Core relationships:
 - `parent_reports(parent_id, student_id, message)` — delivered monthly summaries
 - `manual_grade_columns` + `manual_grade_values` — teacher-entered columns
 - `inbox_notifications.user_id`, `notifications`, `audit_logs.actor_id`
-- `notification_settings` — single global row (`id = 'global'`)
+- `grades`, `semesters`, `categories` — admin-managed taxonomy shared by
+  teacher course creation and public filters
+- `notification_settings` — single global row (`id = 'global'`) holding channel
+  toggles, platform support contacts, and branding colours/logo
 
 Users are soft-deleted (`deleted_at`) and can be suspended (`is_active`).
 Domain rows generally cascade from `user` or `course` where history is not
@@ -141,7 +144,9 @@ the bucket and sets browser CORS for the configured frontend origins.
   profile, admin overview plus separate teachers/students/parents/courses/
   settings/audit pages.
 - Arabic-first RTL with an English switch; shared strings live in
-  `frontend/src/lib/i18n.tsx`.
+  `frontend/src/lib/i18n.tsx`. `SiteBranding` reads `/api/public/site` and
+  overrides the theme CSS variables and logo across the SPA; the static landing
+  pages apply the same values through `landing/branding.js`.
 - Teachers own a theme in `user.landing_theme` (layout, two colours, marquee,
   Arabic/English fonts) plus a banner key. `ThemeSurface`/`ThemeHero`
   (`frontend/src/components/TeacherTheme.tsx`) apply it to the public page,

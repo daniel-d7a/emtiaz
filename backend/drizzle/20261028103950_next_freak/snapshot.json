@@ -1,0 +1,204 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "7e3bae64-d5f5-4d21-97d0-bd2e6d28d821",
+  "prevIds": [
+    "975f97fd-9b3e-44df-babb-98ee22166fc0"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "semesters"
+      ],
+      "writes": [
+        "s|tbl|public.semesters",
+        "n|tbl|public.semesters",
+        "e|tbl|public.semesters",
+        "n|rel|public.semesters",
+        "n|type|public.semesters",
+        "n|rel|public.semesters_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "primary_color"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.primary_color",
+        "n|col|public.notification_settings.primary_color",
+        "e|col|public.notification_settings.primary_color"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "secondary_color"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.secondary_color",
+        "n|col|public.notification_settings.secondary_color",
+        "e|col|public.notification_settings.secondary_color"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "notification_settings",
+        "logo_url"
+      ],
+      "writes": [
+        "s|col|public.notification_settings.logo_url",
+        "n|col|public.notification_settings.logo_url",
+        "e|col|public.notification_settings.logo_url"
+      ],
+      "reads": [
+        "n|tbl|public.notification_settings",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "semesters",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "primary_color",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'#0F766E'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "secondary_color",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'#EA580C'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification_settings",
+        "name": "logo_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "semesters",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "semesters",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "semesters",
+        "name": "display_order",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "semesters",
+        "name": "semesters_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

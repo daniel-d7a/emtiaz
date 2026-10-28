@@ -584,15 +584,25 @@ describe('Phase 5: admin endpoints', () => {
         adminEnabled: false,
         supportEmail: 'help@emtiaz.om',
         supportWhatsapp: '+96895550000',
+        primaryColor: '#123456',
+        secondaryColor: '#654321',
+        logoUrl: 'https://example.com/logo.png',
       });
     expect(off.status).toBe(200);
     expect(off.body.emailEnabled).toBe(false);
     expect(off.body.adminEnabled).toBe(false);
     expect(off.body.supportEmail).toBe('help@emtiaz.om');
+    expect(off.body.primaryColor).toBe('#123456');
 
     const persisted = await admin.get('/api/admin/notification-settings');
     expect(persisted.body.emailEnabled).toBe(false);
     expect(persisted.body.supportWhatsapp).toBe('+96895550000');
+    expect(persisted.body.secondaryColor).toBe('#654321');
+
+    const invalid = await admin
+      .patch('/api/admin/notification-settings')
+      .send({ primaryColor: 'teal' });
+    expect(invalid.status).toBe(400);
 
     const empty = await admin.patch('/api/admin/notification-settings').send({});
     expect(empty.status).toBe(400);
@@ -607,6 +617,25 @@ describe('Phase 5: admin endpoints', () => {
   });
 
   describe('taxonomy', () => {
+    it('CRUD semesters', async () => {
+      const created = await admin
+        .post('/api/admin/taxonomy/semesters')
+        .send({ name: 'Summer', displayOrder: 3 });
+      expect(created.status).toBe(201);
+
+      const list = await admin.get('/api/admin/taxonomy/semesters');
+      expect(list.body.some((s: any) => s.name === 'Summer')).toBe(true);
+
+      const renamed = await admin
+        .put(`/api/admin/taxonomy/semesters/${created.body.id}`)
+        .send({ name: 'Summer term' });
+      expect(renamed.body.name).toBe('Summer term');
+
+      await admin.delete(`/api/admin/taxonomy/semesters/${created.body.id}`);
+      const after = await admin.get('/api/admin/taxonomy/semesters');
+      expect(after.body.some((s: any) => s.id === created.body.id)).toBe(false);
+    });
+
     it('CRUD grades', async () => {
       const created = await admin
         .post('/api/admin/taxonomy/grades')

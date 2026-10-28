@@ -315,6 +315,11 @@ const dict = {
   inactiveGroups: { ar: 'مجموعات غير نشطة', en: 'Inactive groups' },
   grades: { ar: 'الصفوف', en: 'Grades' },
   categories: { ar: 'التخصصات', en: 'Specializations' },
+  semesters: { ar: 'الفصول الدراسية', en: 'Semesters' },
+  skills: { ar: 'المهارات', en: 'Skills' },
+  branding: { ar: 'الهوية البصرية', en: 'Branding' },
+  logoUrl: { ar: 'رابط الشعار', en: 'Logo URL' },
+  logoUrlPlaceholder: { ar: 'https://…/logo.png', en: 'https://…/logo.png' },
   channels: { ar: 'القنوات', en: 'Channels' },
   types: { ar: 'الأنواع', en: 'Types' },
   notes: { ar: 'ملاحظات', en: 'Notes' },
@@ -384,6 +389,8 @@ const knownNames: Record<string, { ar: string; en: string }> = {
   Math: { ar: 'الرياضيات', en: 'Math' },
   Physics: { ar: 'الفيزياء', en: 'Physics' },
   English: { ar: 'الإنجليزية', en: 'English' },
+  'Semester 1': { ar: 'الفصل الدراسي الأول', en: 'Semester 1' },
+  'Semester 2': { ar: 'الفصل الدراسي الثاني', en: 'Semester 2' },
 };
 
 export function localizeName(name: string, lang: Lang) {
