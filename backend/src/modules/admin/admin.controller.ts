@@ -362,8 +362,27 @@ export class AdminController {
     @Query('limit') limit?: string,
     @Query('action') action?: string,
     @Query('actorId') actorId?: string,
+    @Query('actor') actor?: string,
+    @Query('target') target?: string,
+    @Query('actorRole') actorRole?: string,
+    @Query('endpoint') endpoint?: string,
+    @Query('responseType') responseType?: string,
   ) {
-    return this.admin.listAudit(Number(limit) || 100, { action, actorId });
+    return this.admin.listAudit(Number(limit) || 100, {
+      action,
+      actorId,
+      actor,
+      target,
+      actorRole,
+      endpoint,
+      responseType,
+    });
+  }
+
+  @Get('api/admin/errors/tail')
+  @Roles('ADMIN')
+  errorTail() {
+    return this.admin.errorTail();
   }
 
   @Get('api/admin/notification-settings')

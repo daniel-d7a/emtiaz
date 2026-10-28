@@ -3,8 +3,11 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  type OnApplicationBootstrap,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, or, sql, sum } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, sql, sum } from 'drizzle-orm';
+import { open } from 'fs/promises';
+import { logger } from '../../lib/logger';
 import { db } from '../../db';
 import { alias } from 'drizzle-orm/pg-core';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -26,7 +29,7 @@ import {
 } from '../../db/schema';
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnApplicationBootstrap {
   constructor(
     private readonly notifications: NotificationsService,
   ) {}
@@ -172,38 +175,88 @@ export class AdminService {
     }));
   }
 
+  async onApplicationBootstrap() {
+    await db
+      .delete(auditLogs)
+      .where(lt(auditLogs.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)))
+      .catch((error) => logger.error({ err: error }, 'audit retention cleanup failed'));
+  }
+
   async audit(
     actorId: string,
     action: string,
     targetType: string,
     targetId: string | null,
     metadata?: Record<string, unknown>,
+    opts: { endpoint?: string; responseType?: string } = {},
   ) {
-    await db.insert(auditLogs).values({
-      actorId,
-      action,
-      targetType,
-      targetId,
-      metadata,
-    });
+    try {
+      await db.insert(auditLogs).values({
+        actorId,
+        action,
+        targetType,
+        targetId,
+        endpoint: opts.endpoint,
+        responseType: opts.responseType,
+        metadata,
+      });
+    } catch (error) {
+      logger.error({ err: error }, 'audit write failed');
+    }
   }
 
   async listAudit(
     limit = 100,
-    filters: { action?: string; actorId?: string } = {},
+    filters: {
+      action?: string;
+      actorId?: string;
+      actor?: string;
+      target?: string;
+      actorRole?: string;
+      endpoint?: string;
+      responseType?: string;
+    } = {},
   ) {
     const conditions = [];
     if (filters.action) conditions.push(eq(auditLogs.action, filters.action));
     if (filters.actorId) conditions.push(eq(auditLogs.actorId, filters.actorId));
+    if (filters.actorRole) conditions.push(eq(users.role, filters.actorRole as any));
+    if (filters.actor) {
+      conditions.push(
+        or(
+          ilike(users.name, `%${filters.actor}%`),
+          ilike(users.email, `%${filters.actor}%`),
+          ilike(users.phoneNumber, `%${filters.actor}%`),
+        )!,
+      );
+    }
+    if (filters.target) {
+      conditions.push(
+        or(
+          eq(auditLogs.targetType, filters.target),
+          ilike(auditLogs.endpoint, `%${filters.target}%`),
+        )!,
+      );
+    }
+    if (filters.endpoint) {
+      conditions.push(ilike(auditLogs.endpoint, `%${filters.endpoint}%`));
+    }
+    if (filters.responseType) {
+      conditions.push(eq(auditLogs.responseType, filters.responseType));
+    }
     const rows = await db
       .select({
         id: auditLogs.id,
         action: auditLogs.action,
         targetType: auditLogs.targetType,
         targetId: auditLogs.targetId,
+        endpoint: auditLogs.endpoint,
+        responseType: auditLogs.responseType,
         metadata: auditLogs.metadata,
         createdAt: auditLogs.createdAt,
         actorName: users.name,
+        actorPhone: users.phoneNumber,
+        actorRole: users.role,
       })
       .from(auditLogs)
       .innerJoin(users, eq(auditLogs.actorId, users.id))
@@ -211,6 +264,26 @@ export class AdminService {
       .orderBy(desc(auditLogs.createdAt))
       .limit(Math.min(Math.max(limit, 1), 200));
     return rows;
+  }
+
+  async errorTail() {
+    const file = process.env.ERROR_LOG_FILE ?? 'logs/error.log';
+    try {
+      const handle = await open(file, 'r');
+      try {
+        const { size } = await handle.stat();
+        const length = Math.min(size, 256 * 1024);
+        const buffer = Buffer.alloc(length);
+        await handle.read(buffer, 0, length, Math.max(0, size - length));
+        const lines = buffer.toString('utf8').split(/\r?\n/).filter(Boolean);
+        return { file, lines: lines.slice(-500) };
+      } finally {
+        await handle.close();
+      }
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') return { file, lines: [] };
+      throw error;
+    }
   }
 
   async setUserStatus(

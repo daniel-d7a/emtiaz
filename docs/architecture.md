@@ -191,7 +191,11 @@ contacts.
   [`runbook-backups.md`](./runbook-backups.md). Redis is ephemeral and is not
   backed up.
 - Structured JSON request logs with request IDs are documented in
-  [ADR-0010](./adr/0010-structured-logging.md).
+  [ADR-0010](./adr/0010-structured-logging.md). Mutating authenticated API
+  calls also write sanitized `audit_logs` rows (actor, endpoint, action,
+  response type, request data); rows older than 30 days are pruned at startup.
+  Error-level logs are mirrored to `ERROR_LOG_FILE` (default `logs/error.log`)
+  and tailed from the admin audit page.
 
 ## Documentation map
 

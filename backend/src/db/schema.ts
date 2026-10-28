@@ -486,10 +486,16 @@ export const auditLogs = pgTable(
     action: text('action').notNull(),
     targetType: text('target_type').notNull(),
     targetId: text('target_id'),
+    endpoint: text('endpoint'),
+    responseType: text('response_type'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (t) => [index('audit_created_idx').on(t.createdAt)],
+  (t) => [
+    index('audit_created_idx').on(t.createdAt),
+    index('audit_target_idx').on(t.targetType),
+    index('audit_actor_idx').on(t.actorId, t.createdAt),
+  ],
 );
 
 export const notifications = pgTable('notifications', {

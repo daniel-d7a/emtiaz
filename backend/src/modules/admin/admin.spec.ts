@@ -9,15 +9,19 @@ import {
   ADMIN,
   getUserByEmail,
 } from '../../db/test-helpers';
+import { AdminService } from './admin.service';
 
 jest.setTimeout(120000);
 
 let server: any;
+let app: any;
 let world: Awaited<ReturnType<typeof seedWorld>>;
 let admin: Awaited<ReturnType<typeof login>>['session'];
 
 beforeAll(async () => {
-  server = (await getApp()).server;
+  const started = await getApp();
+  server = started.server;
+  app = started.app;
   world = await seedWorld();
   admin = (await login(server, ADMIN.email, ADMIN.password)).session;
 });
@@ -208,6 +212,59 @@ describe('Phase 5: admin endpoints', () => {
     expect(filtered.body.length).toBeGreaterThanOrEqual(1);
     expect(filtered.body.every((r: any) => r.action === 'user.status')).toBe(true);
     expect((await admin.get('/api/admin/audit?action=nope')).body).toHaveLength(0);
+  });
+
+  it('logs mutating endpoint calls with actor, filters, and redacted data', async () => {
+    const teacher = (await login(server, 't@teacher.om', 'Passw0rd!123')).session;
+    expect(
+      (await teacher.patch('/api/me').send({ name: 'Salim Audit', password: 'S3cret!' })).status,
+    ).toBe(200);
+
+    const byActor = await admin.get('/api/admin/audit?actor=90000001&target=endpoint');
+    const row = byActor.body.find(
+      (r: any) => r.action === 'PATCH /api/me' && r.actorPhone === '+96890000001',
+    );
+    expect(row).toBeDefined();
+    expect(row.actorRole).toBe('TEACHER');
+    expect(row.responseType).toBe('success');
+    expect(row.endpoint).toBeDefined();
+    expect(row.metadata.body.name).toBe('Salim Audit');
+    expect(row.metadata.body.password).toBe('[redacted]');
+
+    const byRole = await admin.get('/api/admin/audit?actorRole=TEACHER&target=endpoint');
+    expect(byRole.body.every((r: any) => r.actorRole === 'TEACHER')).toBe(true);
+    await teacher.patch('/api/me').send({ name: 'Salim' });
+  });
+
+  it('removes audit rows older than 30 days', async () => {
+    const actor = await getUserByEmail(ADMIN.email);
+    await testPool.query(
+      `INSERT INTO audit_logs (actor_id, action, target_type, created_at)
+       VALUES ($1, 'old.action', 'old', now() - interval '31 days')`,
+      [actor.id],
+    );
+    await app.get(AdminService).onApplicationBootstrap();
+    const { rows } = await testPool.query(
+      `SELECT 1 FROM audit_logs WHERE action='old.action'`,
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('tails the last 500 error lines with polling-friendly output', async () => {
+    const fs = await import('fs/promises');
+    const file = '/tmp/emtiaz-error-tail-test.log';
+    process.env.ERROR_LOG_FILE = file;
+    await fs.writeFile(
+      file,
+      Array.from({ length: 600 }, (_, i) => `error line ${i + 1}`).join('\n'),
+    );
+    const res = await admin.get('/api/admin/errors/tail');
+    expect(res.status).toBe(200);
+    expect(res.body.file).toBe(file);
+    expect(res.body.lines).toHaveLength(500);
+    expect(res.body.lines[0]).toBe('error line 101');
+    expect(res.body.lines.at(-1)).toBe('error line 600');
+    await fs.unlink(file);
   });
 
   it('soft-deletes users: row stays, sessions and memberships go, listings hide it', async () => {
