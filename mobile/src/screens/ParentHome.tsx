@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, Text, c, s } from '../ui';
@@ -50,7 +50,20 @@ export default function ParentHome() {
                 label="فصل الطالب"
                 variant="ghost"
                 loading={unlink.isPending && unlink.variables === child.id}
-                onPress={() => unlink.mutate(child.id)}
+                onPress={() =>
+                  Alert.alert(
+                    'فصل الطالب',
+                    `هل تريد فصل ${child.name}؟ ستحتاج إلى ربطه مرة أخرى لعرض تقدمه.`,
+                    [
+                      { text: 'إلغاء', style: 'cancel' },
+                      {
+                        text: 'فصل',
+                        style: 'destructive',
+                        onPress: () => unlink.mutate(child.id),
+                      },
+                    ],
+                  )
+                }
               />
               {child.groups.map((g) => {
                 const key = `${child.id}:${g.group.id}`;
@@ -64,6 +77,12 @@ export default function ParentHome() {
                       <View style={[s.progressFill, { width: `${Math.min(100, Math.max(0, g.progress))}%` }]} />
                     </View>
                     <Text style={{ color: c.inkSoft, fontSize: 12 }}>التقدم: {g.progress}%</Text>
+                    <View style={[s.row, { justifyContent: 'flex-start', marginTop: 4 }]}>
+                      <Text style={{ color: c.inkSoft, fontSize: 12 }}>
+                        الحضور: {g.attendance.present}/{g.attendance.total} ({g.attendance.percent}%)
+                      </Text>
+                      <Text style={{ color: c.inkSoft, fontSize: 12 }}>المعدل: {g.averageGrade}%</Text>
+                    </View>
                     <Btn
                       label={open === key ? 'إخفاء الدرجات' : 'عرض الدرجات'}
                       variant="ghost"
@@ -74,6 +93,19 @@ export default function ParentHome() {
                 );
               })}
               {child.groups.length === 0 && <Empty text="لا مجموعات بعد" />}
+              <Text style={[s.label, { marginTop: 12 }]}>التقارير المرسلة</Text>
+              {child.reports.length === 0 ? (
+                <Empty text="لا تقارير مرسلة بعد" />
+              ) : (
+                child.reports.map((report) => (
+                  <View key={report.id} style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, marginTop: 8 }}>
+                    <Text style={{ color: c.inkSoft, fontSize: 12 }}>
+                      {new Date(report.createdAt).toLocaleDateString('ar-OM')}
+                    </Text>
+                    <Text>{report.message}</Text>
+                  </View>
+                ))
+              )}
             </Card>
           ))}
           {children.data?.length === 0 && <Empty text="اربط طالبًا برقم هاتفه لعرض تقدمه" />}
