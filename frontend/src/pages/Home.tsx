@@ -13,14 +13,14 @@ export default function Home() {
         <Link
           to="/register/$role"
           params={{ role: 'teacher' }}
-          className="rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm hover:bg-primary-dark"
+          className="rounded-xl bg-primary px-6 py-3 font-semibold text-white hover:bg-primary-dark"
         >
           {t('teacher')} — {t('register')}
         </Link>
         <Link
           to="/register/$role"
           params={{ role: 'student' }}
-          className="rounded-xl bg-secondary px-6 py-3 font-semibold text-white shadow-sm hover:brightness-110"
+          className="rounded-xl bg-secondary px-6 py-3 font-semibold text-white hover:brightness-110"
         >
           {t('student')} — {t('register')}
         </Link>

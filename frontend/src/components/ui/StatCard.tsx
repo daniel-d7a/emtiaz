@@ -17,7 +17,7 @@ export function StatCard({
           <Icon size={18} />
         </span>
       )}
-      <p className="text-3xl font-extrabold text-primary">{value}</p>
+      <p className="text-3xl font-bold tabular-nums text-primary">{value}</p>
       <p className="text-sm text-ink-soft">{label}</p>
       {hint && <p className="mt-1 text-xs text-ink-soft">{hint}</p>}
     </Card>

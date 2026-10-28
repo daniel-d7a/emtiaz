@@ -81,7 +81,7 @@ export default function ParentChildren() {
                 <GraduationCap size={18} />
                 <h2 className="grow text-lg font-bold">{child.name}</h2>
                 <Button
-                  variant="ghost"
+                  variant="danger"
                   onClick={() => setUnlinkTarget(child)}
                 >
                   <Unlink size={16} /> {t('unlinkChild')}
@@ -99,9 +99,9 @@ export default function ParentChildren() {
                           <p className="text-xs text-ink-soft">{g.group.name} · {g.teacher.name}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone="primary">{t('progress')}: {g.progress}%</Badge>
-                          <Badge>{t('attendance')}: {g.attendance.percent}%</Badge>
-                          <Badge tone="secondary">{t('averageGrade')}: {g.averageGrade}%</Badge>
+                          <Badge tone="primary" className="tabular-nums">{t('progress')}: {g.progress}%</Badge>
+                          <Badge className="tabular-nums">{t('attendance')}: {g.attendance.percent}%</Badge>
+                          <Badge tone="secondary" className="tabular-nums">{t('averageGrade')}: {g.averageGrade}%</Badge>
                           <Button variant="ghost" onClick={() => setOpen(open === key ? null : key)}>
                             {open === key ? t('hideGrades') : t('viewGrades')}
                           </Button>
@@ -109,7 +109,7 @@ export default function ParentChildren() {
                       </div>
                       <Progress value={g.progress} />
                       <p className="mt-1 text-xs text-ink-soft">
-                        {t('progress')}: {g.completedLessons}/{g.totalLessons} {t('lessons')}
+                        {t('progress')}: <span className="tabular-nums">{g.completedLessons}/{g.totalLessons}</span> {t('lessons')}
                       </p>
                       {open === key && <ChildGrades studentId={child.id} groupId={g.group.id} />}
                     </div>
@@ -175,7 +175,7 @@ function ChildGrades({ studentId, groupId }: { studentId: string; groupId: strin
             {data.quizzes.map((q) => (
               <li key={q.quizId} className="flex justify-between gap-2">
                 <span>{q.title}</span>
-                <span className="font-semibold">{q.score}/{q.maxScore}</span>
+                <span className="font-semibold tabular-nums">{q.score}/{q.maxScore}</span>
               </li>
             ))}
           </ul>
@@ -188,7 +188,7 @@ function ChildGrades({ studentId, groupId }: { studentId: string; groupId: strin
             {data.manual.map((m) => (
               <li key={m.columnId} className="flex justify-between gap-2">
                 <span>{m.title}</span>
-                <span className="font-semibold">{m.score ?? '—'}/{m.maxScore}</span>
+                <span className="font-semibold tabular-nums">{m.score ?? '—'}/{m.maxScore}</span>
               </li>
             ))}
           </ul>

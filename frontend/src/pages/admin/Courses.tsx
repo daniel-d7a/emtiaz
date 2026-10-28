@@ -258,7 +258,7 @@ export default function AdminCourses() {
                               <button
                                 aria-label={`${t('delete')} ${course.title}`}
                                 onClick={() => setDeleteTarget(course)}
-                                className="text-ink-soft hover:text-secondary"
+                                className="text-ink-soft hover:text-danger"
                                 title={t('delete')}
                               >
                                 <Trash2 size={14} />
@@ -478,7 +478,7 @@ function CourseProfileDialog({ course, onClose }: { course: CourseRow; onClose: 
                   <div>
                     <p className="font-semibold">{group.name}</p>
                     <p className="text-xs text-ink-soft">
-                      <span dir="ltr">{group.joinCode}</span> · {group.studentCount} {t('students')}
+                      <span dir="ltr">{group.joinCode}</span> · <span className="tabular-nums">{group.studentCount}</span> {t('students')}
                     </p>
                   </div>
                   <Link

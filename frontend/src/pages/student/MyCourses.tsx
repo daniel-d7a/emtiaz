@@ -32,7 +32,7 @@ export default function StudentMyCourses() {
                 </p>
                 <Progress value={e.progress} />
                 <p className="mt-1 text-xs text-ink-soft">
-                  {t('progress')}: {e.progress}% · {e.completedLessons}/{e.totalLessons}
+                  {t('progress')}: <span className="tabular-nums">{e.progress}% · {e.completedLessons}/{e.totalLessons}</span>
                 </p>
               </Card>
             </Link>

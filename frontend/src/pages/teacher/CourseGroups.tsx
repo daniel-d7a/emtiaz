@@ -86,11 +86,11 @@ export default function TeacherCourseGroups() {
                     <td className="border-b border-line px-3 py-3 font-semibold">{group.name}</td>
                     <td className="border-b border-line px-3 py-3" dir="ltr">{group.joinCode}</td>
                     <td className="border-b border-line px-3 py-3 text-ink-soft">{formatDateTime(group.createdAt, lang)}</td>
-                    <td className="border-b border-line px-3 py-3">{group.studentCount}</td>
+                    <td className="border-b border-line px-3 py-3 tabular-nums">{group.studentCount}</td>
                     <td className="border-b border-line px-3 py-3">
                       <div className="flex w-28 items-center gap-2">
                         <Progress value={group.progress} />
-                        <span className="text-xs font-bold">{group.progress}%</span>
+                        <span className="text-xs font-bold tabular-nums">{group.progress}%</span>
                       </div>
                     </td>
                     <td className="border-b border-line px-3 py-3 text-ink-soft">{group.days || '—'}</td>

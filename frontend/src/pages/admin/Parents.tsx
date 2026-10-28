@@ -247,7 +247,7 @@ export default function AdminParents() {
                                   <button
                                     aria-label={`${t('delete')} ${parent.name}`}
                                     onClick={() => setDeleteTarget(parent)}
-                                    className="text-ink-soft hover:text-secondary"
+                                    className="text-ink-soft hover:text-danger"
                                     title={t('delete')}
                                   >
                                     <Trash2 size={14} />
@@ -514,7 +514,7 @@ function ParentProfileDialog({
                     </div>
                     <button
                       onClick={() => unlink.mutate(child.id)}
-                      className="text-xs font-bold text-secondary hover:underline"
+                      className="text-xs font-bold text-danger hover:underline"
                     >
                       {t('unlinkChild')}
                     </button>

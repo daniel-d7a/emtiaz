@@ -243,7 +243,7 @@ export default function AdminStudents() {
                                   <button
                                     aria-label={`${t('delete')} ${student.name}`}
                                     onClick={() => setDeleteTarget(student)}
-                                    className="text-ink-soft hover:text-secondary"
+                                    className="text-ink-soft hover:text-danger"
                                     title={t('delete')}
                                   >
                                     <Trash2 size={14} />
@@ -496,11 +496,11 @@ function StudentProfileDialog({
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-line p-3">
               <p className="text-xs font-bold text-ink-soft">{t('quizAttempts')}</p>
-              <p className="text-xl font-bold">{profile.data.quiz.attempts}</p>
+              <p className="text-xl font-bold tabular-nums">{profile.data.quiz.attempts}</p>
             </div>
             <div className="rounded-xl border border-line p-3">
               <p className="text-xs font-bold text-ink-soft">{t('quizAverage')}</p>
-              <p className="text-xl font-bold">{profile.data.quiz.averagePercent}%</p>
+              <p className="text-xl font-bold tabular-nums">{profile.data.quiz.averagePercent}%</p>
             </div>
           </div>
 
@@ -529,12 +529,12 @@ function StudentProfileDialog({
                         <p className="font-semibold">{group.courseTitle}</p>
                         <p className="text-xs text-ink-soft">{group.groupName} · {group.teacherName}</p>
                         <p className="text-xs text-ink-soft">
-                          {t('enrolled')} {today(group.joinedAt, lang)} · {t('attendance')} {group.attendancePercent}%
+                          {t('enrolled')} {today(group.joinedAt, lang)} · {t('attendance')} <span className="tabular-nums">{group.attendancePercent}%</span>
                         </p>
                       </div>
                       <button
                         onClick={() => remove.mutate(group.groupId)}
-                        className="text-xs font-bold text-secondary hover:underline"
+                        className="text-xs font-bold text-danger hover:underline"
                       >
                         {t('removeFromGroup')}
                       </button>

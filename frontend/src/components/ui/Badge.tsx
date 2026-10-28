@@ -4,6 +4,7 @@ const tones = {
   neutral: 'border-line bg-background text-ink-soft',
   primary: 'border-primary/20 bg-primary-light text-primary-dark',
   secondary: 'border-secondary/20 bg-secondary-light text-secondary',
+  danger: 'border-danger/20 bg-danger-light text-danger',
 } as const;
 
 export function Badge({

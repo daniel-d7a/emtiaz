@@ -199,7 +199,7 @@ export default function AdminTeachers() {
                     <button
                       aria-label={`${t('delete')} ${teacher.name}`}
                       onClick={() => setDeleteTarget(teacher)}
-                      className="text-ink-soft hover:text-secondary"
+                      className="text-ink-soft hover:text-danger"
                       title={t('delete')}
                     >
                       <Trash2 size={14} />

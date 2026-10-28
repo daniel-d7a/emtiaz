@@ -61,7 +61,7 @@ export default function StudentDashboard() {
                       {e.teacher.name}{e.teacher.subject ? ` · ${localizeName(e.teacher.subject, lang)}` : ''}
                     </p>
                     <Progress value={e.progress} />
-                    <p className="mt-1 text-xs text-ink-soft">{t('progress')}: {e.progress}%</p>
+                    <p className="mt-1 text-xs text-ink-soft">{t('progress')}: <span className="tabular-nums">{e.progress}%</span></p>
                   </Card>
                 </Link>
               ))}

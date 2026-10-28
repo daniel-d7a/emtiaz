@@ -439,7 +439,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
           )}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
-          <span className="text-ink-soft">
+          <span className="text-ink-soft tabular-nums">
             {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
           </span>
           <div className="flex gap-2">
@@ -632,7 +632,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
               <span className="font-semibold">
                 {s.name}
                 {s.phoneNumber && <span dir="ltr" className="ms-2 text-sm text-ink-soft">{s.phoneNumber}</span>}
-                <span className="ms-2 text-xs text-ink-soft">{s.progress}% ({s.completedLessons}/{s.totalLessons})</span>
+                <span className="ms-2 text-xs text-ink-soft tabular-nums">{s.progress}% ({s.completedLessons}/{s.totalLessons})</span>
               </span>
               <span className="flex items-center gap-2 text-xs">
                 {siblingGroups.length > 0 && (
@@ -649,6 +649,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
                 <IconButton
                   label={`${t('revokeAccess')} ${s.name}`}
                   onClick={() => setRemoveTarget({ id: s.studentId, name: s.name })}
+                  tone="danger"
                 >
                   <Trash2 size={14} />
                 </IconButton>
@@ -902,7 +903,7 @@ export function StatsTab({ groupId }: { groupId: string }) {
                       : 'border-line bg-background'
                   }`}
                 >
-                  <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface font-bold text-primary">
+                  <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface font-bold tabular-nums text-primary">
                     {index + 1}
                   </span>
                   <p className="mt-2 truncate font-bold" title={student.name}>{student.name}</p>
@@ -1149,7 +1150,7 @@ function GradeColumns({ groupId, columns }: { groupId: string; columns: Gradeboo
           {columns.map((column) => (
             <li key={column.id} className="flex items-center justify-between gap-2 py-2">
               <span className="font-semibold">{column.title}</span>
-              <IconButton label={`${t('delete')} ${column.title}`} onClick={() => setDeleteColumn({ id: column.id, title: column.title })}>
+              <IconButton label={`${t('delete')} ${column.title}`} onClick={() => setDeleteColumn({ id: column.id, title: column.title })} tone="danger">
                 <Trash2 size={14} />
               </IconButton>
             </li>

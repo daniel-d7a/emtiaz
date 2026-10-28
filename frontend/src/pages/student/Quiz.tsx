@@ -66,7 +66,7 @@ export default function StudentQuizPage() {
                     <h1 className="text-xl font-bold">{quiz.title}</h1>
                     <p className="text-sm text-ink-soft">{t('quizResult')}</p>
                   </div>
-                  <Badge tone="primary">{shown.score}/{shown.maxScore}</Badge>
+                  <Badge tone="primary" className="tabular-nums">{shown.score}/{shown.maxScore}</Badge>
                 </div>
               </Card>
 

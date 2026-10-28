@@ -322,7 +322,7 @@ export default function Profile() {
                     {me?.bannerUrl ? (
                       <div className="flex flex-col gap-2">
                         <img src={me.bannerUrl} alt="" className="h-32 w-full rounded-xl border border-line object-cover" />
-                        <Button variant="ghost" onClick={() => removeBanner.mutate()} disabled={removeBanner.isPending}>
+                        <Button variant="danger" onClick={() => removeBanner.mutate()} disabled={removeBanner.isPending}>
                           {t('delete')}
                         </Button>
                       </div>

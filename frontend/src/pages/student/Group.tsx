@@ -78,8 +78,8 @@ export default function StudentGroup() {
                   ) : data.teacher.name}
                 </p>
               </div>
-              <Badge tone="primary">{doneLessons}/{totalLessons} {t('lessons')}</Badge>
-              <Badge>{data.modules.length} {t('modules')}</Badge>
+              <Badge tone="primary" className="tabular-nums">{doneLessons}/{totalLessons} {t('lessons')}</Badge>
+              <Badge className="tabular-nums">{data.modules.length} {t('modules')}</Badge>
             </Card>
 
             {tab === 'lessons' && (
@@ -96,9 +96,9 @@ export default function StudentGroup() {
                       className={`min-w-0 rounded-2xl border p-4 ${isCurrent ? 'border-primary bg-primary-light/20' : 'border-line bg-surface'}`}
                     >
                       <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-bold text-secondary">{mod.title}</h2>
+                        <h2 className="text-lg font-bold">{mod.title}</h2>
                         {isCurrent && <Badge tone="primary">{t('currentUnit')}</Badge>}
-                        <Badge>{mod.lessons.length} {t('lessons')}</Badge>
+                        <Badge className="tabular-nums">{mod.lessons.length} {t('lessons')}</Badge>
                       </div>
                       <div className="flex min-w-0 flex-col gap-2">
                         {items.map((item) =>
@@ -120,7 +120,7 @@ export default function StudentGroup() {
 
                 {data.quiz && (
                   <section className="min-w-0">
-                    <h2 className="mb-3 text-lg font-bold text-secondary">{t('finalQuiz')}</h2>
+                    <h2 className="mb-3 text-lg font-bold">{t('finalQuiz')}</h2>
                     <StudentQuiz quizId={data.quiz.id} groupId={groupId} />
                   </section>
                 )}
@@ -130,7 +130,7 @@ export default function StudentGroup() {
             {tab === 'grades' && grades && (
               <section>
                 <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
-                  <Trophy size={18} className="text-secondary" /> {t('myGrades')}
+                  <Trophy size={18} className="text-primary" /> {t('myGrades')}
                 </h2>
                 <Card>
                   {grades.quizzes.length === 0 && grades.manual.length === 0 && <p className="text-sm text-ink-soft">—</p>}
@@ -138,13 +138,13 @@ export default function StudentGroup() {
                     {grades.quizzes.map((q) => (
                       <li key={q.quizId} className="flex items-center justify-between gap-3 py-2 text-sm">
                         <span>{q.title} <span className="text-ink-soft">({q.lessonTitle})</span></span>
-                        <span className="font-bold">{q.score}/{q.maxScore}</span>
+                        <span className="font-bold tabular-nums">{q.score}/{q.maxScore}</span>
                       </li>
                     ))}
                     {grades.manual.map((m) => (
                       <li key={m.columnId} className="flex items-center justify-between gap-3 py-2 text-sm">
                         <span>{m.title}{m.note ? ` — ${m.note}` : ''}</span>
-                        <span className="font-bold">{m.score ?? '—'}/{m.maxScore}</span>
+                        <span className="font-bold tabular-nums">{m.score ?? '—'}/{m.maxScore}</span>
                       </li>
                     ))}
                   </ul>
@@ -228,7 +228,7 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
           <h3 className="font-bold">{t('quiz')}: {quiz.quiz.title}</h3>
           {attempt && (
             <p className="text-sm text-ink-soft">
-              {t('yourScore')}: <span className="font-bold text-primary">{attempt.score}/{attempt.maxScore}</span>
+              {t('yourScore')}: <span className="font-bold tabular-nums text-primary">{attempt.score}/{attempt.maxScore}</span>
             </p>
           )}
         </div>

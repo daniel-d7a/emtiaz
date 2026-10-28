@@ -204,7 +204,7 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
               <button aria-expanded={open} aria-label={`${open ? t('collapse') : t('expand')}: ${mod.title}`} title={open ? t('collapse') : t('expand')} className="flex min-w-0 grow items-center gap-2 text-start text-lg font-bold" onClick={() => setOpen(!open)}>
                 <ChevronDown className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={18} />
                 <span className="min-w-0">{mod.title}</span>
-                <span className="shrink-0 text-xs font-semibold text-ink-soft">
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-ink-soft">
                   {mod.lessons.length} {t('lessons')} · {unitQuizCount} {t('quizzes')}
                 </span>
               </button>
@@ -218,7 +218,7 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
             endpoint={`/api/teacher/modules/${mod.id}/quiz`}
             existing={mod.quiz}
           />
-          <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="shrink-0 text-ink-soft hover:text-secondary" title={t('delete')}>
+          <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="shrink-0 text-ink-soft hover:text-danger" title={t('delete')}>
             <Trash2 size={16} />
           </button>
         </div>
@@ -327,7 +327,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
             {title}
           </button>
         </div>
-        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-secondary" title={t('delete')}>
+        <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-danger" title={t('delete')}>
           <Trash2 size={14} />
         </button>
       </div>
@@ -480,7 +480,7 @@ function LessonMaterials({ lesson, courseId }: { lesson: Curriculum['modules'][0
                   aria-label={t('delete')}
                   title={t('delete')}
                   onClick={() => setRemoving(attachment)}
-                  className="shrink-0 text-ink-soft hover:text-secondary"
+                  className="shrink-0 text-ink-soft hover:text-danger"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -740,7 +740,7 @@ function QuizBuilder({ courseId, endpoint, existing }: {
                   aria-label={t('delete')}
                   title={t('delete')}
                   onClick={() => setQuestions(questions.filter((_, i) => i !== qi))}
-                  className="text-ink-soft hover:text-secondary"
+                  className="text-ink-soft hover:text-danger"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -777,7 +777,7 @@ function QuizBuilder({ courseId, endpoint, existing }: {
                     <button
                       type="button"
                       onClick={() => update(qi, { imageKey: null, imageUrl: null })}
-                      className="shrink-0 text-sm font-semibold text-secondary hover:underline"
+                      className="shrink-0 text-sm font-semibold text-danger hover:underline"
                     >
                       {t('removeImage')}
                     </button>
@@ -830,7 +830,7 @@ function QuizBuilder({ courseId, endpoint, existing }: {
                           aria-label={t('delete')}
                           title={t('delete')}
                           onClick={() => update(qi, { options: q.options.filter((_, i) => i !== oi), correctIndex: null })}
-                          className="shrink-0 text-ink-soft hover:text-secondary"
+                          className="shrink-0 text-ink-soft hover:text-danger"
                         >
                           <Trash2 size={14} />
                         </button>

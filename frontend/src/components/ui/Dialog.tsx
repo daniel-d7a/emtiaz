@@ -130,7 +130,7 @@ export function ConfirmDialog({
         <>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>{cancelLabel}</Button>
           <Button
-            variant={destructive ? 'secondary' : 'primary'}
+            variant={destructive ? 'danger' : 'primary'}
             onClick={() => {
               onOpenChange(false);
               onConfirm();

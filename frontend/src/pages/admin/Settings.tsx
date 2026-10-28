@@ -344,7 +344,7 @@ function Taxonomy({ kind }: { kind: TaxonomyKind }) {
                   <button onClick={() => setEditing({ id: item.id, name: item.name })} aria-label={`${t('edit')} ${localizeName(item.name, lang)}`} title={t('edit')} className="hover:text-primary">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => setDeleteTarget({ id: item.id, name: item.name })} aria-label={`${t('delete')} ${localizeName(item.name, lang)}`} title={t('delete')} className="hover:text-secondary">
+                  <button onClick={() => setDeleteTarget({ id: item.id, name: item.name })} aria-label={`${t('delete')} ${localizeName(item.name, lang)}`} title={t('delete')} className="hover:text-danger">
                     <Trash2 size={14} />
                   </button>
                 </div>

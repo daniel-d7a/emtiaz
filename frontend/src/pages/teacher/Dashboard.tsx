@@ -108,10 +108,10 @@ function CourseCard({
         </div>
         <h3 className="text-lg font-bold">{course.title}</h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Badge tone="primary">{course.analytics.groups} {t('groups')}</Badge>
-          <Badge tone="primary">{course.analytics.students} {t('students')}</Badge>
-          <Badge tone="primary">{course.analytics.lessons} {t('lessons')}</Badge>
-          <Badge>{t('progress')} {course.analytics.avgProgress}%</Badge>
+          <Badge tone="primary" className="tabular-nums">{course.analytics.groups} {t('groups')}</Badge>
+          <Badge tone="primary" className="tabular-nums">{course.analytics.students} {t('students')}</Badge>
+          <Badge tone="primary" className="tabular-nums">{course.analytics.lessons} {t('lessons')}</Badge>
+          <Badge className="tabular-nums">{t('progress')} {course.analytics.avgProgress}%</Badge>
         </div>
         <p className="mt-3 text-sm text-ink-soft">
           {t('latestLesson')}: {course.latestLesson?.title ?? t('noLatestLesson')}

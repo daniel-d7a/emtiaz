@@ -60,7 +60,7 @@ export function ThemeHero({
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-extrabold">{name}</h1>
+              <h1 className="text-2xl font-bold">{name}</h1>
               {subject && <p className="text-sm font-semibold text-primary">{subject}</p>}
             </div>
           </div>
