@@ -12,12 +12,13 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto } from '../../lib/schemas';
+import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MonthlySummaryService } from '../notifications/monthly-summary.service';
+import { OnboardingService } from '../onboarding/onboarding.service';
 
 @Controller()
 export class AdminController {
@@ -26,6 +27,7 @@ export class AdminController {
     private notificationSettings: NotificationSettingsService,
     private notifications: NotificationsService,
     private monthlySummary: MonthlySummaryService,
+    private onboarding: OnboardingService,
   ) {}
 
   @Get('api/admin/overview')
@@ -38,9 +40,39 @@ export class AdminController {
   @Roles('ADMIN')
   teachers(
     @Query()
-    q: { status?: 'ACTIVE' | 'SUSPENDED'; search?: string; subjectId?: string; deleted?: string; limit?: string },
+    q: {
+      status?: 'ACTIVE' | 'SUSPENDED';
+      search?: string;
+      name?: string;
+      phone?: string;
+      subjectId?: string;
+      deleted?: string;
+      limit?: string;
+    },
   ) {
     return this.admin.listTeachers(q);
+  }
+
+  @Post('api/admin/teachers')
+  @Roles('ADMIN')
+  async createTeacher(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(CreateTeacherDto)) dto: z.infer<typeof CreateTeacherDto>,
+  ) {
+    const teacher = await this.onboarding.createTeacher(dto);
+    await this.admin.audit(req.user!.id, 'teacher.create', 'user', teacher.id);
+    return teacher;
+  }
+
+  @Patch('api/admin/teachers/:teacherId')
+  @Roles('ADMIN')
+  async updateTeacher(
+    @Req() req: Request,
+    @Param('teacherId') teacherId: string,
+    @Body(new ZodBodyPipe(UpdateTeacherDto)) dto: z.infer<typeof UpdateTeacherDto>,
+  ) {
+    await this.admin.audit(req.user!.id, 'teacher.update', 'user', teacherId, dto);
+    return this.admin.updateTeacher(teacherId, dto);
   }
 
   @Get('api/admin/students')

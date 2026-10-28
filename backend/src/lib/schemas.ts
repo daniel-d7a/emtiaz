@@ -90,6 +90,29 @@ export const UpdateMeDto = z
     landingPublished: z.boolean().optional(),
   });
 
+export const CreateTeacherDto = TeacherSignupDto;
+export const UpdateTeacherDto = z
+  .object({
+    name: safeText(120).optional(),
+    phoneNumber: z
+      .string()
+      .trim()
+      .max(20)
+      .refine((v) => v === '' || /^\+?[1-9]\d{6,14}$/.test(v), {
+        message: 'phone must be empty to clear, or a valid number (+XXXXXXXXX)',
+      })
+      .transform(normalizePhone)
+      .optional(),
+    subjectId: uuid.nullable().optional(),
+  })
+  .refine(
+    (dto) =>
+      dto.name !== undefined ||
+      dto.phoneNumber !== undefined ||
+      dto.subjectId !== undefined,
+    { message: 'nothing to update' },
+  );
+
 // ---------- courses / curriculum ----------
 export const CreateCourseDto = z
   .object({

@@ -1,8 +1,9 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { alias } from 'drizzle-orm/pg-core';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -74,6 +75,8 @@ export class AdminService {
   async listTeachers(filters: {
     status?: 'ACTIVE' | 'SUSPENDED';
     search?: string;
+    name?: string;
+    phone?: string;
     subjectId?: string;
     deleted?: string;
     limit?: string;
@@ -87,6 +90,8 @@ export class AdminService {
     if (filters.status === 'ACTIVE') conditions.push(eq(users.isActive, true));
     if (filters.status === 'SUSPENDED') conditions.push(eq(users.isActive, false));
     if (filters.subjectId) conditions.push(eq(users.subjectCategoryId, filters.subjectId));
+    if (filters.name) conditions.push(ilike(users.name, `%${filters.name}%`));
+    if (filters.phone) conditions.push(ilike(users.phoneNumber, `%${filters.phone}%`));
     if (filters.search) {
       conditions.push(
         or(
@@ -106,6 +111,8 @@ export class AdminService {
         isActive: users.isActive,
         createdAt: users.createdAt,
         deletedAt: users.deletedAt,
+        landingSlug: users.landingSlug,
+        landingPublished: users.landingPublished,
         subjectCategoryId: users.subjectCategoryId,
         subject: { id: categories.id, name: categories.name },
       })
@@ -113,7 +120,49 @@ export class AdminService {
       .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
       .where(and(...conditions))
       .orderBy(asc(users.name));
-    return limit ? query.limit(limit) : query;
+    const rows = limit ? await query.limit(limit) : await query;
+    const ids = rows.map((row) => row.id);
+    if (!ids.length) return [];
+    const courseCounts = await db
+      .select({ teacherId: courses.teacherId, value: count() })
+      .from(courses)
+      .where(and(inArray(courses.teacherId, ids), isNull(courses.deletedAt)))
+      .groupBy(courses.teacherId);
+    const groupCounts = await db
+      .select({ teacherId: courses.teacherId, value: count() })
+      .from(groups)
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          inArray(courses.teacherId, ids),
+          isNull(courses.deletedAt),
+          isNull(groups.deletedAt),
+        ),
+      )
+      .groupBy(courses.teacherId);
+    const studentCounts = await db
+      .select({ teacherId: courses.teacherId, value: countDistinct(groupStudents.studentId) })
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .innerJoin(courses, eq(groups.courseId, courses.id))
+      .where(
+        and(
+          inArray(courses.teacherId, ids),
+          isNull(courses.deletedAt),
+          isNull(groups.deletedAt),
+        ),
+      )
+      .groupBy(courses.teacherId);
+    const numberFor = (
+      list: Array<{ teacherId: string; value: number | string }>,
+      teacherId: string,
+    ) => Number(list.find((row) => row.teacherId === teacherId)?.value ?? 0);
+    return rows.map((row) => ({
+      ...row,
+      courseCount: numberFor(courseCounts, row.id),
+      groupCount: numberFor(groupCounts, row.id),
+      uniqueStudentCount: numberFor(studentCounts, row.id),
+    }));
   }
 
   async audit(
@@ -183,6 +232,31 @@ export class AdminService {
     await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
     await db.delete(groupStudents).where(eq(groupStudents.studentId, userId));
     return { ok: true };
+  }
+
+  async updateTeacher(
+    teacherId: string,
+    dto: { name?: string; phoneNumber?: string; subjectId?: string | null },
+  ) {
+    const [teacher] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, teacherId), eq(users.role, 'TEACHER')));
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
+    const patch: Partial<typeof users.$inferInsert> = {};
+    if (dto.name !== undefined) patch.name = dto.name;
+    if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber || null;
+    if (dto.subjectId !== undefined) patch.subjectCategoryId = dto.subjectId;
+    const [updated] = await db
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, teacherId))
+      .returning()
+      .catch((error) => {
+        if (error?.code === '23505') throw new ConflictException('Phone number already in use');
+        throw error;
+      });
+    return updated;
   }
 
   async restoreUser(userId: string) {

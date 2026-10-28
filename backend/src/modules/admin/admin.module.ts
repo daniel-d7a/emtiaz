@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { OnboardingModule } from '../onboarding/onboarding.module';
 
 @Module({
+  imports: [OnboardingModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

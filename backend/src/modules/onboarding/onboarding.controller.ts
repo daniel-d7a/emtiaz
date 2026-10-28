@@ -34,19 +34,8 @@ export class OnboardingController {
     @Body(new ZodBodyPipe(TeacherSignupDto))
     dto: z.infer<typeof TeacherSignupDto>,
   ) {
-    const subjectCategoryId = (await this.onboarding.ensureCategory(dto.subject)).id;
-    const data = await auth.api.signUpEmail({
-      body: {
-        name: dto.name,
-        email: dto.email,
-        password: dto.password,
-        role: 'TEACHER',
-        phoneNumber: dto.phoneNumber,
-        subjectCategoryId,
-      },
-      returnHeaders: true,
-    });
-    return { user: data.response.user, status: 'ok' };
+    const user = await this.onboarding.createTeacher(dto);
+    return { user, status: 'ok' };
   }
 
   @Public()

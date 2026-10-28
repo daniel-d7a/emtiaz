@@ -53,6 +53,50 @@ describe('Phase 5: admin endpoints', () => {
     expect(res3.body.every((u: any) => u.isActive)).toBe(true);
   });
 
+  it('teacher directory exposes counts, combined filters, create, and edit', async () => {
+    const list = await admin.get('/api/admin/teachers?name=salim');
+    expect(list.status).toBe(200);
+    expect(list.body).toHaveLength(1);
+    const salim = list.body[0];
+    expect(salim.subject.name).toBeDefined();
+    expect(salim.courseCount).toBeGreaterThanOrEqual(1);
+    expect(salim.groupCount).toBeGreaterThanOrEqual(2);
+    expect(salim.uniqueStudentCount).toBeGreaterThanOrEqual(2);
+
+    const combined = await admin.get(
+      `/api/admin/teachers?name=salim&phone=90000001&subjectId=${salim.subjectCategoryId}`,
+    );
+    expect(combined.body.map((t: any) => t.id)).toContain(salim.id);
+    const mismatch = await admin.get(
+      `/api/admin/teachers?name=salim&subjectId=00000000-0000-4000-8000-000000000000`,
+    );
+    expect(mismatch.body).toHaveLength(0);
+
+    const email = 'created-teacher@test.om';
+    const created = await admin.post('/api/admin/teachers').send({
+      name: 'Created Teacher',
+      email,
+      password: 'Passw0rd!123',
+      phoneNumber: '+96895550001',
+      subject: 'Mathematics',
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.id;
+    expect(created.body.role).toBe('TEACHER');
+    expect((await login(server, email, 'Passw0rd!123')).status).toBe(200);
+
+    const edited = await admin
+      .patch(`/api/admin/teachers/${id}`)
+      .send({ name: 'Edited Teacher', phoneNumber: '+96895550002' });
+    expect(edited.status).toBe(200);
+    expect(edited.body.name).toBe('Edited Teacher');
+    expect(edited.body.phoneNumber).toBe('+96895550002');
+    const filtered = await admin.get('/api/admin/teachers?name=Edited');
+    expect(filtered.body).toHaveLength(1);
+    const audit = await admin.get('/api/admin/audit?action=teacher.update');
+    expect(audit.body.some((r: any) => r.targetId === id)).toBe(true);
+  });
+
   it('suspend/Activate a user and revoke their sessions', async () => {
     const s1 = await getUserByEmail(STUDENT1.email);
     const s = (await login(server, STUDENT1.email, STUDENT1.password)).session;

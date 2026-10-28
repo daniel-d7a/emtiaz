@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { and, asc, eq, ilike, isNull } from 'drizzle-orm';
 import { db } from '../../db';
+import { auth } from '../../auth/auth';
 import { categories, courses, groupStudents, groups, parentStudents, users } from '../../db/schema';
 import * as schema from '../../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -93,6 +94,28 @@ export class OnboardingService {
     if (existing) return existing;
     const [created] = await db.insert(categories).values({ name: trimmed }).returning();
     return created;
+  }
+
+  async createTeacher(dto: {
+    name: string;
+    email: string;
+    password: string;
+    phoneNumber?: string;
+    subject: string;
+  }) {
+    const subjectCategoryId = (await this.ensureCategory(dto.subject)).id;
+    const data = await auth.api.signUpEmail({
+      body: {
+        name: dto.name,
+        email: dto.email,
+        password: dto.password,
+        role: 'TEACHER',
+        phoneNumber: dto.phoneNumber,
+        subjectCategoryId,
+      },
+      returnHeaders: true,
+    });
+    return data.response.user;
   }
 
   listCategories() {
