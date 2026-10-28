@@ -18,6 +18,7 @@ import {
   groupStudents,
   groups,
   lessonAttachments,
+  lessonAttendance,
   lessonCompletions,
   lessons,
   manualGradeColumns,
@@ -1247,6 +1248,36 @@ export class TeacherService {
       return acc;
     }, {});
 
+    const attendanceRows =
+      roster.length && lessonsInCourse.length
+        ? await db
+            .select({
+              studentId: lessonAttendance.studentId,
+              lessonId: lessonAttendance.lessonId,
+            })
+            .from(lessonAttendance)
+            .where(
+              and(
+                eq(lessonAttendance.isPresent, true),
+                inArray(lessonAttendance.studentId, roster.map((r) => r.id)),
+                inArray(lessonAttendance.lessonId, lessonsInCourse.map((l) => l.id)),
+              ),
+            )
+        : [];
+    const attendance = Object.fromEntries(
+      roster.map((student) => {
+        const present = attendanceRows.filter(
+          (row) => row.studentId === student.id,
+        ).length;
+        return [
+          student.id,
+          lessonsInCourse.length
+            ? Math.round((present / lessonsInCourse.length) * 100)
+            : 0,
+        ];
+      }),
+    );
+
     const manualCols = await db
       .select()
       .from(manualGradeColumns)
@@ -1262,6 +1293,7 @@ export class TeacherService {
     return {
       group,
       students: roster,
+      attendance,
       quizColumns,
       quizCells: cells,
       manualColumns: manualCols,

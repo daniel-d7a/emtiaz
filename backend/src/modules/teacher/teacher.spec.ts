@@ -568,6 +568,19 @@ describe('Phase 4: teacher endpoints', () => {
       );
     });
 
+    it('includes a default attendance percentage per student', async () => {
+      const s1 = await getUserByEmail(STUDENT1.email);
+      await testPool.query(
+        `INSERT INTO lesson_attendance (lesson_id, student_id, is_present)
+         VALUES ($1,$3,true),($2,$3,false)
+         ON CONFLICT (lesson_id, student_id) DO UPDATE SET is_present = excluded.is_present`,
+        [world.lesson1, world.lesson2, s1.id],
+      );
+      const res = await t.get(`/api/teacher/groups/${world.group1}/gradebook`);
+      expect(res.status).toBe(200);
+      expect(res.body.attendance[s1.id]).toBe(50);
+    });
+
     it('shows best auto quiz scores per student', async () => {
       const s1 = await getUserByEmail(STUDENT1.email);
       await testPool.query(

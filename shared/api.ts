@@ -407,6 +407,7 @@ export type ManualGradeCell = {
 export type TeacherGradebook = {
   group: Group;
   students: GradebookStudent[];
+  attendance: Record<string, number>;
   quizColumns: QuizColumn[];
   quizCells: Record<string, number>;
   manualColumns: ManualGradeColumn[];

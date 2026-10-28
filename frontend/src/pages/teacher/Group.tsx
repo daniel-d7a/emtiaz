@@ -256,11 +256,13 @@ export function GradebookTab({ groupId }: { groupId: string }) {
     const rows: unknown[][] = [
       [
         t('roster'),
+        t('attendance'),
         ...data.quizColumns.map((c) => `${c.lessonTitle} (/${c.maxScore})`),
         ...data.manualColumns.map((c) => `${c.title}${c.maxScore ? ` (/${c.maxScore})` : ''}`),
       ],
       ...data.students.map((s) => [
         s.name,
+        `${data.attendance[s.id] ?? 0}%`,
         ...data.quizColumns.map((c) => cell(s.id, c.quizId, true)),
         ...data.manualColumns.map((c) => cell(s.id, c.id, false)),
       ]),
@@ -292,13 +294,19 @@ export function GradebookTab({ groupId }: { groupId: string }) {
         header: t('roster'),
         cell: ({ getValue }) => <span className="font-semibold">{String(getValue())}</span>,
       },
+      {
+        id: 'attendance',
+        accessorFn: (s) => data.attendance[s.id] ?? 0,
+        header: t('attendance'),
+        cell: ({ getValue }) => <span className="font-bold tabular-nums">{String(getValue())}%</span>,
+      },
     ];
     for (const c of data.quizColumns) {
       cols.push({
         id: `quiz-${c.quizId}`,
         header: `${c.lessonTitle} (${c.maxScore})`,
         accessorFn: (s) => data.quizCells[`${s.id}:${c.quizId}`] ?? null,
-        cell: ({ getValue }) => <span className="font-bold text-primary">{(getValue() as number | null) ?? '—'}</span>,
+        cell: ({ getValue }) => <span className="font-bold tabular-nums text-primary">{(getValue() as number | null) ?? '—'}</span>,
       });
     }
     for (const c of data.manualColumns) {
@@ -309,7 +317,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
         enableSorting: false,
         cell: ({ row }) => (
           <input
-            className="w-16 rounded border border-line px-2 py-1 text-sm"
+            className="w-16 rounded border border-line px-2 py-1 text-end text-sm tabular-nums"
             defaultValue={manualScore(row.original.id, c.id) ?? ''}
             onBlur={(e) => {
               const raw = e.target.value.trim();
@@ -362,7 +370,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
           </Button>
         </div>
         <div className="max-h-[70vh] overflow-auto border-y border-line">
-          <table className="w-full border-separate border-spacing-0 text-sm">
+          <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
             <thead className="bg-surface">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -374,8 +382,8 @@ export function GradebookTab({ groupId }: { groupId: string }) {
                           ? 'ascending'
                           : header.column.getIsSorted() === 'desc' ? 'descending' : undefined
                       }
-                      className={`sticky top-0 z-20 whitespace-nowrap border-b border-line bg-surface px-3 py-2 text-start ${
-                        header.column.id === 'name' ? 'start-0 z-30 min-w-40' : ''
+                      className={`sticky top-0 z-20 whitespace-nowrap border-b border-line bg-surface px-3 py-2 ${
+                        header.column.id === 'name' ? 'start-0 z-30 min-w-40 text-start' : 'text-end'
                       }`}
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
@@ -408,7 +416,9 @@ export function GradebookTab({ groupId }: { groupId: string }) {
                     <td
                       key={cell.id}
                       className={`border-b border-line/60 px-3 py-2 ${
-                        cell.column.id === 'name' ? 'sticky start-0 z-10 min-w-40 bg-surface font-semibold' : ''
+                        cell.column.id === 'name'
+                          ? 'sticky start-0 z-10 min-w-40 bg-surface font-semibold'
+                          : 'text-end tabular-nums'
                       }`}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
