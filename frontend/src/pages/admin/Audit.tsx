@@ -131,7 +131,7 @@ export default function AdminAudit() {
         </div>
         {errors.isLoading ? <Loading /> : errors.error ? <ErrorBox error={errors.error} /> : (
           errors.data?.lines.length ? (
-            <pre className="max-h-[28rem] overflow-auto rounded-xl bg-background p-3 text-[11px] leading-5" dir="ltr">
+            <pre className="max-h-[70vh] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-xl bg-background p-3 text-[11px] leading-5" dir="ltr">
               {errors.data.lines.join('\n')}
             </pre>
           ) : <p className="text-sm text-ink-soft">{t('noErrorLines')}</p>
