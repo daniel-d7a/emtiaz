@@ -26,7 +26,7 @@ export async function api<T = any>(
 
 export const authApi = {
   session: async (): Promise<Session> => {
-    const session: Session = await fetch(`${BASE}/api/auth/get-session`, {
+    const session: Session = await fetch(`${BASE}/api/auth/get-session?disableCookieCache=true`, {
       credentials: 'include',
       cache: 'no-store',
     }).then((r) => (r.ok ? r.json() : null));
