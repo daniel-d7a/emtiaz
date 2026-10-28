@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] No fabricated reviews, screenshots, customers, or results are presented as real.
-- [ ] Pricing does not imply checkout exists.
-- [ ] No shadow utilities or raw hex; one accent per screen.
-- [ ] RTL and LTR both render correctly; OG tags and favicon are present.
-- [ ] Mobile navigation and keyboard accessibility work on both landing pages.
+- [x] No fabricated reviews, screenshots, customers, or results are presented as real.
+- [x] Pricing does not imply checkout exists.
+- [x] No shadow utilities or raw hex; one accent per screen.
+- [x] RTL and LTR both render correctly; OG tags and favicon are present.
+- [x] Mobile navigation and keyboard accessibility work on both landing pages.
