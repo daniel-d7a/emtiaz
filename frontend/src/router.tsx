@@ -16,6 +16,12 @@ import { teacherCourseGroupsRoute } from './pages/teacher/CourseGroups';
 import { teacherCurriculumRoute } from './pages/teacher/Curriculum';
 import { teacherGroupRoute } from './pages/teacher/Group';
 import { adminDashboardRoute } from './pages/admin/Dashboard';
+import { adminTeachersRoute } from './pages/admin/Teachers';
+import { adminStudentsRoute } from './pages/admin/Students';
+import { adminParentsRoute } from './pages/admin/Parents';
+import { adminCoursesRoute } from './pages/admin/Courses';
+import { adminSettingsRoute } from './pages/admin/Settings';
+import { adminAuditRoute } from './pages/admin/Audit';
 import { parentChildrenRoute } from './pages/parent/Children';
 import { teacherLandingRoute } from './pages/public/Teacher';
 import { publicCourseRoute } from './pages/public/Course';
@@ -46,6 +52,12 @@ const routeTree = rootRoute.addChildren([
   teacherCurriculumRoute,
   teacherGroupRoute,
   adminDashboardRoute,
+  adminTeachersRoute,
+  adminStudentsRoute,
+  adminParentsRoute,
+  adminCoursesRoute,
+  adminSettingsRoute,
+  adminAuditRoute,
   parentChildrenRoute,
   teacherLandingRoute,
   publicCourseRoute,

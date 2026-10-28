@@ -138,8 +138,8 @@ the bucket and sets browser CORS for the configured frontend origins.
 - Pages: home, public course catalogue, login/register, join, profile,
   student home/catalogue/group/lesson/quiz, teacher dashboard/new course/
   course groups/course/group/public landing/public course, parent children/
-  profile, admin dashboard (teachers, students, parents, courses, notifications,
-  taxonomy, audit).
+  profile, admin overview plus separate teachers/students/parents/courses/
+  settings/audit pages.
 - Arabic-first RTL with an English switch; shared strings live in
   `frontend/src/lib/i18n.tsx`.
 - Teachers own a theme in `user.landing_theme` (layout, two colours, marquee,

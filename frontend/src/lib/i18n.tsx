@@ -266,6 +266,7 @@ const dict = {
   generalCourses: { ar: 'مهارات عامة', en: 'Skill courses' },
   totalGroups: { ar: 'مجموعات', en: 'Groups' },
   activeGroups: { ar: 'مجموعات نشطة', en: 'Active groups' },
+  inactiveGroups: { ar: 'مجموعات غير نشطة', en: 'Inactive groups' },
   grades: { ar: 'الصفوف', en: 'Grades' },
   categories: { ar: 'التخصصات', en: 'Specializations' },
   channels: { ar: 'القنوات', en: 'Channels' },

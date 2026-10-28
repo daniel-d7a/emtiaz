@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  BookOpen, Globe, GraduationCap, Home, LayoutDashboard, LogOut, UserRound, Users,
+  BookOpen, Globe, GraduationCap, HeartHandshake, Home, LayoutDashboard, LogOut,
+  ScrollText, Settings, UserRound, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { authApi } from '../lib/api';
@@ -18,6 +19,12 @@ type NavTarget =
   | '/teacher/dashboard'
   | '/parent/children'
   | '/admin/dashboard'
+  | '/admin/teachers'
+  | '/admin/students'
+  | '/admin/parents'
+  | '/admin/courses'
+  | '/admin/settings'
+  | '/admin/audit'
   | '/profile';
 
 type NavItem = { to: NavTarget; label: Key; icon: LucideIcon };
@@ -43,7 +50,15 @@ const ROLE_NAV: Record<SessionUser['role'], NavItem[]> = {
   ],
   TEACHER: [{ to: '/teacher/dashboard', label: 'myWorkspace', icon: LayoutDashboard }],
   PARENT: [{ to: '/parent/children', label: 'myChildren', icon: Users }],
-  ADMIN: [{ to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard }],
+  ADMIN: [
+    { to: '/admin/dashboard', label: 'overview', icon: LayoutDashboard },
+    { to: '/admin/teachers', label: 'teachers', icon: GraduationCap },
+    { to: '/admin/students', label: 'students', icon: Users },
+    { to: '/admin/parents', label: 'parents', icon: HeartHandshake },
+    { to: '/admin/courses', label: 'courses', icon: BookOpen },
+    { to: '/admin/settings', label: 'settings', icon: Settings },
+    { to: '/admin/audit', label: 'auditLog', icon: ScrollText },
+  ],
 };
 
 function navFor(role: SessionUser['role']) {
@@ -205,12 +220,12 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
         aria-label={t('appName')}
         className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
       >
-        <div className="mx-auto flex max-w-lg items-stretch">
+        <div className={`mx-auto flex max-w-lg items-stretch ${items.length > 4 ? 'overflow-x-auto' : ''}`}>
           {items.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold text-ink-soft data-[status=active]:text-primary"
+              className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold text-ink-soft data-[status=active]:text-primary ${items.length > 4 ? 'min-w-16 shrink-0' : 'flex-1'}`}
             >
               <item.icon size={20} />
               <span className="max-w-full truncate">{t(item.label)}</span>
