@@ -4,9 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] The error tail uses a taller viewport (most of the remaining screen height).
-- [ ] Scrolling is vertical only; long lines wrap.
-- [ ] The last 500 lines and the polling interval are unchanged.
-- [ ] The empty and error states remain readable in both languages.
+- [x] The error tail uses a taller viewport (most of the remaining screen height).
+- [x] Scrolling is vertical only; long lines wrap.
+- [x] The last 500 lines and the polling interval are unchanged.
+- [x] The empty and error states remain readable in both languages.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

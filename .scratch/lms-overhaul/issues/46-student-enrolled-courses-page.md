@@ -4,11 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] A new student page lists all active enrollments with course, teacher, group, and progress.
-- [ ] Entries link to the corresponding group page.
-- [ ] Student navigation exposes the page.
-- [ ] Empty state explains how to join a group.
-- [ ] No duplicate catalogue behaviour: this page shows enrolled courses only.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] A new student page lists all active enrollments with course, teacher, group, and progress.
+- [x] Entries link to the corresponding group page.
+- [x] Student navigation exposes the page.
+- [x] Empty state explains how to join a group.
+- [x] No duplicate catalogue behaviour: this page shows enrolled courses only.
+- [x] Checked in Arabic and English at 360 / 768 / 1280.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

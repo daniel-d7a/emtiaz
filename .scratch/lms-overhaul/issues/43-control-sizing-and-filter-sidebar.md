@@ -4,11 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] Text inputs are slightly shorter; selects are noticeably shorter; both match in height and width.
-- [ ] Course browser shows search on top and all other filters in a persistent sidebar.
-- [ ] Admin directory/audit pages use the same persistent filter sidebar pattern.
-- [ ] Sidebar stacks cleanly on mobile with no horizontal overflow.
-- [ ] Active filters remain visible and clearable; empty results still show guidance.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Text inputs are slightly shorter; selects are noticeably shorter; both match in height and width.
+- [x] Course browser shows search on top and all other filters in a persistent sidebar.
+- [x] Admin directory/audit pages use the same persistent filter sidebar pattern.
+- [x] Sidebar stacks cleanly on mobile with no horizontal overflow.
+- [x] Active filters remain visible and clearable; empty results still show guidance.
+- [x] Checked in Arabic and English at 360 / 768 / 1280.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

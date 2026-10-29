@@ -4,9 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] At md/lg, page content widens and side gutters shrink or disappear.
-- [ ] At xl, content is centered with generous gutters.
-- [ ] No page overflows horizontally at 360 / 768 / 1024 / 1280.
-- [ ] Admin, teacher, student, parent, and public pages all pick up the change from the shared container.
+- [x] At md/lg, page content widens and side gutters shrink or disappear.
+- [x] At xl, content is centered with generous gutters.
+- [x] No page overflows horizontally at 360 / 768 / 1024 / 1280.
+- [x] Admin, teacher, student, parent, and public pages all pick up the change from the shared container.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

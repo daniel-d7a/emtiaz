@@ -4,10 +4,14 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] Uploading an avatar updates the navbar/app-shell image without a manual refresh.
-- [ ] Reloading keeps the new avatar.
-- [ ] The public teacher page and the app show the same image.
-- [ ] Removing or replacing an avatar updates everywhere.
-- [ ] Works for teachers and non-teacher roles that have avatars.
+- [x] Uploading an avatar updates the navbar/app-shell image without a manual refresh.
+- [x] Reloading keeps the new avatar.
+- [x] The public teacher page and the app show the same image.
+- [x] Removing or replacing an avatar updates everywhere.
+- [x] Works for teachers and non-teacher roles that have avatars.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

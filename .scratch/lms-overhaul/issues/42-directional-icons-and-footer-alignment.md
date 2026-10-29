@@ -4,10 +4,14 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] Every card/forward arrow points right in English and left in Arabic.
-- [ ] Every back arrow points left in English and right in Arabic.
-- [ ] Teacher and course footers align all headings/rows to the reading start in both languages.
-- [ ] Email/phone values render LTR without pulling their row to the opposite side.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Every card/forward arrow points right in English and left in Arabic.
+- [x] Every back arrow points left in English and right in Arabic.
+- [x] Teacher and course footers align all headings/rows to the reading start in both languages.
+- [x] Email/phone values render LTR without pulling their row to the opposite side.
+- [x] Checked in Arabic and English at 360 / 768 / 1280.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

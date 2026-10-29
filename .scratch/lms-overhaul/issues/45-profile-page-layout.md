@@ -4,10 +4,14 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] Profile sections are stacked in a single column for student, parent, and teacher.
-- [ ] Each section's fields use two columns on `sm`+ and one on mobile.
-- [ ] Save action and validation errors remain visible and usable.
-- [ ] Teacher theme preview and banner controls still work.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Profile sections are stacked in a single column for student, parent, and teacher.
+- [x] Each section's fields use two columns on `sm`+ and one on mobile.
+- [x] Save action and validation errors remain visible and usable.
+- [x] Teacher theme preview and banner controls still work.
+- [x] Checked in Arabic and English at 360 / 768 / 1280.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

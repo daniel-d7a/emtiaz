@@ -4,10 +4,14 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] The course page hero shows the course banner/image, not the teacher banner.
-- [ ] Hero styling and placement match the teacher public page banner.
-- [ ] A course without a banner falls back cleanly without showing the teacher banner.
-- [ ] Page metadata and the rest of the course page are unchanged.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] The course page hero shows the course banner/image, not the teacher banner.
+- [x] Hero styling and placement match the teacher public page banner.
+- [x] A course without a banner falls back cleanly without showing the teacher banner.
+- [x] Page metadata and the rest of the course page are unchanged.
+- [x] Checked in Arabic and English at 360 / 768 / 1280.
+
+## Comments
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.

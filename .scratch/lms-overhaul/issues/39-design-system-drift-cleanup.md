@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
 ## Comments
 
@@ -14,4 +14,6 @@ Code cleanup landed in `0cf88be` (`fix: remove design-system drift from app surf
 - [x] No undefined token classes remain (for example `border-border`); borders use `line`, text uses `ink`/`ink-soft`, surfaces use `surface`/`background`.
 - [x] Ordinary section headings no longer use `secondary`; terracotta appears only at the single attention point per screen, and destructive actions use `danger`.
 - [x] Font weights are limited to 400/600/700; grades and counts use `tabular-nums`.
-- [ ] `npm run typecheck`, `npm test`, and `npm run build` pass; checked at 360 / 768 / 1280 in Arabic and English.
+- [x] `npm run typecheck`, `npm test`, and `npm run build` pass; checked at 360 / 768 / 1280 in Arabic and English.
+
+Visual QA passed on 2026-10-29; all acceptance checks are complete.
