@@ -37,13 +37,13 @@ button:disabled {
 }
 
 @keyframes marquee-ltr {
-  from { transform: translateX(100%); }
-  to { transform: translateX(-100%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% / var(--marquee-count, 2))); }
 }
 
 @keyframes marquee-rtl {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% / var(--marquee-count, 2))); }
 }
 
 .marquee-track {

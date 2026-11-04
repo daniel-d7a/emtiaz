@@ -4,6 +4,7 @@ import { BookOpen, Search } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { localizeName, useLang } from '../lib/i18n';
+import { useDebouncedValue } from '../lib/useDebouncedValue';
 import { Badge, Card, EmptyState, ErrorBox, FilterLayout, Input, Loading, Select } from './ui';
 import { ThemeSurface } from './TeacherTheme';
 import type { CourseCatalogue } from '../../../shared/api';
@@ -16,9 +17,10 @@ export function CourseBrowser() {
   const [gradeId, setGradeId] = useState('');
   const [courseType, setCourseType] = useState('');
   const [semester, setSemester] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
 
   const params = new URLSearchParams();
-  if (search.trim()) params.set('search', search.trim());
+  if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
   if (teacherId) params.set('teacherId', teacherId);
   if (subjectId) params.set('subjectId', subjectId);
   if (gradeId) params.set('gradeId', gradeId);

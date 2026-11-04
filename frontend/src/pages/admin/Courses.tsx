@@ -8,6 +8,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
   Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
@@ -75,6 +76,7 @@ export default function AdminCourses() {
   const { t, lang } = useLang();
   const qc = useQueryClient();
   const [name, setName] = useState('');
+  const debouncedName = useDebouncedValue(name);
   const [categoryId, setCategoryId] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
@@ -85,13 +87,13 @@ export default function AdminCourses() {
   const [deleteTarget, setDeleteTarget] = useState<CourseRow | null>(null);
 
   const courses = useQuery({
-    queryKey: ['admin-courses', name, categoryId, teacherId, showDeleted, limit],
+    queryKey: ['admin-courses', debouncedName, categoryId, teacherId, showDeleted, limit],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(limit),
         deleted: String(showDeleted),
       });
-      if (name.trim()) params.set('name', name.trim());
+      if (debouncedName.trim()) params.set('name', debouncedName.trim());
       if (categoryId) params.set('categoryId', categoryId);
       if (teacherId) params.set('teacherId', teacherId);
       return api<CourseRow[]>(`/api/admin/courses?${params}`);

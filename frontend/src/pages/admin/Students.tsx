@@ -8,6 +8,7 @@ import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
   Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
@@ -74,6 +75,8 @@ export default function AdminStudents() {
   const canManageUsers = useAdminPermissions()('users');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const debouncedName = useDebouncedValue(name);
+  const debouncedPhone = useDebouncedValue(phone);
   const [showDeleted, setShowDeleted] = useState(false);
   const [limit, setLimit] = useState(20);
   const [createOpen, setCreateOpen] = useState(false);
@@ -86,14 +89,14 @@ export default function AdminStudents() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const students = useQuery({
-    queryKey: ['admin-students', name, phone, linkedGroupId, showDeleted, limit],
+    queryKey: ['admin-students', debouncedName, debouncedPhone, linkedGroupId, showDeleted, limit],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(limit),
         deleted: String(showDeleted),
       });
-      if (name.trim()) params.set('name', name.trim());
-      if (phone.trim()) params.set('phone', phone.trim());
+      if (debouncedName.trim()) params.set('name', debouncedName.trim());
+      if (debouncedPhone.trim()) params.set('phone', debouncedPhone.trim());
       if (linkedGroupId) params.set('groupId', linkedGroupId);
       return api<StudentRow[]>(`/api/admin/students?${params}`);
     },

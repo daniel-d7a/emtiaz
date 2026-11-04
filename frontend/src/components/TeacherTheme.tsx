@@ -1,7 +1,52 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { TeacherTheme } from '../../../shared/api';
 import { normalizeTheme, themeStyle } from '../lib/theme';
 import { useLang } from '../lib/i18n';
+
+function Marquee({ text, tone }: { text: string; tone: 'primary' | 'white' }) {
+  const { lang } = useLang();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [count, setCount] = useState(2);
+  const textClass = tone === 'white' ? 'text-white' : 'text-primary';
+
+  useEffect(() => {
+    const measure = () => {
+      const wrapWidth = wrapRef.current?.clientWidth ?? 0;
+      const textWidth = textRef.current?.getBoundingClientRect().width ?? 0;
+      if (!wrapWidth || !textWidth) return;
+      const ratio = textWidth / wrapWidth;
+      setCount(ratio >= 0.7 ? 2 : ratio < 0.3 ? 4 : ratio < 0.5 ? 3 : 2);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (wrapRef.current) observer.observe(wrapRef.current);
+    if (textRef.current) observer.observe(textRef.current);
+    void document.fonts?.ready.then(measure);
+    return () => observer.disconnect();
+  }, [text, lang]);
+
+  return (
+    <div ref={wrapRef} className="relative overflow-hidden">
+      <span
+        ref={textRef}
+        aria-hidden
+        className={`invisible absolute whitespace-nowrap text-sm font-semibold ${textClass}`}
+      >
+        {text}
+      </span>
+      <div
+        className={`marquee-track flex w-max whitespace-nowrap px-4 text-sm font-semibold ${textClass}`}
+        style={{ '--marquee-count': count } as CSSProperties}
+      >
+        {Array.from({ length: count }, (_, index) => (
+          <span key={index} className="pe-8">{text}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function ThemeSurface({
   theme,
@@ -71,10 +116,8 @@ export function ThemeHero({
         </div>
       </div>
       {showMarquee && t.marquee && (
-        <div className="overflow-hidden border-t border-line bg-primary-light/40 py-2" >
-          <div className="marquee-track w-max whitespace-nowrap px-4 text-sm font-semibold text-primary">
-            {t.marquee}
-          </div>
+        <div className="border-t border-line bg-primary-light/40 py-2">
+          <Marquee text={t.marquee} tone="primary" />
         </div>
       )}
     </section>
@@ -91,15 +134,13 @@ export function ThemeStrip({
   const t = normalizeTheme(theme);
   return (
     <div
-      className="relative mb-5 h-24 overflow-hidden rounded-2xl border border-line"
+      className="relative mb-5 h-56 overflow-hidden rounded-2xl border border-line"
       style={bannerUrl ? undefined : { background: `linear-gradient(135deg, ${t.primary}, ${t.secondary})` }}
     >
       {bannerUrl && <img src={bannerUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
       {t.marquee && (
-        <div className="absolute inset-x-0 bottom-0 overflow-hidden bg-ink/40 py-1.5" >
-          <div className="marquee-track w-max whitespace-nowrap px-4 text-sm font-semibold text-white">
-            {t.marquee}
-          </div>
+        <div className="absolute inset-x-0 bottom-0 bg-ink/40 py-1.5">
+          <Marquee text={t.marquee} tone="white" />
         </div>
       )}
     </div>

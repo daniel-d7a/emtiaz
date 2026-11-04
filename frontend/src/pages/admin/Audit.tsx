@@ -3,6 +3,7 @@ import { createRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { formatDateTime, useLang } from '../../lib/i18n';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import { Card, ErrorBox, FilterLayout, Input, Loading, Page, Select } from '../../components/ui';
 import { rootRoute } from '../../routes/__root';
 import { requireRole } from '../../lib/session';
@@ -32,14 +33,17 @@ export default function AdminAudit() {
   const [actor, setActor] = useState('');
   const [target, setTarget] = useState('');
   const [actorRole, setActorRole] = useState('');
+  const debouncedAction = useDebouncedValue(action);
+  const debouncedActor = useDebouncedValue(actor);
+  const debouncedTarget = useDebouncedValue(target);
 
   const audit = useQuery({
-    queryKey: ['admin-audit', action, actor, target, actorRole],
+    queryKey: ['admin-audit', debouncedAction, debouncedActor, debouncedTarget, actorRole],
     queryFn: () => {
       const params = new URLSearchParams({ limit: '200' });
-      if (action.trim()) params.set('action', action.trim());
-      if (actor.trim()) params.set('actor', actor.trim());
-      if (target.trim()) params.set('target', target.trim());
+      if (debouncedAction.trim()) params.set('action', debouncedAction.trim());
+      if (debouncedActor.trim()) params.set('actor', debouncedActor.trim());
+      if (debouncedTarget.trim()) params.set('target', debouncedTarget.trim());
       if (actorRole) params.set('actorRole', actorRole);
       return api<AuditRow[]>(`/api/admin/audit?${params}`);
     },

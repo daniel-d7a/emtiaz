@@ -45,7 +45,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
       onClose={() => {
         if (open) onOpenChange(false);
       }}
-      className={`m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-ink/40 ${className}`}
+      className={`m-auto w-[calc(100%-2rem)] max-w-2xl rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-ink/40 ${className}`}
     >
       <h2 id={`${id}-title`} className="text-lg font-bold">{title}</h2>
       {description && <p id={`${id}-description`} className="mt-1 text-sm text-ink-soft">{description}</p>}

@@ -12,6 +12,7 @@ import { ArrowUpDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import { Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
@@ -38,7 +39,7 @@ const createSchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().trim().email(),
   password: z.string().min(8),
-  phoneNumber: z.string().trim(),
+  phoneNumber: z.string().trim().min(8).regex(/^[+\d\s()-]+$/),
   subject: z.string().trim().min(1),
 });
 type CreateValues = z.infer<typeof createSchema>;
@@ -57,6 +58,8 @@ export default function AdminTeachers() {
   const { name: linkedName } = adminTeachersRoute.useSearch();
   const [name, setName] = useState(linkedName ?? '');
   const [phone, setPhone] = useState('');
+  const debouncedName = useDebouncedValue(name);
+  const debouncedPhone = useDebouncedValue(phone);
   const [subjectId, setSubjectId] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
   const [limit, setLimit] = useState(20);
@@ -65,14 +68,14 @@ export default function AdminTeachers() {
   const [deleteTarget, setDeleteTarget] = useState<TeacherRow | null>(null);
 
   const teachers = useQuery({
-    queryKey: ['admin-teachers', name, phone, subjectId, showDeleted, limit],
+    queryKey: ['admin-teachers', debouncedName, debouncedPhone, subjectId, showDeleted, limit],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(limit),
         deleted: String(showDeleted),
       });
-      if (name.trim()) params.set('name', name.trim());
-      if (phone.trim()) params.set('phone', phone.trim());
+      if (debouncedName.trim()) params.set('name', debouncedName.trim());
+      if (debouncedPhone.trim()) params.set('phone', debouncedPhone.trim());
       if (subjectId) params.set('subjectId', subjectId);
       return api<TeacherRow[]>(`/api/admin/teachers?${params}`);
     },
@@ -357,10 +360,7 @@ function CreateTeacherDialog({
   });
   const create = useMutation({
     mutationFn: (values: CreateValues) => api('/api/admin/teachers', {
-      body: {
-        ...values,
-        phoneNumber: values.phoneNumber || undefined,
-      },
+      body: values,
     }),
     onSuccess: () => {
       toast.success(t('saved'));

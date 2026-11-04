@@ -8,6 +8,7 @@ import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
   Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
@@ -77,6 +78,8 @@ export default function AdminParents() {
   const canManageUsers = useAdminPermissions()('users');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const debouncedName = useDebouncedValue(name);
+  const debouncedPhone = useDebouncedValue(phone);
   const [showDeleted, setShowDeleted] = useState(false);
   const [limit, setLimit] = useState(20);
   const [createOpen, setCreateOpen] = useState(false);
@@ -86,14 +89,14 @@ export default function AdminParents() {
   const [restoreTarget, setRestoreTarget] = useState<ParentLink | null>(null);
 
   const parents = useQuery({
-    queryKey: ['admin-parents', name, phone, showDeleted, limit],
+    queryKey: ['admin-parents', debouncedName, debouncedPhone, showDeleted, limit],
     queryFn: () => {
       const params = new URLSearchParams({
         limit: String(limit),
         deleted: String(showDeleted),
       });
-      if (name.trim()) params.set('name', name.trim());
-      if (phone.trim()) params.set('phone', phone.trim());
+      if (debouncedName.trim()) params.set('name', debouncedName.trim());
+      if (debouncedPhone.trim()) params.set('phone', debouncedPhone.trim());
       return api<ParentRow[]>(`/api/admin/parents?${params}`);
     },
   });

@@ -7,7 +7,7 @@ import { api } from '../../lib/api';
 import { attachmentIcon, attachmentUrl, previewableTypes } from '../../lib/attachment';
 import { embedUrl } from '../../lib/embed';
 import { useLang } from '../../lib/i18n';
-import { Badge, Button, Card, EmptyState, ErrorBox, Loading, Page } from '../../components/ui';
+import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, Loading, Page } from '../../components/ui';
 import { ThemeSurface } from '../../components/TeacherTheme';
 import { StudentQuiz, studentCurriculumQuery } from './Group';
 import type { StudentLessonView } from '../../../../shared/api';
@@ -75,44 +75,6 @@ export default function StudentLesson() {
                 </div>
               </Card>
 
-              {attachment && previewableTypes.has(attachment.fileType) && (
-                <Card>
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-bold">{attachment.title}</h3>
-                    <a
-                      href={attachmentSrc}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 text-sm font-semibold text-primary underline"
-                    >
-                      <ExternalLink size={14} /> {t('openInNewTab')}
-                    </a>
-                  </div>
-                  {attachment.fileType === 'IMAGE' && (
-                    <img src={attachmentSrc} alt={attachment.title} className="max-h-[70vh] w-full rounded-xl border border-line object-contain" />
-                  )}
-                  {attachment.fileType === 'PDF' && (
-                    <iframe src={attachmentSrc} title={attachment.title} className="h-[70vh] w-full rounded-xl border border-line" />
-                  )}
-                  {attachment.fileType === 'VIDEO' && (
-                    videoEmbed ? (
-                      <iframe
-                        src={videoEmbed}
-                        title={attachment.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="aspect-video w-full rounded-xl border border-line"
-                      />
-                    ) : (
-                      <video src={attachmentSrc} controls className="max-h-[70vh] w-full rounded-xl border border-line" />
-                    )
-                  )}
-                  {attachment.fileType === 'AUDIO' && (
-                    <audio src={attachmentSrc} controls className="w-full" />
-                  )}
-                </Card>
-              )}
-
               {data.hasQuiz && <StudentQuiz lessonId={lessonId} groupId={groupId} />}
             </main>
 
@@ -162,6 +124,48 @@ export default function StudentLesson() {
             </aside>
           </div>
         ) : <Loading />}
+
+        <Dialog
+          open={!!attachment && previewableTypes.has(attachment.fileType)}
+          onOpenChange={(open) => { if (!open) setSelected(null); }}
+          title={attachment?.title ?? ''}
+          className="!max-w-6xl"
+        >
+          {attachment && (
+            <div className="max-h-[75vh] overflow-y-auto">
+              <a
+                href={attachmentSrc}
+                target="_blank"
+                rel="noreferrer"
+                className="mb-3 flex items-center gap-1 text-sm font-semibold text-primary underline"
+              >
+                <ExternalLink size={14} /> {t('openInNewTab')}
+              </a>
+              {attachment.fileType === 'IMAGE' && (
+                <img src={attachmentSrc} alt={attachment.title} className="max-h-[70vh] w-full rounded-xl border border-line object-contain" />
+              )}
+              {attachment.fileType === 'PDF' && (
+                <iframe src={attachmentSrc} title={attachment.title} className="h-[70vh] w-full rounded-xl border border-line" />
+              )}
+              {attachment.fileType === 'VIDEO' && (
+                videoEmbed ? (
+                  <iframe
+                    src={videoEmbed}
+                    title={attachment.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="aspect-video w-full rounded-xl border border-line"
+                  />
+                ) : (
+                  <video src={attachmentSrc} controls className="max-h-[70vh] w-full rounded-xl border border-line" />
+                )
+              )}
+              {attachment.fileType === 'AUDIO' && (
+                <audio src={attachmentSrc} controls className="w-full" />
+              )}
+            </div>
+          )}
+        </Dialog>
       </Page>
     </ThemeSurface>
   );
