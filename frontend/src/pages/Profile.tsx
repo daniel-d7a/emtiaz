@@ -29,10 +29,13 @@ export default function Profile() {
     enabled: user?.role === 'STUDENT',
   });
   const [version, setVersion] = useState(0);
-  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarErr, setAvatarErr] = useState<Error | null>(null);
-  const [bannerBusy, setBannerBusy] = useState(false);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [bannerErr, setBannerErr] = useState<Error | null>(null);
+  const [removeBanner, setRemoveBanner] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
@@ -60,74 +63,58 @@ export default function Profile() {
     setLandingInit(true);
   }
 
-  const uploadAvatar = async (file: File) => {
-    setAvatarBusy(true);
+  const pickAvatar = (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarErr(new Error(t('imageTooLarge')));
+      return;
+    }
     setAvatarErr(null);
-    try {
-      if (file.size > 2 * 1024 * 1024) throw new Error(t('imageTooLarge'));
-      const up = await api<PresignedUpload>('/api/storage/avatar', {
-        body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
-      });
-      const put = await fetch(up.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
-      await api('/api/me', { method: 'PATCH', body: { image: up.objectKey } });
-      await qc.invalidateQueries({ queryKey: ['session'] });
-      await qc.invalidateQueries({ queryKey: ['me'] });
-      setVersion(Date.now());
-      toast.success(t('saved'));
-    } catch (e) {
-      setAvatarErr(e as Error);
-      toast.error((e as Error).message || t('errorOccurred'));
-    } finally {
-      setAvatarBusy(false);
-    }
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
-  const uploadBanner = async (file: File) => {
-    setBannerBusy(true);
+  const pickBanner = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setBannerErr(new Error(t('imageTooLarge')));
+      return;
+    }
     setBannerErr(null);
-    try {
-      if (file.size > 5 * 1024 * 1024) throw new Error(t('imageTooLarge'));
-      const up = await api<PresignedUpload>('/api/storage/banner', {
-        body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
-      });
-      const put = await fetch(up.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
-      await api('/api/me', { method: 'PATCH', body: { landingBanner: up.objectKey } });
-      await qc.invalidateQueries({ queryKey: ['me'] });
-      toast.success(t('saved'));
-    } catch (e) {
-      setBannerErr(e as Error);
-      toast.error((e as Error).message || t('errorOccurred'));
-    } finally {
-      setBannerBusy(false);
-    }
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerFile(file);
+    setBannerPreview(URL.createObjectURL(file));
+    setRemoveBanner(false);
   };
 
-  const removeBanner = useMutation({
-    mutationFn: () => api('/api/me', { method: 'PATCH', body: { landingBanner: null } }),
-    onSuccess: () => {
-      toast.success(t('saved'));
-      void qc.invalidateQueries({ queryKey: ['me'] });
-    },
-  });
+  const uploadFile = async (endpoint: string, file: File) => {
+    const up = await api<PresignedUpload>(endpoint, {
+      body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
+    });
+    const put = await fetch(up.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+    return up.objectKey;
+  };
 
   const save = useMutation({
-    mutationFn: () =>
-      api('/api/me', {
+    mutationFn: async () => {
+      const image = avatarFile ? await uploadFile('/api/storage/avatar', avatarFile) : undefined;
+      const landingBanner = bannerFile
+        ? await uploadFile('/api/storage/banner', bannerFile)
+        : removeBanner
+          ? null
+          : undefined;
+      return api('/api/me', {
         method: 'PATCH',
         body: {
           name,
           phoneNumber: phone || undefined,
           subject: user?.role === 'TEACHER' && subject ? subject : undefined,
+          ...(image ? { image } : {}),
+          ...(landingBanner !== undefined ? { landingBanner } : {}),
           ...(user?.role === 'STUDENT'
             ? { dateOfBirth: dateOfBirth || null, gradeId: gradeId || null }
             : {}),
@@ -135,9 +122,18 @@ export default function Profile() {
             ? { landingSlug, landingBio, landingPublished, landingTheme: theme }
             : {}),
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(t('saved'));
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setBannerFile(null);
+      setBannerPreview(null);
+      setRemoveBanner(false);
+      setVersion(Date.now());
       void qc.invalidateQueries({ queryKey: ['session'] });
       void qc.invalidateQueries({ queryKey: ['me'] });
     },
@@ -160,9 +156,9 @@ export default function Profile() {
         <Card>
           <h2 className="mb-4 text-lg font-bold">{t('accountData')}</h2>
           <div className="mb-4 flex items-center gap-4">
-            {user.image ? (
+            {avatarPreview || user.image ? (
               <img
-                src={`/api/me/avatar?v=${version}`}
+                src={avatarPreview ?? `/api/me/avatar?v=${version}`}
                 alt={user.name}
                 className="h-16 w-16 rounded-full border border-line object-cover"
               />
@@ -173,14 +169,14 @@ export default function Profile() {
             )}
             <div>
               <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
-                {avatarBusy ? '…' : t('uploadFile')}
+                {save.isPending ? '…' : t('uploadFile')}
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) void uploadAvatar(f);
+                    if (f) pickAvatar(f);
                   }}
                 />
               </label>
@@ -319,10 +315,22 @@ export default function Profile() {
                   </label>
                   <div>
                     <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('banner')}</span>
-                    {me?.bannerUrl ? (
+                    {bannerPreview || (me?.bannerUrl && !removeBanner) ? (
                       <div className="flex flex-col gap-2">
-                        <img src={me.bannerUrl} alt="" className="h-32 w-full rounded-xl border border-line object-cover" />
-                        <Button variant="danger" onClick={() => removeBanner.mutate()} disabled={removeBanner.isPending}>
+                        <img
+                          src={bannerPreview ?? me!.bannerUrl!}
+                          alt=""
+                          className="h-32 w-full rounded-xl border border-line object-cover"
+                        />
+                        <Button
+                          variant="danger"
+                          onClick={() => {
+                            if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+                            setBannerFile(null);
+                            setBannerPreview(null);
+                            setRemoveBanner(!bannerPreview);
+                          }}
+                        >
                           {t('delete')}
                         </Button>
                       </div>
@@ -330,14 +338,14 @@ export default function Profile() {
                       <p className="text-xs text-ink-soft">{t('noBanner')}</p>
                     )}
                     <label className="mt-2 inline-block cursor-pointer text-sm font-semibold text-primary hover:underline">
-                      {bannerBusy ? '…' : t('uploadBanner')}
+                      {save.isPending ? '…' : t('uploadBanner')}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f) void uploadBanner(f);
+                          if (f) pickBanner(f);
                         }}
                       />
                     </label>
@@ -348,7 +356,7 @@ export default function Profile() {
                     <ThemeSurface theme={theme}>
                       <ThemeHero
                         theme={theme}
-                        bannerUrl={me?.bannerUrl ?? null}
+                        bannerUrl={bannerPreview ?? (removeBanner ? null : me?.bannerUrl ?? null)}
                         name={name || user.name}
                         subject={subjectName ? localizeName(subjectName, lang) : null}
                         bio={landingBio || null}

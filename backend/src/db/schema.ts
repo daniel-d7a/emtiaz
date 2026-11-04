@@ -28,7 +28,7 @@ export const attachmentTypeEnum = pgEnum('attachment_type', [
   'LINK',
   'VIDEO', // Reserved for future phase
 ]);
-export const questionTypeEnum = pgEnum('question_type', ['MCQ', 'TRUE_FALSE']);
+export const questionTypeEnum = pgEnum('question_type', ['MCQ', 'TRUE_FALSE', 'WRITTEN']);
 
 export type TeacherTheme = {
   layout: 'banner' | 'split';
@@ -288,15 +288,15 @@ export const quizzes = pgTable(
   'quizzes',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    lessonId: uuid('lesson_id')
-      .unique()
-      .references(() => lessons.id, { onDelete: 'cascade' }),
-    moduleId: uuid('module_id')
-      .unique()
-      .references(() => modules.id, { onDelete: 'cascade' }),
-    courseId: uuid('course_id')
-      .unique()
-      .references(() => courses.id, { onDelete: 'cascade' }),
+    lessonId: uuid('lesson_id').references(() => lessons.id, {
+      onDelete: 'cascade',
+    }),
+    moduleId: uuid('module_id').references(() => modules.id, {
+      onDelete: 'cascade',
+    }),
+    courseId: uuid('course_id').references(() => courses.id, {
+      onDelete: 'cascade',
+    }),
     title: text('title').notNull(),
     displayOrder: integer('display_order').notNull().default(0),
   },
@@ -343,6 +343,8 @@ export const quizAttempts = pgTable('quiz_attempts', {
   score: integer('score').notNull(),
   maxScore: integer('max_score').notNull(),
   answersJson: jsonb('answers_json').notNull(), // Stores student responses
+  pending: boolean('pending').notNull().default(false),
+  writtenGrades: jsonb('written_grades').$type<Record<string, number>>(),
   submittedAt: timestamp('submitted_at').notNull().defaultNow(),
 }, (table) => ({
   studentGroupIdx: index('attempt_student_group_idx').on(table.studentId, table.groupId),

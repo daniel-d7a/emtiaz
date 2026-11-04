@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Page, Select } from '../../components/ui';
-import type { Course, TaxonomyItem } from '../../../../shared/api';
+import type { Course, PresignedUpload, TaxonomyItem } from '../../../../shared/api';
 import { teacherCoursesQuery, teacherStatsQuery } from './Dashboard';
 
 const schema = z
@@ -18,6 +18,12 @@ const schema = z
     grade: z.string().trim(),
     semester: z.string().trim(),
     skill: z.string().trim(),
+    description: z.string().trim().max(2000),
+    previewUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((v) => v === '' || /^https?:\/\//i.test(v)),
   })
   .superRefine((value, ctx) => {
     if (value.courseType === 'ACADEMIC' && !value.grade) {
@@ -35,6 +41,8 @@ export default function NewCourse() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<Error | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { data: grades } = useQuery({
     queryKey: ['grades-list'],
     queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/grades'),
@@ -49,18 +57,28 @@ export default function NewCourse() {
   });
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', courseType: 'ACADEMIC', grade: '', semester: '', skill: '' },
+    defaultValues: {
+      title: '',
+      courseType: 'ACADEMIC',
+      grade: '',
+      semester: '',
+      skill: '',
+      description: '',
+      previewUrl: '',
+    },
   });
   const type = watch('courseType');
 
   const create = useMutation({
-    mutationFn: (values: FormValues) => {
+    mutationFn: async (values: FormValues) => {
       const academic = values.courseType === 'ACADEMIC';
       const grade = grades?.find((item) => item.name.toLowerCase() === values.grade.trim().toLowerCase());
       const skill = categories?.find((item) => item.name.toLowerCase() === values.skill.trim().toLowerCase());
-      return api<Course>('/api/teacher/courses', {
+      const course = await api<Course>('/api/teacher/courses', {
         body: {
           title: values.title,
+          description: values.description.trim() || undefined,
+          previewUrl: values.previewUrl.trim() || undefined,
           courseType: values.courseType,
           ...(academic
             ? {
@@ -74,15 +92,56 @@ export default function NewCourse() {
               }),
         },
       });
+      let imageError: Error | null = null;
+      if (imageFile) {
+        try {
+          const up = await api<PresignedUpload>('/api/storage/course-image', {
+            body: {
+              courseId: course.id,
+              fileName: imageFile.name,
+              mimeType: imageFile.type,
+              fileSizeBytes: imageFile.size,
+            },
+          });
+          const put = await fetch(up.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': imageFile.type },
+            body: imageFile,
+          });
+          if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+          await api(`/api/teacher/courses/${course.id}`, {
+            method: 'PATCH',
+            body: { image: up.objectKey },
+          });
+        } catch (e) {
+          imageError = e as Error;
+        }
+      }
+      return { course, imageError };
     },
-    onSuccess: (course) => {
-      toast.success(t('saved'));
+    onSuccess: ({ course, imageError }) => {
+      if (imageError) toast.error(imageError.message || t('errorOccurred'));
+      else toast.success(t('saved'));
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImageFile(null);
+      setImagePreview(null);
       void qc.invalidateQueries({ queryKey: teacherCoursesQuery.queryKey });
       void qc.invalidateQueries({ queryKey: teacherStatsQuery.queryKey });
       navigate({ to: '/teacher/courses/$courseId/groups', params: { courseId: course.id } });
     },
     onError: (error) => setFormError(error as Error),
   });
+
+  const pickImage = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError(new Error(t('imageTooLarge')));
+      return;
+    }
+    setFormError(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   return (
     <Page
@@ -96,6 +155,21 @@ export default function NewCourse() {
             placeholder={t('courseTitlePlaceholder')}
             error={errors.title ? t('requiredField') : undefined}
             {...register('title')}
+          />
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseDescription')}</span>
+            <textarea
+              className="w-full rounded-xl border border-line bg-white px-4 py-3"
+              rows={4}
+              maxLength={2000}
+              {...register('description')}
+            />
+          </label>
+          <Input
+            label={t('previewUrl')}
+            placeholder="https://"
+            dir="ltr"
+            {...register('previewUrl')}
           />
           <Select label={`${t('academic')} / ${t('general')}`} {...register('courseType')}>
             <option value="ACADEMIC">{t('academic')}</option>
@@ -141,6 +215,30 @@ export default function NewCourse() {
               </datalist>
             </div>
           )}
+
+          <div>
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseImage')}</span>
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt=""
+                className="mb-2 h-32 w-full rounded-xl border border-line object-cover"
+              />
+            )}
+            <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
+              {create.isPending ? '…' : t('uploadFile')}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) pickImage(f);
+                }}
+              />
+            </label>
+            <p className="text-xs text-ink-soft">{t('imageHint')}</p>
+          </div>
 
           {formError && <ErrorBox error={formError} />}
           <Button type="submit" disabled={create.isPending}>{t('save')}</Button>

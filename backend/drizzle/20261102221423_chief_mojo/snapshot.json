@@ -1,0 +1,94 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ef2e4a6f-57b4-46eb-9178-331464716b7d",
+  "prevIds": [
+    "3a663aa0-e660-4620-97ce-8d9bfbecb6c8"
+  ],
+  "footprints": [
+    {
+      "statementType": "drop_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|uq|public.quizzes.quizzes_lesson_id_unique",
+        "n|uq|public.quizzes.quizzes_lesson_id_unique",
+        "e|uq|public.quizzes.quizzes_lesson_id_unique",
+        "n|con|public.quizzes.quizzes_lesson_id_unique",
+        "n|rel|public.quizzes_lesson_id_unique"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "e|col|public.quizzes.lesson_id"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|public.quizzes.lesson_id"
+      ]
+    },
+    {
+      "statementType": "drop_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|uq|public.quizzes.quizzes_module_id_unique",
+        "n|uq|public.quizzes.quizzes_module_id_unique",
+        "e|uq|public.quizzes.quizzes_module_id_unique",
+        "n|con|public.quizzes.quizzes_module_id_unique",
+        "n|rel|public.quizzes_module_id_unique"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "e|col|public.quizzes.module_id"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|public.quizzes.module_id"
+      ]
+    },
+    {
+      "statementType": "drop_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "quizzes"
+      ],
+      "writes": [
+        "s|uq|public.quizzes.quizzes_course_id_unique",
+        "n|uq|public.quizzes.quizzes_course_id_unique",
+        "e|uq|public.quizzes.quizzes_course_id_unique",
+        "n|con|public.quizzes.quizzes_course_id_unique",
+        "n|rel|public.quizzes_course_id_unique"
+      ],
+      "reads": [
+        "n|tbl|public.quizzes",
+        "n|sch|public",
+        "e|col|public.quizzes.course_id"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|public.quizzes.course_id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "drop",
+      "key": "uniques\u0000[\"public\",\"quizzes\",\"quizzes_lesson_id_unique\"]"
+    },
+    {
+      "op": "drop",
+      "key": "uniques\u0000[\"public\",\"quizzes\",\"quizzes_module_id_unique\"]"
+    },
+    {
+      "op": "drop",
+      "key": "uniques\u0000[\"public\",\"quizzes\",\"quizzes_course_id_unique\"]"
+    }
+  ]
+}

@@ -129,16 +129,16 @@ export const CreateCourseDto = z
     semester: optText(40),
     categoryId: uuid.optional(),
     categoryName: optText(80),
+    previewUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((v) => v === '' || /^https?:\/\//i.test(v), 'must be an http(s) URL')
+      .nullable()
+      .optional(),
   });
 export const UpdateCourseDto = CreateCourseDto.partial().omit({ gradeName: true, categoryName: true }).extend({
   image: z.string().trim().max(512).nullable().optional(),
-  previewUrl: z
-    .string()
-    .trim()
-    .max(500)
-    .refine((v) => v === '' || /^https?:\/\//i.test(v), 'must be an http(s) URL')
-    .nullable()
-    .optional(),
 });
 export const AdminCreateCourseDto = z.object({
   title: safeText(160),
@@ -179,7 +179,7 @@ export const UpdateLessonDto = z
 // ---------- quizzes ----------
 export const QuizQuestionDto = z
   .object({
-    questionType: z.enum(['MCQ', 'TRUE_FALSE']),
+    questionType: z.enum(['MCQ', 'TRUE_FALSE', 'WRITTEN']),
     prompt: z.string().trim().max(1000).default(''),
     imageKey: z.string().trim().max(512).optional().nullable(),
     options: z.array(z.string().trim().min(1).max(100)).min(2).max(4).optional().nullable(),
@@ -199,10 +199,22 @@ export const UpsertQuizDto = z.object({
   title: safeText(160),
   questions: z.array(QuizQuestionDto).min(1).max(60),
 });
+export const CreateQuizDto = UpsertQuizDto.extend({
+  targetType: z.enum(['course', 'module', 'lesson']),
+  targetId: uuid,
+});
+export const GradeQuizAttemptDto = z.object({
+  grades: z.record(z.string(), z.number().min(0).max(10)),
+});
+export const MoveQuizDto = z.object({
+  direction: z.enum(['up', 'down']),
+});
 
 // ---------- groups & roster ----------
 export const AddGroupDto = z.object({
   name: z.string().trim().max(120).default(''),
+  days: z.string().trim().max(200).nullable().optional(),
+  time: z.string().trim().max(120).nullable().optional(),
 });
 export const UpdateGroupDto = z.object({
   name: z.string().trim().max(120).optional(),
@@ -233,6 +245,17 @@ export const SetLessonAccessDto = z
   .refine((dto) => dto.isUnlocked !== undefined || dto.isHidden !== undefined, {
     message: 'isUnlocked or isHidden is required',
   });
+export const SetAttendanceDto = z.object({
+  records: z
+    .array(
+      z.object({
+        studentId: z.string().trim().min(1),
+        isPresent: z.boolean(),
+      }),
+    )
+    .min(1)
+    .max(500),
+});
 export const BulkStudentsDto = z
   .object({
     students: z

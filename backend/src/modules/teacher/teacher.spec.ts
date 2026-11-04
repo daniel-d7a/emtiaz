@@ -139,11 +139,15 @@ describe('Phase 4: teacher endpoints', () => {
       const cat = { id: world.categoryId };
       const res = await t.post('/api/teacher/courses').send({
         title: 'IELTS Sprint',
+        description: 'Fast track',
+        previewUrl: 'https://example.com/video',
         courseType: 'GENERAL',
         categoryId: cat.id,
       });
       expect(res.status).toBe(201);
       expect(res.body.courseType).toBe('GENERAL');
+      expect(res.body.description).toBe('Fast track');
+      expect(res.body.previewUrl).toBe('https://example.com/video');
     });
 
     it('builds 2-level curriculum: modules -> lessons', async () => {
@@ -168,7 +172,7 @@ describe('Phase 4: teacher endpoints', () => {
       const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
       expect(cur.body.modules[0].title).toBe('Algebra');
       expect(cur.body.modules[0].lessons).toHaveLength(2);
-      expect(cur.body.modules[0].lessons[0].quiz).toBe(null);
+      expect(cur.body.modules[0].lessons[0].quizzes).toEqual([]);
     });
 
     it('reorders modules and lessons', async () => {
@@ -253,17 +257,17 @@ describe('Phase 4: teacher endpoints', () => {
       expect(courseQuiz.status).toBe(201);
 
       const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
-      expect(cur.body.quiz.title).toBe('Course final');
+      expect(cur.body.quizzes[0].title).toBe('Course final');
       const algebra = cur.body.modules.find((m: any) => m.id === moduleId);
-      expect(algebra.quiz.title).toBe('Module check');
-      expect(algebra.quiz.displayOrder).toBe(algebra.lessons.length);
+      expect(algebra.quizzes[0].title).toBe('Module check');
+      expect(algebra.quizzes[0].displayOrder).toBe(algebra.lessons.length);
     });
 
     it('reorders a unit quiz among lessons and persists it', async () => {
       let cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
       let algebra = cur.body.modules.find((m: any) => m.id === moduleId);
       const items = [
-        { id: algebra.quiz.id, type: 'quiz' },
+        ...algebra.quizzes.map((q: any) => ({ id: q.id, type: 'quiz' })),
         ...algebra.lessons.map((l: any) => ({ id: l.id, type: 'lesson' })),
       ];
       const res = await t
@@ -273,12 +277,12 @@ describe('Phase 4: teacher endpoints', () => {
 
       cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
       algebra = cur.body.modules.find((m: any) => m.id === moduleId);
-      expect(algebra.quiz.displayOrder).toBe(0);
+      expect(algebra.quizzes[0].displayOrder).toBe(0);
       expect(algebra.lessons.map((l: any) => l.displayOrder)).toEqual([1, 2]);
 
       const bad = await t
         .put(`/api/teacher/modules/${moduleId}/items/reorder`)
-        .send({ items: [{ id: algebra.quiz.id, type: 'quiz' }] });
+        .send({ items: [{ id: algebra.quizzes[0].id, type: 'quiz' }] });
       expect(bad.status).toBe(400);
     });
 
@@ -320,6 +324,107 @@ describe('Phase 4: teacher endpoints', () => {
       });
       expect(res.body.questions).toHaveLength(1);
       expect(res.body.title).toBe('Algebra Quiz v2');
+    });
+
+    it('grades written answers manually and clears pending', async () => {
+      const created = await t.post(`/api/teacher/courses/${world.courseId}/quizzes`).send({
+        targetType: 'lesson',
+        targetId: world.lesson1,
+        title: 'Written test',
+        questions: [
+          { questionType: 'TRUE_FALSE', prompt: 'Oman is in Asia', correctAnswer: 'true' },
+          { questionType: 'WRITTEN', prompt: 'Explain gravity', correctAnswer: 'A force of attraction' },
+        ],
+      });
+      expect(created.status).toBe(201);
+      const [objective, written] = created.body.questions;
+
+      const student = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+      const before = await student.get(
+        `/api/student/groups/${world.group1}/quizzes/${created.body.id}`,
+      );
+      expect(before.body.questions.find((q: any) => q.id === written.id).correctAnswer).toBeUndefined();
+
+      const submitted = await student
+        .post(`/api/student/quizzes/${created.body.id}/submit`)
+        .send({
+          groupId: world.group1,
+          answers: { [objective.id]: 'true', [written.id]: 'It pulls things down' },
+        });
+      expect(submitted.status).toBe(201);
+      expect(submitted.body.pending).toBe(true);
+      expect(submitted.body.score).toBe(1);
+      expect(submitted.body.maxScore).toBe(11);
+
+      const list = await t.get(
+        `/api/teacher/groups/${world.group1}/quizzes/${created.body.id}/submissions`,
+      );
+      expect(list.status).toBe(200);
+      const attempt = list.body.submissions.find(
+        (row: any) => row.student.id === world.s1.id,
+      );
+      expect(attempt.pending).toBe(true);
+      expect(attempt.answers[written.id]).toBe('It pulls things down');
+
+      const graded = await t
+        .put(`/api/teacher/quiz-attempts/${attempt.id}/grade`)
+        .send({ grades: { [written.id]: 8 } });
+      expect(graded.status).toBe(200);
+      expect(graded.body).toMatchObject({ score: 9, maxScore: 11, pending: false });
+
+      const after = await student.get(
+        `/api/student/groups/${world.group1}/quizzes/${created.body.id}`,
+      );
+      expect(after.body.attempt).toMatchObject({ score: 9, maxScore: 11, pending: false });
+    });
+
+    it('supports multiple quizzes on one lesson and deletes by id', async () => {
+      const created = await t.post(`/api/teacher/courses/${courseId}/quizzes`).send({
+        targetType: 'lesson',
+        targetId: lessonId,
+        title: 'Extra practice',
+        questions: [{ questionType: 'TRUE_FALSE', prompt: '2+2=4', correctAnswer: 'true' }],
+      });
+      expect(created.status).toBe(201);
+
+      let cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      let lesson = cur.body.modules.find((m: any) => m.id === moduleId).lessons.find((l: any) => l.id === lessonId);
+      expect(lesson.quizzes.map((q: any) => q.title)).toContain('Extra practice');
+
+      const removed = await t.delete(`/api/teacher/quizzes/${created.body.id}`);
+      expect(removed.status).toBe(200);
+      cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      lesson = cur.body.modules.find((m: any) => m.id === moduleId).lessons.find((l: any) => l.id === lessonId);
+      expect(lesson.quizzes.map((q: any) => q.title)).not.toContain('Extra practice');
+    });
+
+    it('reorders lesson quizzes independently', async () => {
+      const first = await t.post(`/api/teacher/courses/${courseId}/quizzes`).send({
+        targetType: 'lesson',
+        targetId: lessonId,
+        title: 'First lesson quiz',
+        questions: [{ questionType: 'TRUE_FALSE', prompt: 'a', correctAnswer: 'true' }],
+      });
+      const second = await t.post(`/api/teacher/courses/${courseId}/quizzes`).send({
+        targetType: 'lesson',
+        targetId: lessonId,
+        title: 'Second lesson quiz',
+        questions: [{ questionType: 'TRUE_FALSE', prompt: 'b', correctAnswer: 'true' }],
+      });
+      expect(first.status).toBe(201);
+      expect(second.status).toBe(201);
+
+      const res = await t
+        .put(`/api/teacher/quizzes/${second.body.id}/move`)
+        .send({ direction: 'up' });
+      expect(res.status).toBe(200);
+
+      const cur = await t.get(`/api/teacher/courses/${courseId}/curriculum`);
+      const lesson = cur.body.modules
+        .find((m: any) => m.id === moduleId)
+        .lessons.find((l: any) => l.id === lessonId);
+      const ids = lesson.quizzes.map((q: any) => q.id);
+      expect(ids.indexOf(second.body.id)).toBeLessThan(ids.indexOf(first.body.id));
     });
   });
 
@@ -413,6 +518,40 @@ describe('Phase 4: teacher endpoints', () => {
       expect(res.body.students.some((x: any) => x.studentId === s1.id)).toBe(true);
     });
 
+    it('marks attendance and reflects it in group stats', async () => {
+      const url = `/api/teacher/groups/${world.group1}/lessons/${world.lesson1}/attendance`;
+      const empty = await t.get(url);
+      expect(empty.status).toBe(200);
+      expect(empty.body.students).toHaveLength(2);
+      expect(empty.body.students.every((s: any) => s.isPresent === null)).toBe(true);
+
+      const saved = await t.put(url).send({
+        records: [
+          { studentId: world.s1.id, isPresent: true },
+          { studentId: world.s2.id, isPresent: false },
+        ],
+      });
+      expect(saved.status).toBe(200);
+      expect(saved.body.students.find((s: any) => s.studentId === world.s1.id).isPresent).toBe(true);
+      expect(saved.body.students.find((s: any) => s.studentId === world.s2.id).isPresent).toBe(false);
+
+      const stats = await t.get(`/api/teacher/groups/${world.group1}/stats`);
+      const s1 = stats.body.students.find((s: any) => s.id === world.s1.id);
+      const s2 = stats.body.students.find((s: any) => s.id === world.s2.id);
+      expect(s1.attendancePercent).toBeGreaterThan(0);
+      expect(s2.attendancePercent).toBe(0);
+
+      const outsider = (await login(server, 'curriculum-stranger@teacher.om', TEACHER.password)).session;
+      expect((await outsider.get(url)).status).toBe(403);
+      expect(
+        (
+          await outsider
+            .put(url)
+            .send({ records: [{ studentId: world.s1.id, isPresent: false }] })
+        ).status,
+      ).toBe(403);
+    });
+
     it('searches students by partial phone and rejects short terms', async () => {
       const res = await t.get('/api/teacher/students/search').query({ phone: '+968 9000 0002' });
       expect(res.status).toBe(200);
@@ -464,6 +603,33 @@ describe('Phase 4: teacher endpoints', () => {
         [bulk.rows[0].id],
       );
       expect(inbox.rows[0]?.message).toContain('تم تسجيلك');
+
+      const student = request.agent(server);
+      const first = await student
+        .post('/api/auth/sign-in/phone-number')
+        .send({ phoneNumber: '+96877770001', password: '96877770001' });
+      expect(first.status).toBe(200);
+      const session = await student.get('/api/auth/get-session');
+      expect(session.body.user.mustChangePassword).toBe(true);
+
+      const changed = await student
+        .post('/api/me/change-password')
+        .send({ currentPassword: '96877770001', newPassword: 'NewPass!123' });
+      expect(changed.status).toBe(201);
+
+      const fresh = request.agent(server);
+      expect(
+        (
+          await fresh
+            .post('/api/auth/sign-in/phone-number')
+            .send({ phoneNumber: '+96877770001', password: '96877770001' })
+        ).status,
+      ).toBe(401);
+      const relogin = await fresh
+        .post('/api/auth/sign-in/phone-number')
+        .send({ phoneNumber: '+96877770001', password: 'NewPass!123' });
+      expect(relogin.status).toBe(200);
+      expect((await fresh.get('/api/auth/get-session')).body.user.mustChangePassword).toBe(false);
     });
 
     it('hides lessons from pacing and roster totals', async () => {

@@ -1,6 +1,6 @@
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
 export type CourseType = 'ACADEMIC' | 'GENERAL';
-export type QuestionType = 'MCQ' | 'TRUE_FALSE';
+export type QuestionType = 'MCQ' | 'TRUE_FALSE' | 'WRITTEN';
 export type TeacherTheme = {
   layout: 'banner' | 'split';
   primary: string;
@@ -391,6 +391,8 @@ export type QuizAttempt = {
   score: number;
   maxScore: number;
   answersJson: Record<string, string>;
+  pending: boolean;
+  writtenGrades: Record<string, number> | null;
   submittedAt: string;
 };
 
@@ -423,11 +425,12 @@ export type StudentLesson = Lesson & {
   completed: boolean;
   hasQuiz: boolean;
   bestAttempt: QuizAttempt | null;
+  quizzes: QuizWithAttempt[];
   attachments: StudentAttachment[];
 };
 
 export type StudentModule = Module & {
-  quiz: QuizWithAttempt | null;
+  quizzes: QuizWithAttempt[];
   lessons: StudentLesson[];
 };
 
@@ -437,10 +440,11 @@ export type StudentCurriculum = {
     name: string;
     theme: TeacherTheme | null;
     bannerUrl: string | null;
+    avatarUrl: string | null;
     slug: string | null;
   };
   group: Pick<Group, 'id' | 'name' | 'joinCode'>;
-  quiz: QuizWithAttempt | null;
+  quizzes: QuizWithAttempt[];
   modules: StudentModule[];
 };
 
@@ -456,6 +460,8 @@ export type QuizAttemptResult = {
   answers: Record<string, string>;
   score: number;
   maxScore: number;
+  pending: boolean;
+  writtenGrades: Record<string, number> | null;
   submittedAt: string;
   result: QuizResult[];
 };
@@ -476,15 +482,35 @@ export type QuizResult = {
 export type QuizSubmission = {
   score: number;
   maxScore: number;
+  pending: boolean;
   result: QuizResult[];
+};
+
+export type TeacherQuizSubmission = {
+  id: string;
+  student: { id: string; name: string; phoneNumber: string | null };
+  score: number;
+  maxScore: number;
+  pending: boolean;
+  answers: Record<string, string>;
+  writtenGrades: Record<string, number> | null;
+  submittedAt: string;
+};
+
+export type TeacherQuizSubmissions = {
+  quiz: Pick<Quiz, 'id' | 'title'>;
+  questions: TeacherQuizQuestion[];
+  submissions: TeacherQuizSubmission[];
 };
 
 export type GradeQuiz = {
   quizId: string;
   title: string;
+  unitTitle: string;
   lessonTitle: string;
   score: number;
   maxScore: number;
+  pending: boolean;
 };
 
 export type ManualGrade = {
@@ -524,17 +550,17 @@ export type TeacherQuizQuestion = QuizQuestion & {
 export type TeacherQuiz = Quiz & { questions: TeacherQuizQuestion[] };
 
 export type TeacherCurriculumLesson = Lesson & {
-  quiz: TeacherQuiz | null;
+  quizzes: TeacherQuiz[];
   attachments: Attachment[];
 };
 
 export type TeacherCurriculumModule = Module & {
-  quiz: TeacherQuiz | null;
+  quizzes: TeacherQuiz[];
   lessons: TeacherCurriculumLesson[];
 };
 
 export type TeacherCurriculum = {
-  quiz: TeacherQuiz | null;
+  quizzes: TeacherQuiz[];
   modules: TeacherCurriculumModule[];
 };
 
@@ -604,6 +630,19 @@ export type RosterStudent = {
 export type TeacherRoster = {
   group: Group;
   students: RosterStudent[];
+};
+
+export type AttendanceStudent = {
+  studentId: string;
+  name: string;
+  isPresent: boolean | null;
+  markedAt: string | null;
+};
+
+export type TeacherAttendance = {
+  lessonId: string;
+  title: string;
+  students: AttendanceStudent[];
 };
 
 export type GradebookStudent = {

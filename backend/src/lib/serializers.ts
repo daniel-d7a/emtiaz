@@ -225,6 +225,8 @@ export function serializeQuizAttempt(row: QuizAttemptRow): QuizAttempt {
     score: row.score,
     maxScore: row.maxScore,
     answersJson: row.answersJson as Record<string, string>,
+    pending: row.pending,
+    writtenGrades: row.writtenGrades ?? null,
     submittedAt: iso(row.submittedAt),
   };
 }

@@ -23,10 +23,14 @@ import {
   AnnounceDto,
   BulkStudentsDto,
   CreateCourseDto,
+  CreateQuizDto,
+  GradeQuizAttemptDto,
   GradeCellDto,
+  MoveQuizDto,
   IdListDto,
   ReorderModuleItemsDto,
   SearchStudentsDto,
+  SetAttendanceDto,
   SetLessonAccessDto,
   ToGroupDto,
   UpdateCourseDto,
@@ -193,6 +197,65 @@ export class TeacherController {
     return this.teachers.upsertCourseQuiz(req.user!, courseId, dto);
   }
 
+  @Post('api/teacher/courses/:courseId/quizzes')
+  @Roles('TEACHER')
+  createQuiz(
+    @Req() req: Request,
+    @Param('courseId') courseId: string,
+    @Body(new ZodBodyPipe(CreateQuizDto))
+    dto: z.infer<typeof CreateQuizDto>,
+  ) {
+    return this.teachers.createQuiz(req.user!, courseId, dto);
+  }
+
+  @Put('api/teacher/quizzes/:quizId')
+  @Roles('TEACHER')
+  updateQuiz(
+    @Req() req: Request,
+    @Param('quizId') quizId: string,
+    @Body(new ZodBodyPipe(UpsertQuizDto))
+    dto: z.infer<typeof UpsertQuizDto>,
+  ) {
+    return this.teachers.updateQuiz(req.user!, quizId, dto);
+  }
+
+  @Delete('api/teacher/quizzes/:quizId')
+  @Roles('TEACHER')
+  deleteQuiz(@Req() req: Request, @Param('quizId') quizId: string) {
+    return this.teachers.deleteQuiz(req.user!, quizId);
+  }
+
+  @Put('api/teacher/quizzes/:quizId/move')
+  @Roles('TEACHER')
+  moveQuiz(
+    @Req() req: Request,
+    @Param('quizId') quizId: string,
+    @Body(new ZodBodyPipe(MoveQuizDto)) dto: z.infer<typeof MoveQuizDto>,
+  ) {
+    return this.teachers.moveQuiz(req.user!, quizId, dto.direction);
+  }
+
+  @Get('api/teacher/groups/:groupId/quizzes/:quizId/submissions')
+  @Roles('TEACHER')
+  quizSubmissions(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('quizId') quizId: string,
+  ) {
+    return this.teachers.quizSubmissions(req.user!, groupId, quizId);
+  }
+
+  @Put('api/teacher/quiz-attempts/:attemptId/grade')
+  @Roles('TEACHER')
+  gradeQuizAttempt(
+    @Req() req: Request,
+    @Param('attemptId') attemptId: string,
+    @Body(new ZodBodyPipe(GradeQuizAttemptDto))
+    dto: z.infer<typeof GradeQuizAttemptDto>,
+  ) {
+    return this.teachers.gradeQuizAttempt(req.user!, attemptId, dto.grades);
+  }
+
   // ---------- Groups ----------
 
   @Post('api/teacher/courses/:courseId/groups')
@@ -203,7 +266,7 @@ export class TeacherController {
     @Body(new ZodBodyPipe(AddGroupDto))
     dto: z.infer<typeof AddGroupDto>,
   ) {
-    return this.teachers.addGroup(req.user!, courseId, dto.name);
+    return this.teachers.addGroup(req.user!, courseId, dto);
   }
 
   @Patch('api/teacher/groups/:groupId')
@@ -239,6 +302,33 @@ export class TeacherController {
     dto: z.infer<typeof SetLessonAccessDto>,
   ) {
     return this.teachers.setLessonAccess(req.user!, groupId, lessonId, dto);
+  }
+
+  @Get('api/teacher/groups/:groupId/lessons/:lessonId/attendance')
+  @Roles('TEACHER')
+  getAttendance(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('lessonId') lessonId: string,
+  ) {
+    return this.teachers.getAttendance(req.user!, groupId, lessonId);
+  }
+
+  @Put('api/teacher/groups/:groupId/lessons/:lessonId/attendance')
+  @Roles('TEACHER')
+  setAttendance(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('lessonId') lessonId: string,
+    @Body(new ZodBodyPipe(SetAttendanceDto))
+    dto: z.infer<typeof SetAttendanceDto>,
+  ) {
+    return this.teachers.setAttendance(
+      req.user!,
+      groupId,
+      lessonId,
+      dto.records,
+    );
   }
 
   @Patch('api/teacher/groups/:groupId/quizzes/:quizId/visibility')

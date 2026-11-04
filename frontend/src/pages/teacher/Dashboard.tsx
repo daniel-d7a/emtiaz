@@ -157,12 +157,31 @@ function EditCourse({ course }: { course: Course }) {
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? '');
   const [previewUrl, setPreviewUrl] = useState(course.previewUrl ?? '');
-  const [busy, setBusy] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<Error | null>(null);
 
   const save = useMutation({
-    mutationFn: (image?: string) =>
-      api(`/api/teacher/courses/${course.id}`, {
+    mutationFn: async () => {
+      let image: string | undefined;
+      if (imageFile) {
+        const up = await api<PresignedUpload>('/api/storage/course-image', {
+          body: {
+            courseId: course.id,
+            fileName: imageFile.name,
+            mimeType: imageFile.type,
+            fileSizeBytes: imageFile.size,
+          },
+        });
+        const put = await fetch(up.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': imageFile.type },
+          body: imageFile,
+        });
+        if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+        image = up.objectKey;
+      }
+      return api(`/api/teacher/courses/${course.id}`, {
         method: 'PATCH',
         body: {
           title,
@@ -170,39 +189,35 @@ function EditCourse({ course }: { course: Course }) {
           previewUrl: previewUrl.trim() || null,
           ...(image ? { image } : {}),
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success(t('saved'));
       setOpen(false);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImageFile(null);
+      setImagePreview(null);
       void qc.invalidateQueries({ queryKey: ['teacher-courses'] });
     },
   });
 
-  const uploadImage = async (file: File) => {
-    setBusy(true);
-    setUploadError(null);
-    try {
-      if (file.size > 5 * 1024 * 1024) throw new Error(t('imageTooLarge'));
-      const up = await api<PresignedUpload>('/api/storage/course-image', {
-        body: {
-          courseId: course.id,
-          fileName: file.name,
-          mimeType: file.type,
-          fileSizeBytes: file.size,
-        },
-      });
-      const put = await fetch(up.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
-      save.mutate(up.objectKey);
-    } catch (e) {
-      setUploadError(e as Error);
-    } finally {
-      setBusy(false);
+  const pickImage = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError(new Error(t('imageTooLarge')));
+      return;
     }
+    setUploadError(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const close = () => {
+    setOpen(false);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadError(null);
   };
 
   return (
@@ -212,11 +227,11 @@ function EditCourse({ course }: { course: Course }) {
       </button>
       <Dialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(next) => (next ? setOpen(true) : close())}
         title={t('edit')}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Button>
+            <Button variant="ghost" onClick={close}>{t('cancel')}</Button>
             <Button onClick={() => save.mutate(undefined)} disabled={!title.trim() || save.isPending}>
               {t('save')}
             </Button>
@@ -244,18 +259,22 @@ function EditCourse({ course }: { course: Course }) {
           />
           <div>
             <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseImage')}</span>
-            {course.imageUrl && (
-              <img src={course.imageUrl} alt="" className="mb-2 h-32 w-full rounded-xl border border-line object-cover" />
+            {(imagePreview || course.imageUrl) && (
+              <img
+                src={imagePreview ?? course.imageUrl!}
+                alt=""
+                className="mb-2 h-32 w-full rounded-xl border border-line object-cover"
+              />
             )}
             <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
-              {busy ? '…' : t('uploadFile')}
+              {save.isPending ? '…' : t('uploadFile')}
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) void uploadImage(f);
+                  if (f) pickImage(f);
                 }}
               />
             </label>

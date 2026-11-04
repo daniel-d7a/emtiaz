@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, UserPlus, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, Users } from 'lucide-react';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
   useReactTable, type ColumnDef, type PaginationState, type SortingState,
@@ -9,19 +9,20 @@ import {
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
-import { Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Progress, Select } from '../../components/ui';
+import { Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Progress, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   Group,
-  StudentSearchResult,
+  TeacherAttendance,
   TeacherGradebook as Gradebook,
   TeacherGroupStats,
   TeacherPacing as Pacing,
+  TeacherQuizSubmissions,
   TeacherRoster as Roster,
 } from '../../../../shared/api';
 
-export type GroupTab = 'pacing' | 'gradebook' | 'roster' | 'stats' | 'settings';
-const GROUP_TABS: GroupTab[] = ['pacing', 'gradebook', 'roster', 'stats', 'settings'];
+export type GroupTab = 'pacing' | 'attendance' | 'gradebook' | 'roster' | 'stats' | 'settings';
+const GROUP_TABS: GroupTab[] = ['pacing', 'attendance', 'gradebook', 'roster', 'stats', 'settings'];
 
 export default function TeacherGroup() {
   const { groupId } = useParams({ from: '/teacher/groups/$groupId' });
@@ -54,24 +55,152 @@ export default function TeacherGroup() {
           >
             {key === 'pacing'
               ? t('pacing')
-              : key === 'gradebook'
-                ? t('gradebook')
-                : key === 'roster'
-                  ? t('roster')
-                  : key === 'stats'
-                    ? t('stats')
-                    : t('settings')}
+              : key === 'attendance'
+                ? t('attendance')
+                : key === 'gradebook'
+                  ? t('gradebook')
+                  : key === 'roster'
+                    ? t('roster')
+                    : key === 'stats'
+                      ? t('stats')
+                      : t('settings')}
           </button>
         ))}
       </div>
       <div role="tabpanel" id={`group-panel-${tab}`} aria-labelledby={`group-tab-${tab}`}>
         {tab === 'pacing' && <PacingTab groupId={groupId} />}
+        {tab === 'attendance' && <AttendanceTab groupId={groupId} />}
         {tab === 'gradebook' && <GradebookTab groupId={groupId} />}
         {tab === 'roster' && <RosterTab groupId={groupId} />}
         {tab === 'stats' && <StatsTab groupId={groupId} />}
         {tab === 'settings' && <SettingsTab groupId={groupId} />}
       </div>
     </Page>
+  );
+}
+
+export function AttendanceTab({ groupId }: { groupId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const { data: pacing, isLoading, error } = useQuery(pacingQuery(groupId));
+  const lessons = pacing?.lessons ?? [];
+  const [lessonId, setLessonId] = useState('');
+  const [marks, setMarks] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!lessonId && lessons[0]) setLessonId(lessons[0].id);
+  }, [lessonId, lessons]);
+
+  const attendance = useQuery({
+    queryKey: ['attendance', groupId, lessonId],
+    queryFn: () => api<TeacherAttendance>(`/api/teacher/groups/${groupId}/lessons/${lessonId}/attendance`),
+    enabled: Boolean(lessonId),
+  });
+
+  useEffect(() => {
+    if (!attendance.data) return;
+    setMarks(
+      Object.fromEntries(
+        attendance.data.students
+          .filter((student) => student.isPresent !== null)
+          .map((student) => [student.studentId, student.isPresent as boolean]),
+      ),
+    );
+  }, [attendance.data]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      api(`/api/teacher/groups/${groupId}/lessons/${lessonId}/attendance`, {
+        method: 'PUT',
+        body: {
+          records: Object.entries(marks).map(([studentId, isPresent]) => ({ studentId, isPresent })),
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      void qc.invalidateQueries({ queryKey: ['attendance', groupId, lessonId] });
+      void qc.invalidateQueries({ queryKey: ['group-stats', groupId] });
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-56 flex-1">
+          <Select
+            label={t('selectLesson')}
+            value={lessonId}
+            onChange={(e) => setLessonId(e.target.value)}
+          >
+            {lessons.map((lesson) => (
+              <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+            ))}
+          </Select>
+        </div>
+        {attendance.data && attendance.data.students.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="ghost"
+              className="!min-h-9 !px-3"
+              onClick={() =>
+                setMarks(Object.fromEntries(attendance.data!.students.map((student) => [student.studentId, true])))
+              }
+            >
+              {t('markAllPresent')}
+            </Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending || Object.keys(marks).length === 0}>
+              {t('save')}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {lessons.length === 0 ? (
+        <p className="mt-4 text-sm text-ink-soft">{t('noLatestLesson')}</p>
+      ) : !lessonId ? (
+        <p className="mt-4 text-sm text-ink-soft">{t('attendanceHint')}</p>
+      ) : attendance.isLoading ? (
+        <div className="mt-4"><Loading /></div>
+      ) : attendance.error ? (
+        <div className="mt-4"><ErrorBox error={attendance.error} /></div>
+      ) : attendance.data && attendance.data.students.length === 0 ? (
+        <p className="mt-4 text-sm text-ink-soft">{t('noStudentsRoster')}</p>
+      ) : (
+        <ul className="mt-4 flex flex-col divide-y divide-line">
+          {attendance.data?.students.map((student) => {
+            const mark = marks[student.studentId];
+            return (
+              <li key={student.studentId} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="font-semibold">{student.name}</span>
+                <span className="flex gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={mark === true}
+                    onClick={() => setMarks((prev) => ({ ...prev, [student.studentId]: true }))}
+                    className={`min-h-8 rounded-full px-3 py-1 text-xs font-bold ${mark === true ? 'bg-primary text-white' : 'bg-line text-ink-soft'}`}
+                  >
+                    {t('present')}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={mark === false}
+                    onClick={() => setMarks((prev) => ({ ...prev, [student.studentId]: false }))}
+                    className={`min-h-8 rounded-full px-3 py-1 text-xs font-bold ${mark === false ? 'bg-danger text-white' : 'bg-line text-ink-soft'}`}
+                  >
+                    {t('absent')}
+                  </button>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {save.error && <div className="mt-3"><ErrorBox error={save.error} /></div>}
+    </Card>
   );
 }
 
@@ -151,9 +280,9 @@ export function PacingTab({ groupId }: { groupId: string }) {
           <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => copy(joinUrl)}>
             <Link2 className="inline" size={15} /> {t('copyJoinLink')}
           </Button>
-          <a href={joinUrl} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 truncate text-sm font-semibold text-primary underline">
+          {/* <a href={joinUrl} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 truncate text-sm font-semibold text-primary underline">
             {joinUrl}
-          </a>
+          </a> */}
         </div>
       </Card>
 
@@ -284,6 +413,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 12 });
+  const [submissionsFor, setSubmissionsFor] = useState<{ quizId: string; title: string } | null>(null);
   const manualScore = (studentId: string, columnId: string) =>
     data?.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? null;
   const columns = useMemo<ColumnDef<Gradebook['students'][number]>[]>(() => {
@@ -307,7 +437,16 @@ export function GradebookTab({ groupId }: { groupId: string }) {
         id: `quiz-${c.quizId}`,
         header: `${c.lessonTitle} (${c.maxScore})`,
         accessorFn: (s) => data.quizCells[`${s.id}:${c.quizId}`] ?? null,
-        cell: ({ getValue }) => <span className="font-bold tabular-nums text-primary">{(getValue() as number | null) ?? '—'}</span>,
+        cell: ({ getValue }) => (
+          <button
+            type="button"
+            title={t('viewSubmissions')}
+            onClick={() => setSubmissionsFor({ quizId: c.quizId, title: c.lessonTitle })}
+            className="font-bold tabular-nums text-primary hover:underline"
+          >
+            {(getValue() as number | null) ?? '—'}
+          </button>
+        ),
       });
     }
     for (const c of data.manualColumns) {
@@ -462,7 +601,118 @@ export function GradebookTab({ groupId }: { groupId: string }) {
           </div>
         </div>
       </Card>
+      {submissionsFor && (
+        <QuizSubmissionsDialog
+          groupId={groupId}
+          quizId={submissionsFor.quizId}
+          title={submissionsFor.title}
+          onClose={() => setSubmissionsFor(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function QuizSubmissionsDialog({ groupId, quizId, title, onClose }: {
+  groupId: string;
+  quizId: string;
+  title: string;
+  onClose: () => void;
+}) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['quiz-submissions', groupId, quizId],
+    queryFn: () => api<TeacherQuizSubmissions>(`/api/teacher/groups/${groupId}/quizzes/${quizId}/submissions`),
+  });
+  const [grades, setGrades] = useState<Record<string, Record<string, string>>>({});
+  useEffect(() => {
+    if (!data) return;
+    setGrades(Object.fromEntries(
+      data.submissions.map((submission) => [
+        submission.id,
+        Object.fromEntries(
+          Object.entries(submission.writtenGrades ?? {}).map(([questionId, value]) => [questionId, String(value)]),
+        ),
+      ]),
+    ));
+  }, [data]);
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['quiz-submissions', groupId, quizId] });
+    void qc.invalidateQueries({ queryKey: ['gradebook', groupId] });
+  };
+  const grade = useMutation({
+    mutationFn: ({ attemptId, values }: { attemptId: string; values: Record<string, number> }) =>
+      api(`/api/teacher/quiz-attempts/${attemptId}/grade`, { method: 'PUT', body: { grades: values } }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={`${t('submissions')}: ${title}`}
+      className="!max-w-4xl"
+    >
+      <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto">
+        {isLoading ? <Loading /> : error ? <ErrorBox error={error} /> : !data ? null : data.submissions.length === 0 ? (
+          <p className="text-sm text-ink-soft">{t('noSubmissions')}</p>
+        ) : data.submissions.map((submission) => {
+          const written = data.questions.filter((q) => q.questionType === 'WRITTEN');
+          const values = grades[submission.id] ?? {};
+          return (
+            <Card key={submission.id} className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold">{submission.student.name}</span>
+                <span className="flex items-center gap-2 text-sm text-ink-soft">
+                  {submission.pending && <Badge>{t('pending')}</Badge>}
+                  <span className="tabular-nums">{submission.score}/{submission.maxScore}</span>
+                </span>
+              </div>
+              {data.questions.map((question) => (
+                <div key={question.id} className="flex flex-col gap-1 border-t border-line pt-2">
+                  <p className="text-sm font-semibold">{question.prompt}</p>
+                  <p className="text-sm text-ink-soft">{submission.answers[question.id] || t('notAnswered')}</p>
+                  {question.questionType === 'WRITTEN' && (
+                    <Input
+                      label={t('gradeOutOfTen')}
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={values[question.id] ?? ''}
+                      onChange={(e) =>
+                        setGrades((current) => ({
+                          ...current,
+                          [submission.id]: { ...current[submission.id], [question.id]: e.target.value },
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+              ))}
+              {written.length > 0 && (
+                <Button
+                  className="self-start"
+                  disabled={grade.isPending || written.some((q) => values[q.id] === undefined || values[q.id] === '')}
+                  onClick={() =>
+                    grade.mutate({
+                      attemptId: submission.id,
+                      values: Object.fromEntries(written.map((q) => [q.id, Number(values[q.id])])),
+                    })
+                  }
+                >
+                  {t('saveGrades')}
+                </Button>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </Dialog>
   );
 }
 
@@ -479,11 +729,8 @@ export function RosterTab({ groupId }: { groupId: string }) {
     enabled: true,
   });
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['roster', groupId] });
-  const [bulk, setBulk] = useState('');
-  const [okMsg, setOkMsg] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [announceMsg, setAnnounceMsg] = useState('');
-  const [addOpen, setAddOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const [moveTarget, setMoveTarget] = useState<{ id: string; name: string } | null>(null);
   const [moveTo, setMoveTo] = useState('');
@@ -496,28 +743,6 @@ export function RosterTab({ groupId }: { groupId: string }) {
       setAnnouncement('');
       setAnnounceMsg(`${res.sent} notified`);
       toast.success(t('sent'));
-    },
-  });
-  const doBulk = useMutation({
-    mutationFn: () =>
-      api(`/api/teacher/groups/${groupId}/roster/bulk`, {
-        body: {
-          students: bulk
-            .split('\n')
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map((line) => {
-              const [name, phone] = line.split(/[,\t]/).map((p) => p.trim());
-              return { name, phoneNumber: phone };
-            })
-            .filter((s) => s.name && s.phoneNumber),
-        },
-      }),
-    onSuccess: (res: Array<{ created: boolean; enrolled: boolean }>) => {
-      setOkMsg(`${res.filter((r) => r.enrolled).length} enrolled / ${res.filter((r) => r.created).length} new`);
-      setBulk('');
-      toast.success(t('saved'));
-      invalidate();
     },
   });
   const remove = useMutation({
@@ -620,12 +845,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
         </div>
       </Card>
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-bold">{t('students')}</h3>
-          <Button className="!min-h-10 !px-3 !text-sm" onClick={() => setAddOpen(true)}>
-            <UserPlus className="inline" size={16} /> {t('addStudent')}
-          </Button>
-        </div>
+        <h3 className="font-bold">{t('students')}</h3>
         <ul className="mt-3 flex flex-col divide-y divide-line">
           {data.students.map((s) => (
             <li key={s.studentId} className="flex items-center justify-between py-2">
@@ -658,29 +878,8 @@ export function RosterTab({ groupId }: { groupId: string }) {
           ))}
           {data.students.length === 0 && <li className="py-2 text-ink-soft">—</li>}
         </ul>
-        {(doBulk.error || remove.error || move.error) && <ErrorBox error={doBulk.error ?? remove.error ?? move.error} />}
+        {(remove.error || move.error) && <ErrorBox error={remove.error ?? move.error} />}
       </Card>
-      <Card>
-        <Input
-          label={t('bulkAdd')}
-          value={bulk}
-          onChange={(e) => setBulk(e.target.value)}
-          placeholder={`Ali Salem, 91234567\nFatma Salim, 92345678`}
-        />
-        <div className="mt-3 flex items-center gap-3">
-          <Button onClick={() => doBulk.mutate()} disabled={!bulk.trim()}>
-            <Plus className="inline" size={16} /> {t('save')}
-          </Button>
-          {okMsg && <span className="text-sm font-semibold text-primary">{okMsg}</span>}
-        </div>
-      </Card>
-      <AddStudentDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        groupId={groupId}
-        enrolledIds={new Set(data.students.map((student) => student.studentId))}
-        onEnrolled={invalidate}
-      />
       <Dialog
         open={Boolean(moveTarget)}
         onOpenChange={(next) => !next && setMoveTarget(null)}
@@ -721,105 +920,7 @@ export function RosterTab({ groupId }: { groupId: string }) {
   );
 }
 
-function AddStudentDialog({
-  open, onOpenChange, groupId, enrolledIds, onEnrolled,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  groupId: string;
-  enrolledIds: Set<string>;
-  onEnrolled: () => void;
-}) {
-  const { t } = useLang();
-  const [phone, setPhone] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(phone.trim()), 300);
-    return () => clearTimeout(timer);
-  }, [phone]);
-
-  useEffect(() => {
-    if (open) return;
-    setPhone('');
-    setDebounced('');
-  }, [open]);
-
-  const digits = debounced.replace(/\D/g, '');
-  const search = useQuery({
-    queryKey: ['teacher-student-search', debounced],
-    queryFn: () =>
-      api<StudentSearchResult[]>(
-        `/api/teacher/students/search?phone=${encodeURIComponent(debounced)}`,
-      ),
-    enabled: open && digits.length >= 4,
-  });
-  const add = useMutation({
-    mutationFn: (student: StudentSearchResult) =>
-      api(`/api/teacher/groups/${groupId}/roster/bulk`, {
-        body: {
-          students: [{ name: student.name, phoneNumber: student.phoneNumber ?? '' }],
-        },
-      }),
-    onSuccess: () => {
-      toast.success(t('saved'));
-      onEnrolled();
-    },
-    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
-  });
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('addStudent')}
-      footer={<Button variant="ghost" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>}
-    >
-      <Input
-        label={t('searchByPhone')}
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        dir="ltr"
-        inputMode="tel"
-        placeholder="+968 9xxx xxxx"
-        autoFocus
-      />
-      {digits.length < 4 ? (
-        <p className="mt-3 text-sm text-ink-soft">{t('phoneSearchHint')}</p>
-      ) : search.isLoading ? (
-        <div className="mt-3"><Loading /></div>
-      ) : search.error ? (
-        <div className="mt-3"><ErrorBox error={search.error} /></div>
-      ) : !search.data?.length ? (
-        <p className="mt-3 text-sm text-ink-soft">{t('noResults')}</p>
-      ) : (
-        <ul className="mt-3 flex flex-col divide-y divide-line">
-          {search.data.map((student) => {
-            const enrolled = enrolledIds.has(student.id);
-            return (
-              <li key={student.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{student.name}</span>
-                  <span dir="ltr" className="block text-sm text-ink-soft">{student.phoneNumber}</span>
-                </span>
-                <Button
-                  variant="ghost"
-                  className="!min-h-9 shrink-0 !px-3 !text-sm"
-                  disabled={enrolled || add.isPending}
-                  onClick={() => add.mutate(student)}
-                >
-                  {enrolled ? t('enrolled') : t('add')}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Dialog>
-  );
-}
-
-export function StatsTab({ groupId }: { groupId: string }) {
+function StatsTab({ groupId }: { groupId: string }) {
   const { t, lang } = useLang();
   const { data, isLoading, error } = useQuery({
     queryKey: ['group-stats', groupId],
@@ -1099,9 +1200,9 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
         >
           <Copy className="inline" size={16} /> {t('copyJoinLink')}
         </Button>
-        <a href={joinUrl} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 truncate text-sm font-semibold text-primary underline">
+        {/* <a href={joinUrl} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 truncate text-sm font-semibold text-primary underline">
           {joinUrl}
-        </a>
+        </a> */}
       </div>
       {save.error && <div className="mt-3"><ErrorBox error={save.error} /></div>}
     </Card>

@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, eq, ilike, inArray, isNull, ne, or } from 'drizzle-orm';
+import { and, asc, count, countDistinct, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
+import { auth } from '../../auth/auth';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
@@ -17,6 +18,7 @@ import {
   serializeManualGradeColumn,
   serializeModule,
   serializeQuiz,
+  serializeQuizAttempt,
   serializeTeacherQuizQuestion,
 } from '../../lib/serializers';
 import {
@@ -47,7 +49,7 @@ export const genJoinCode = () =>
 type QuizPayload = {
   title: string;
   questions: Array<{
-    questionType: 'MCQ' | 'TRUE_FALSE';
+    questionType: 'MCQ' | 'TRUE_FALSE' | 'WRITTEN';
     prompt: string;
     imageKey?: string | null;
     options?: string[] | null;
@@ -236,6 +238,7 @@ export class TeacherService {
       semester?: string;
       categoryId?: string;
       categoryName?: string;
+      previewUrl?: string | null;
     },
   ) {
     let gradeId = dto.gradeId;
@@ -258,6 +261,7 @@ export class TeacherService {
         gradeId,
         semester: dto.semester?.trim() || null,
         categoryId,
+        previewUrl: dto.previewUrl?.trim() || null,
       })
       .returning();
     return serializeCourse(course);
@@ -435,13 +439,14 @@ export class TeacherService {
       .select({ id: lessons.id })
       .from(lessons)
       .where(eq(lessons.moduleId, moduleId));
-    const [quiz] = await db
+    const quizRows = await db
       .select({ id: quizzes.id })
       .from(quizzes)
       .where(eq(quizzes.moduleId, moduleId));
     const lessonIds = new Set(lessonRows.map((l) => l.id));
+    const quizIds = new Set(quizRows.map((q) => q.id));
     const seen = new Set<string>();
-    if (items.length !== lessonRows.length + (quiz ? 1 : 0)) {
+    if (items.length !== lessonRows.length + quizRows.length) {
       throw new BadRequestException('Reorder list must include every lesson and unit quiz');
     }
     for (const item of items) {
@@ -450,7 +455,7 @@ export class TeacherService {
       if (item.type === 'lesson' && !lessonIds.has(item.id)) {
         throw new BadRequestException('Lesson does not belong to this module');
       }
-      if (item.type === 'quiz' && quiz?.id !== item.id) {
+      if (item.type === 'quiz' && !quizIds.has(item.id)) {
         throw new BadRequestException('Quiz does not belong to this module');
       }
     }
@@ -530,21 +535,29 @@ export class TeacherService {
           ),
         ),
     });
-    const courseQuiz = quizRows.find((q) => q.courseId === courseId);
+    const byOrder = (a: typeof quizRows[number], b: typeof quizRows[number]) =>
+      a.displayOrder - b.displayOrder || a.id.localeCompare(b.id);
     return {
-      quiz: courseQuiz ? withQuestions(courseQuiz) : null,
+      quizzes: quizRows
+        .filter((q) => q.courseId === courseId)
+        .sort(byOrder)
+        .map(withQuestions),
       modules: mods.map((m) => {
-        const moduleQuiz = quizRows.find((q) => q.moduleId === m.id);
         return {
           ...serializeModule(m),
-          quiz: moduleQuiz ? withQuestions(moduleQuiz) : null,
+          quizzes: quizRows
+            .filter((q) => q.moduleId === m.id)
+            .sort(byOrder)
+            .map(withQuestions),
           lessons: allLessons
             .filter((l) => l.moduleId === m.id)
             .map((l) => {
-              const quiz = quizRows.find((q) => q.lessonId === l.id);
               return {
                 ...serializeLesson(l),
-                quiz: quiz ? withQuestions(quiz) : null,
+                quizzes: quizRows
+                  .filter((q) => q.lessonId === l.id)
+                  .sort(byOrder)
+                  .map(withQuestions),
                 attachments: attachments
                   .filter((a) => a.lessonId === l.id)
                   .map(serializeAttachment),
@@ -592,12 +605,8 @@ export class TeacherService {
     return this.upsertQuizFor({ courseId }, courseId, payload);
   }
 
-  private async upsertQuizFor(
-    target: { lessonId?: string; moduleId?: string; courseId?: string },
-    courseId: string,
-    payload: QuizPayload,
-  ) {
-    for (const q of payload.questions) {
+  private validateQuizQuestions(courseId: string, questions: QuizPayload['questions']) {
+    for (const q of questions) {
       if (q.imageKey && !q.imageKey.startsWith(`courses/${courseId}/quiz/`)) {
         throw new ForbiddenException('Question image does not belong to this course');
       }
@@ -608,6 +617,314 @@ export class TeacherService {
         throw new ForbiddenException('TRUE_FALSE correctAnswer must be true/false');
       }
     }
+  }
+
+  private async quizCourseId(quiz: typeof quizzes.$inferSelect) {
+    if (quiz.courseId) return quiz.courseId;
+    if (quiz.moduleId) {
+      const [mod] = await db
+        .select({ courseId: modules.courseId })
+        .from(modules)
+        .where(eq(modules.id, quiz.moduleId));
+      return mod?.courseId ?? null;
+    }
+    if (quiz.lessonId) {
+      const [lesson] = await db
+        .select({ moduleId: lessons.moduleId })
+        .from(lessons)
+        .where(eq(lessons.id, quiz.lessonId));
+      const [mod] = lesson
+        ? await db
+            .select({ courseId: modules.courseId })
+            .from(modules)
+            .where(eq(modules.id, lesson.moduleId))
+        : [];
+      return mod?.courseId ?? null;
+    }
+    return null;
+  }
+
+  private async insertQuizQuestions(
+    quizId: string,
+    questions: QuizPayload['questions'],
+  ) {
+    return questions.length
+      ? db
+          .insert(quizQuestions)
+          .values(
+            questions.map((q, i) => ({
+              quizId,
+              questionType: q.questionType,
+              prompt: q.prompt,
+              imageKey: q.imageKey ?? null,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+              explanation: q.explanation,
+              points: q.points ?? 1,
+              displayOrder: i,
+            })),
+          )
+          .returning()
+      : [];
+  }
+
+  async createQuiz(
+    user: { id: string; role: string },
+    courseId: string,
+    dto: QuizPayload & {
+      targetType: 'course' | 'module' | 'lesson';
+      targetId: string;
+    },
+  ) {
+    await this.assertCourseAccess(user, courseId);
+    let target: { courseId?: string; moduleId?: string; lessonId?: string };
+    let displayOrder = 0;
+    if (dto.targetType === 'lesson') {
+      const [lesson] = await db
+        .select()
+        .from(lessons)
+        .where(eq(lessons.id, dto.targetId));
+      if (!lesson) throw new NotFoundException('Lesson not found');
+      const [mod] = await db
+        .select()
+        .from(modules)
+        .where(eq(modules.id, lesson.moduleId));
+      if (mod?.courseId !== courseId) {
+        throw new ForbiddenException('Lesson not in this course');
+      }
+      target = { lessonId: dto.targetId };
+      const rows = await db
+        .select({ displayOrder: quizzes.displayOrder })
+        .from(quizzes)
+        .where(eq(quizzes.lessonId, dto.targetId));
+      displayOrder = Math.max(-1, ...rows.map((row) => row.displayOrder)) + 1;
+    } else if (dto.targetType === 'module') {
+      const [mod] = await db
+        .select()
+        .from(modules)
+        .where(eq(modules.id, dto.targetId));
+      if (!mod) throw new NotFoundException('Module not found');
+      if (mod.courseId !== courseId) {
+        throw new ForbiddenException('Module not in this course');
+      }
+      target = { moduleId: dto.targetId };
+      const [quizRows, lessonRows] = await Promise.all([
+        db
+          .select({ displayOrder: quizzes.displayOrder })
+          .from(quizzes)
+          .where(eq(quizzes.moduleId, dto.targetId)),
+        db
+          .select({ displayOrder: lessons.displayOrder })
+          .from(lessons)
+          .where(eq(lessons.moduleId, dto.targetId)),
+      ]);
+      displayOrder =
+        Math.max(
+          -1,
+          ...quizRows.map((row) => row.displayOrder),
+          ...lessonRows.map((row) => row.displayOrder),
+        ) + 1;
+    } else {
+      target = { courseId };
+      const rows = await db
+        .select({ displayOrder: quizzes.displayOrder })
+        .from(quizzes)
+        .where(eq(quizzes.courseId, courseId));
+      displayOrder = Math.max(-1, ...rows.map((row) => row.displayOrder)) + 1;
+    }
+    this.validateQuizQuestions(courseId, dto.questions);
+    const [quiz] = await db
+      .insert(quizzes)
+      .values({ ...target, title: dto.title, displayOrder })
+      .returning();
+    const inserted = await this.insertQuizQuestions(quiz.id, dto.questions);
+    return {
+      ...serializeQuiz(quiz),
+      questions: inserted.map((q) => serializeTeacherQuizQuestion(q, null)),
+    };
+  }
+
+  async updateQuiz(
+    user: { id: string; role: string },
+    quizId: string,
+    payload: QuizPayload,
+  ) {
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    const courseId = await this.quizCourseId(quiz);
+    if (!courseId) throw new NotFoundException('Course not found');
+    await this.assertCourseAccess(user, courseId);
+    this.validateQuizQuestions(courseId, payload.questions);
+    const [updated] = await db
+      .update(quizzes)
+      .set({ title: payload.title })
+      .where(eq(quizzes.id, quizId))
+      .returning();
+    await db.delete(quizQuestions).where(eq(quizQuestions.quizId, quizId));
+    await db.delete(quizAttempts).where(eq(quizAttempts.quizId, quizId));
+    const inserted = await this.insertQuizQuestions(quizId, payload.questions);
+    return {
+      ...serializeQuiz(updated),
+      questions: inserted.map((q) => serializeTeacherQuizQuestion(q, null)),
+    };
+  }
+
+  async deleteQuiz(user: { id: string; role: string }, quizId: string) {
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    const courseId = await this.quizCourseId(quiz);
+    if (!courseId) throw new NotFoundException('Course not found');
+    await this.assertCourseAccess(user, courseId);
+    await db.delete(quizzes).where(eq(quizzes.id, quizId));
+    return { ok: true };
+  }
+
+  async moveQuiz(
+    user: { id: string; role: string },
+    quizId: string,
+    direction: 'up' | 'down',
+  ) {
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    const courseId = await this.quizCourseId(quiz);
+    if (!courseId) throw new NotFoundException('Course not found');
+    await this.assertCourseAccess(user, courseId);
+    if (!quiz.lessonId && !quiz.courseId) {
+      throw new BadRequestException('Unit quizzes are ordered with module items');
+    }
+    const rows = await db
+      .select({ id: quizzes.id })
+      .from(quizzes)
+      .where(
+        quiz.lessonId
+          ? eq(quizzes.lessonId, quiz.lessonId)
+          : eq(quizzes.courseId, quiz.courseId!),
+      )
+      .orderBy(asc(quizzes.displayOrder), asc(quizzes.id));
+    const ids = rows.map((row) => row.id);
+    const index = ids.indexOf(quizId);
+    const swapIndex = index + (direction === 'up' ? -1 : 1);
+    if (index === -1 || swapIndex < 0 || swapIndex >= ids.length) {
+      return { ok: true };
+    }
+    [ids[index], ids[swapIndex]] = [ids[swapIndex], ids[index]];
+    await Promise.all(
+      ids.map((id, order) =>
+        db.update(quizzes).set({ displayOrder: order }).where(eq(quizzes.id, id)),
+      ),
+    );
+    return { ok: true };
+  }
+
+  async quizSubmissions(
+    user: { id: string; role: string },
+    groupId: string,
+    quizId: string,
+  ) {
+    const { group } = await this.assertOwnsGroup(user, groupId);
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    if ((await this.quizCourseId(quiz)) !== group.courseId) {
+      throw new ForbiddenException('Quiz not in this group course');
+    }
+    const questions = await db
+      .select()
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, quizId))
+      .orderBy(asc(quizQuestions.displayOrder));
+    const rows = await db
+      .select({
+        attempt: quizAttempts,
+        student: {
+          id: users.id,
+          name: users.name,
+          phoneNumber: users.phoneNumber,
+        },
+      })
+      .from(quizAttempts)
+      .innerJoin(users, eq(quizAttempts.studentId, users.id))
+      .where(
+        and(
+          eq(quizAttempts.groupId, groupId),
+          eq(quizAttempts.quizId, quizId),
+        ),
+      )
+      .orderBy(asc(quizAttempts.submittedAt));
+    return {
+      quiz: { id: quiz.id, title: quiz.title },
+      questions: questions.map((q) => serializeTeacherQuizQuestion(q, null)),
+      submissions: rows.map(({ attempt, student }) => ({
+        id: attempt.id,
+        student,
+        score: attempt.score,
+        maxScore: attempt.maxScore,
+        pending: attempt.pending,
+        answers: attempt.answersJson as Record<string, string>,
+        writtenGrades: attempt.writtenGrades ?? null,
+        submittedAt: attempt.submittedAt,
+      })),
+    };
+  }
+
+  async gradeQuizAttempt(
+    user: { id: string; role: string },
+    attemptId: string,
+    grades: Record<string, number>,
+  ) {
+    const [attempt] = await db
+      .select()
+      .from(quizAttempts)
+      .where(eq(quizAttempts.id, attemptId));
+    if (!attempt) throw new NotFoundException('Attempt not found');
+    const [quiz] = await db
+      .select()
+      .from(quizzes)
+      .where(eq(quizzes.id, attempt.quizId));
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    const courseId = await this.quizCourseId(quiz);
+    if (!courseId) throw new NotFoundException('Course not found');
+    await this.assertCourseAccess(user, courseId);
+
+    const questions = await db
+      .select()
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, attempt.quizId));
+    const answers = attempt.answersJson as Record<string, string>;
+    let score = 0;
+    let maxScore = 0;
+    for (const question of questions) {
+      if (question.questionType === 'WRITTEN') {
+        const value = grades[question.id];
+        if (typeof value !== 'number') {
+          throw new BadRequestException('Every written answer needs a grade');
+        }
+        score += value;
+        maxScore += 10;
+      } else {
+        maxScore += question.points;
+        if (
+          answers[question.id] !== undefined &&
+          answers[question.id].trim().toLowerCase() ===
+            question.correctAnswer.trim().toLowerCase()
+        ) {
+          score += question.points;
+        }
+      }
+    }
+    const [updated] = await db
+      .update(quizAttempts)
+      .set({ score, maxScore, pending: false, writtenGrades: grades })
+      .where(eq(quizAttempts.id, attemptId))
+      .returning();
+    return serializeQuizAttempt(updated);
+  }
+
+  private async upsertQuizFor(
+    target: { lessonId?: string; moduleId?: string; courseId?: string },
+    courseId: string,
+    payload: QuizPayload,
+  ) {
+    this.validateQuizQuestions(courseId, payload.questions);
 
     const targetCondition = target.lessonId
       ? eq(quizzes.lessonId, target.lessonId)
@@ -735,7 +1052,7 @@ export class TeacherService {
   async addGroup(
     user: { id: string; role: string },
     courseId: string,
-    name: string,
+    dto: { name: string; days?: string | null; time?: string | null },
   ) {
     const course = await this.assertCourseAccess(user, courseId);
     let joinCode = genJoinCode();
@@ -753,7 +1070,9 @@ export class TeacherService {
       .insert(groups)
       .values({
         courseId,
-        name: name.trim() || (await this.fallbackGroupName(course.id)),
+        name: dto.name.trim() || (await this.fallbackGroupName(course.id)),
+        days: dto.days?.trim() || null,
+        time: dto.time?.trim() || null,
         joinCode,
       })
       .returning();
@@ -846,20 +1165,28 @@ export class TeacherService {
       scope: 'course' | 'module' | 'lesson';
       contextTitle: string;
     }> = [];
-    const courseQuiz = quizRows.find((quiz) => quiz.courseId === course.id);
-    if (courseQuiz) {
-      orderedQuizzes.push({ quiz: courseQuiz, scope: 'course', contextTitle: course.title });
-    }
+    const byOrder = (a: typeof quizRows[number], b: typeof quizRows[number]) =>
+      a.displayOrder - b.displayOrder || a.id.localeCompare(b.id);
+    quizRows
+      .filter((quiz) => quiz.courseId === course.id)
+      .sort(byOrder)
+      .forEach((quiz) =>
+        orderedQuizzes.push({ quiz, scope: 'course', contextTitle: course.title }),
+      );
     for (const mod of mods) {
-      const moduleQuiz = quizRows.find((quiz) => quiz.moduleId === mod.id);
-      if (moduleQuiz) {
-        orderedQuizzes.push({ quiz: moduleQuiz, scope: 'module', contextTitle: mod.title });
-      }
+      quizRows
+        .filter((quiz) => quiz.moduleId === mod.id)
+        .sort(byOrder)
+        .forEach((quiz) =>
+          orderedQuizzes.push({ quiz, scope: 'module', contextTitle: mod.title }),
+        );
       for (const lesson of allLessons.filter((row) => row.moduleId === mod.id)) {
-        const lessonQuiz = quizRows.find((quiz) => quiz.lessonId === lesson.id);
-        if (lessonQuiz) {
-          orderedQuizzes.push({ quiz: lessonQuiz, scope: 'lesson', contextTitle: lesson.title });
-        }
+        quizRows
+          .filter((quiz) => quiz.lessonId === lesson.id)
+          .sort(byOrder)
+          .forEach((quiz) =>
+            orderedQuizzes.push({ quiz, scope: 'lesson', contextTitle: lesson.title }),
+          );
       }
     }
     return {
@@ -1034,6 +1361,86 @@ export class TeacherService {
         };
       }),
     };
+  }
+
+  private async assertLessonInCourse(courseId: string, lessonId: string) {
+    const [row] = await db
+      .select({ id: lessons.id, title: lessons.title })
+      .from(lessons)
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .where(and(eq(lessons.id, lessonId), eq(modules.courseId, courseId)));
+    if (!row) throw new NotFoundException('Lesson not found');
+    return row;
+  }
+
+  async getAttendance(
+    user: { id: string; role: string },
+    groupId: string,
+    lessonId: string,
+  ) {
+    const { course } = await this.assertOwnsGroup(user, groupId);
+    const lesson = await this.assertLessonInCourse(course.id, lessonId);
+    const roster = await db
+      .select({ studentId: users.id, name: users.name })
+      .from(groupStudents)
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
+      .where(eq(groupStudents.groupId, groupId))
+      .orderBy(asc(users.name));
+    const marks = roster.length
+      ? await db
+          .select()
+          .from(lessonAttendance)
+          .where(
+            and(
+              eq(lessonAttendance.lessonId, lessonId),
+              inArray(
+                lessonAttendance.studentId,
+                roster.map((row) => row.studentId),
+              ),
+            ),
+          )
+      : [];
+    return {
+      lessonId,
+      title: lesson.title,
+      students: roster.map((student) => {
+        const mark = marks.find((row) => row.studentId === student.studentId);
+        return {
+          ...student,
+          isPresent: mark?.isPresent ?? null,
+          markedAt: mark?.markedAt.toISOString() ?? null,
+        };
+      }),
+    };
+  }
+
+  async setAttendance(
+    user: { id: string; role: string },
+    groupId: string,
+    lessonId: string,
+    records: Array<{ studentId: string; isPresent: boolean }>,
+  ) {
+    const { course } = await this.assertOwnsGroup(user, groupId);
+    await this.assertLessonInCourse(course.id, lessonId);
+    const roster = await db
+      .select({ studentId: groupStudents.studentId })
+      .from(groupStudents)
+      .where(eq(groupStudents.groupId, groupId));
+    const enrolled = new Set(roster.map((row) => row.studentId));
+    if (records.some((record) => !enrolled.has(record.studentId))) {
+      throw new BadRequestException('Student not in group');
+    }
+    await db
+      .insert(lessonAttendance)
+      .values(records.map((record) => ({ lessonId, ...record })))
+      .onConflictDoUpdate({
+        target: [lessonAttendance.lessonId, lessonAttendance.studentId],
+        set: {
+          isPresent: sql`excluded.is_present`,
+          markedAt: new Date(),
+        },
+      });
+    return this.getAttendance(user, groupId, lessonId);
   }
 
   async groupStats(user: { id: string; role: string }, groupId: string) {
@@ -1303,15 +1710,21 @@ export class TeacherService {
         .where(eq(users.phoneNumber, s.phoneNumber));
       let created = false;
       if (!existing) {
-        // ponytail: synthetic email for phone-only students, matches onboarding
+        // ponytail: phone digits are the first password; the student must change it on first login.
         const email = `${s.phoneNumber.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
         try {
-          existing = (
-            await db
-              .insert(users)
-              .values({ id: crypto.randomUUID(), name: s.name, email, phoneNumber: s.phoneNumber, role: 'STUDENT' })
-              .returning()
-          )[0];
+          const data = await auth.api.signUpEmail({
+            body: {
+              name: s.name,
+              email,
+              password: s.phoneNumber.replace(/[^\d]/g, ''),
+              role: 'STUDENT',
+              phoneNumber: s.phoneNumber,
+            },
+            returnHeaders: true,
+          });
+          [existing] = await db.select().from(users).where(eq(users.id, data.response.user.id));
+          await db.update(users).set({ mustChangePassword: true }).where(eq(users.id, existing.id));
           created = true;
         } catch {
           // race on unique phone; re-select
@@ -1320,6 +1733,9 @@ export class TeacherService {
             .from(users)
             .where(eq(users.phoneNumber, s.phoneNumber));
         }
+      }
+      if (!existing) {
+        throw new BadRequestException(`Could not create student ${s.phoneNumber}`);
       }
       const enrolled = await this.enrollWithPasswordless(existing.id, group.id);
       results.push({ phoneNumber: s.phoneNumber, created, enrolled });
@@ -1461,7 +1877,9 @@ export class TeacherService {
         .from(quizQuestions)
         .where(inArray(quizQuestions.quizId, quizRows.map((q) => q.id)));
       for (const q of qq) {
-        questionTotals[q.quizId] = (questionTotals[q.quizId] ?? 0) + q.points;
+        questionTotals[q.quizId] =
+          (questionTotals[q.quizId] ?? 0) +
+          (q.questionType === 'WRITTEN' ? 10 : q.points);
       }
     }
     const quizLabels = Object.fromEntries(

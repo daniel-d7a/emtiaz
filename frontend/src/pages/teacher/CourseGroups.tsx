@@ -1,31 +1,16 @@
-import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Copy, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../../lib/api';
 import { formatDateTime, useLang } from '../../lib/i18n';
-import { Badge, Button, Card, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Progress } from '../../components/ui';
+import { Badge, Button, Card, EmptyState, ErrorBox, IconButton, Loading, Page, Progress } from '../../components/ui';
 import { teacherCoursesQuery } from './Dashboard';
 
 export default function TeacherCourseGroups() {
   const { courseId } = useParams({ from: '/teacher/courses/$courseId/groups' });
   const { t, lang } = useLang();
-  const qc = useQueryClient();
-  const [name, setName] = useState('');
-  const [showForm, setShowForm] = useState(false);
   const { data, isLoading, error } = useQuery(teacherCoursesQuery);
   const course = data?.find((item) => item.id === courseId);
-
-  const add = useMutation({
-    mutationFn: () => api(`/api/teacher/courses/${courseId}/groups`, { body: { name } }),
-    onSuccess: () => {
-      setName('');
-      setShowForm(false);
-      toast.success(t('saved'));
-      void qc.invalidateQueries({ queryKey: teacherCoursesQuery.queryKey });
-    },
-  });
 
   if (isLoading) return <Page title={t('groups')}><Loading /></Page>;
   if (error) return <Page title={t('groups')}><ErrorBox error={error} /></Page>;
@@ -44,23 +29,12 @@ export default function TeacherCourseGroups() {
           </Badge>
           <Badge>{course.isPublished ? t('active') : t('suspended')}</Badge>
         </div>
-        <Button onClick={() => setShowForm((value) => !value)}>
-          <Plus className="inline" size={18} /> {t('newGroup')}
-        </Button>
+        <Link to="/teacher/courses/$courseId/groups/new" params={{ courseId }}>
+          <Button>
+            <Plus className="inline" size={18} /> {t('newGroup')}
+          </Button>
+        </Link>
       </div>
-
-      {showForm && (
-        <Card className="mb-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="grow">
-              <Input label={t('newGroup')} value={name} onChange={(event) => setName(event.target.value)} />
-            </div>
-            <Button onClick={() => add.mutate()} disabled={add.isPending}>{t('add')}</Button>
-          </div>
-          <p className="mt-2 text-xs text-ink-soft">{t('groupNameFallback')}</p>
-          {add.error && <div className="mt-2"><ErrorBox error={add.error} /></div>}
-        </Card>
-      )}
 
       {course.groups.length === 0 ? (
         <EmptyState title={t('noGroupsCourse')} icon={Plus} />
