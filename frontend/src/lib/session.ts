@@ -23,10 +23,17 @@ export function useAdminPermissions() {
     required.some((permission) => permissions.includes(permission));
 }
 
-/** Route guard: redirects anonymous (or wrong-role) users to the login page. */
-export async function requireRole(role?: string) {
+/** Route guard: redirects anonymous users to the login page. */
+export async function requireAuth() {
   const session = await queryClient.ensureQueryData(sessionQuery);
   if (!session?.user) throw redirect({ to: '/login' });
+  return session;
+}
+
+/** Route guard: redirects anonymous (or wrong-role) users to the login page. */
+export async function requireRole(role?: string) {
+  const session = await requireAuth();
   if (role && session.user.role !== role) throw redirect({ to: '/login' });
+  if (session.user.mustChangePassword) throw redirect({ to: '/change-password' });
   return session;
 }

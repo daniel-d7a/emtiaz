@@ -11,7 +11,7 @@ export default function Login() {
   const { join } = useSearch({ from: '/login' });
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,9 +30,10 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      const res = await authApi.login(email, password);
+      const res = await authApi.login(identifier, password);
       qc.clear();
       qc.setQueryData(sessionQuery.queryKey, { user: res.user });
+      if (res.user.mustChangePassword) return navigate({ to: '/change-password' });
       go(res.user.role);
     } catch (e) {
       setError(e as Error);
@@ -52,7 +53,7 @@ export default function Login() {
             void submit();
           }}
         >
-          <Input label={t('email')} value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+          <Input label={t('phoneOrEmail')} value={identifier} onChange={(e) => setIdentifier(e.target.value)} required dir="ltr" />
           <Input label={t('password')} value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
           {error && <ErrorBox error={error} />}
           <Button type="submit" disabled={busy}>{t('login')}</Button>

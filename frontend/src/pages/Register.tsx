@@ -38,15 +38,16 @@ export default function Register() {
     setError(null);
     try {
       if (isTeacher) {
-        await onboardingApi.registerTeacher({ name, email, password, phoneNumber: phone, subject });
+        await onboardingApi.registerTeacher({ name, email: email || undefined, password, phoneNumber: phone, subject });
       } else if (isParent) {
-        await onboardingApi.registerParent({ name, email, password, phoneNumber: phone, studentPhone: studentPhone.trim() || undefined });
+        await onboardingApi.registerParent({ name, email: email || undefined, password, phoneNumber: phone, studentPhone: studentPhone.trim() || undefined });
       } else {
         await onboardingApi.registerStudent({ name, password, phoneNumber: phone, email: email || undefined });
       }
-      const res = await authApi.login(isTeacher || isParent ? email : email || phone.replace(/[^\d]/g, '') + '@phone.emtiaz.om', password);
+      const res = await authApi.login(phone, password);
       qc.clear();
       qc.setQueryData(sessionQuery.queryKey, { user: res.user });
+      if (res.user.mustChangePassword) return navigate({ to: '/change-password' });
       if (joinCode && !isParent) return navigate({ to: '/join/$joinCode', params: { joinCode } });
       navigate({ to: isTeacher ? '/teacher/dashboard' : isParent ? '/parent/children' : '/student/dashboard' });
     } catch (e) {
@@ -69,7 +70,7 @@ export default function Register() {
             <Input label={t('emailOptional')} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
           )}
           {isParent && (
-            <Input label={t('email')} value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+            <Input label={t('emailOptional')} value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
           )}
           {isTeacher && (
             <label className="block">

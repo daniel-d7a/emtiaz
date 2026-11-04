@@ -32,6 +32,7 @@ export type User = {
   landingTheme: TeacherTheme | null;
   landingPublished: boolean;
   isActive: boolean;
+  mustChangePassword: boolean;
   dateOfBirth: string | null;
   subjectCategoryId: string | null;
   gradeId: string | null;
@@ -54,7 +55,7 @@ export type AdminPermission =
 
 export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
   Partial<
-    Pick<User, 'subjectCategoryId' | 'phoneNumber' | 'gradeId' | 'landingSlug'>
+    Pick<User, 'subjectCategoryId' | 'phoneNumber' | 'gradeId' | 'landingSlug' | 'mustChangePassword'>
   > & { image?: string | null; permissions?: AdminPermission[] };
 
 export type Session = { user: SessionUser; session?: unknown } | null;

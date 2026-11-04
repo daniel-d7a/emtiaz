@@ -14,6 +14,7 @@ import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
 import { authApi } from './src/api';
 import Courses from './src/screens/Courses';
 import CourseBrowser from './src/screens/CourseBrowser';
+import ChangePassword from './src/screens/ChangePassword';
 import Group from './src/screens/Group';
 import LessonView from './src/screens/Lesson';
 import Notifications from './src/screens/Notifications';
@@ -248,6 +249,15 @@ function Root() {
   if (!fontsLoaded && !fontError) return <Loading />;
   if (!loaded) return <Loading />;
   if (!session) return <Login onIn={setSession} />;
+  if (session.user.mustChangePassword) {
+    return (
+      <ChangePassword
+        onDone={() => {
+          authApi.session().then(setSession).catch(() => setSession(null));
+        }}
+      />
+    );
+  }
   if (session.user.role === 'ADMIN') {
     return (
       <View style={s.page}>

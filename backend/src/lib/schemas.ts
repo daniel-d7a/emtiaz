@@ -43,9 +43,9 @@ const TeacherThemeDto = z.object({
 // ---------- onboarding ----------
 export const TeacherSignupDto = z.object({
   name: safeText(120),
-  email: z.email(),
+  email: z.email().optional(),
   password: z.string().min(8).max(200),
-  phoneNumber: phone,
+  phoneNumber,
   subject: safeText(60),
 });
 export const StudentSignupDto = z.object({
@@ -56,6 +56,10 @@ export const StudentSignupDto = z.object({
   gradeId: uuid.optional(),
 });
 export const JoinCodeDto = z.object({ joinCode: safeText(16) });
+export const ChangePasswordDto = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
 export const UpdateMeDto = z
   .object({
     name: safeText(120).optional(),
@@ -293,15 +297,15 @@ export const QuizSubmitDto = z
     groupId: uuid,
     answers: z
       .object({})
-      .catchall(z.string().min(1).max(500)),
+      .catchall(z.string().min(1).max(5000)),
   });
 
 // ---------- parent ----------
 export const ParentSignupDto = z.object({
   name: safeText(120),
-  email: z.string().trim().toLowerCase().email(),
+  email: z.string().trim().toLowerCase().email().optional(),
   password: z.string().min(8).max(128),
-  phoneNumber: phone,
+  phoneNumber,
   studentPhone: phone,
 });
 export const ParentLinkDto = z.object({ phoneNumber });
@@ -329,9 +333,9 @@ export const AdminRoleUpdateDto = AdminRoleDto.partial().refine(
 export const AdminRoleAssignDto = z.object({ roleId: uuid.nullable() });
 export const CreateParentDto = z.object({
   name: safeText(120),
-  email: z.string().trim().toLowerCase().email(),
+  email: z.string().trim().toLowerCase().email().optional(),
   password: z.string().min(8).max(128),
-  phoneNumber: phone,
+  phoneNumber,
   studentPhone: phone.optional(),
 });
 export const UpdateParentDto = z

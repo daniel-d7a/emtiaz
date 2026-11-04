@@ -109,6 +109,27 @@ describe('Phase 2: auth & onboarding', () => {
     expect(res3.body.name).toBe('Salim B'); // no-op still returns profile
   });
 
+  it('rejects a landing slug already used by another teacher', async () => {
+    await request(server).post('/api/onboarding/teacher').send({
+      name: 'Other Teacher',
+      email: 'other-slug@teacher.om',
+      password: 'Passw0rd!123',
+      phoneNumber: '+96891110077',
+      subject: 'Math',
+    });
+    const owner = request.agent(server);
+    await owner.post('/api/auth/sign-in/email').send({ email: 'salim@teacher.om', password: 'Passw0rd!123' });
+    expect((await owner.patch('/api/me').send({ landingSlug: 'shared-link' })).status).toBe(200);
+
+    const other = request.agent(server);
+    await other.post('/api/auth/sign-in/email').send({ email: 'other-slug@teacher.om', password: 'Passw0rd!123' });
+    const res = await other.patch('/api/me').send({ landingSlug: 'shared-link' });
+    expect(res.status).toBe(409);
+    const me = await other.get('/api/me');
+    expect(me.body.user.landingSlug).toBeNull();
+    expect((await other.patch('/api/me').send({ landingSlug: 'other-link' })).status).toBe(200);
+  });
+
   it('avatar: presigns images, rejects non-images/foreign keys, serves a signed redirect', async () => {
     const { rows } = await pool.query(
       `SELECT id FROM "user" WHERE email='salim@teacher.om'`,

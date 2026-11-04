@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { phoneNumber } from 'better-auth/plugins';
 import { db } from '../db';
 import * as schema from '../db/schema';
 
@@ -31,6 +32,13 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true,
   },
+  plugins: [
+    phoneNumber({
+      // Phone is the login identifier; passwords are always required.
+      sendOTP: async () => {},
+      requireVerification: false,
+    }),
+  ],
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days session for student convenience
     updateAge: 60 * 60 * 24, // Extend every 24 hours
@@ -47,6 +55,7 @@ export const auth = betterAuth({
       subjectCategoryId: { type: 'string', required: false, input: true },
       landingSlug: { type: 'string', required: false, input: false },
       isActive: { type: 'boolean', defaultValue: true, input: false },
+      mustChangePassword: { type: 'boolean', defaultValue: false, input: false },
     },
   },
 });

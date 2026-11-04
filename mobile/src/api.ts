@@ -63,6 +63,22 @@ export const authApi = {
       credentials: 'include',
       signal: AbortSignal.timeout(8000),
     }).then((r) => (r.ok ? r.json() : null)),
-  login: (email: string, password: string) => api('/api/auth/sign-in/email', { body: { email, password } }),
+  login: (identifier: string, password: string) =>
+    identifier.includes('@')
+      ? api('/api/auth/sign-in/email', { body: { email: identifier.trim(), password } })
+      : api('/api/auth/sign-in/phone-number', {
+          body: { phoneNumber: normalizePhone(identifier), password },
+        }),
   logout: () => api('/api/auth/sign-out', { body: {} }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api('/api/me/change-password', { body: { currentPassword, newPassword } }),
 };
+
+function normalizePhone(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`;
+  if (digits.startsWith('968') && digits.length === 11) return `+${digits}`;
+  if (digits.length === 8) return `+968${digits.startsWith('0') ? digits.slice(1) : digits}`;
+  return `+${digits}`;
+}

@@ -4,6 +4,7 @@ import { homeRoute } from './pages/Home';
 import { loginRoute } from './pages/Login';
 import { registerRoute } from './pages/Register';
 import { joinRoute } from './pages/Join';
+import { changePasswordRoute } from './pages/ChangePassword';
 import { profileRoute } from './pages/Profile';
 import { studentDashboardRoute } from './pages/student/Dashboard';
 import { studentGroupRoute } from './pages/student/Group';
@@ -41,6 +42,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   joinRoute,
+  changePasswordRoute,
   profileRoute,
   studentDashboardRoute,
   studentGroupRoute,

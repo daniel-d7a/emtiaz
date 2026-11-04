@@ -1,4 +1,5 @@
 import type { Session } from '../../../shared/api';
+import { normalizePhone } from './phone';
 
 export type { Session, SessionUser } from '../../../shared/api';
 
@@ -36,20 +37,26 @@ export const authApi = {
     }
     return session;
   },
-  login: (email: string, password: string) =>
-    api('/api/auth/sign-in/email', { body: { email, password } }),
+  login: (identifier: string, password: string) =>
+    identifier.includes('@')
+      ? api('/api/auth/sign-in/email', { body: { email: identifier.trim(), password } })
+      : api('/api/auth/sign-in/phone-number', {
+          body: { phoneNumber: normalizePhone(identifier), password },
+        }),
   logout: () => api('/api/auth/sign-out', { body: {} }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api('/api/me/change-password', { body: { currentPassword, newPassword } }),
 };
 
 export const onboardingApi = {
   listCategories: () => api('/api/categories'),
   registerTeacher: (dto: {
-    name: string; email: string; password: string; phoneNumber?: string; subject: string;
+    name: string; email?: string; password: string; phoneNumber: string; subject: string;
   }) => api('/api/onboarding/teacher', { body: dto }),
   registerStudent: (dto: {
     name: string; password: string; phoneNumber: string; email?: string; gradeId?: string;
   }) => api('/api/onboarding/student', { body: dto }),
   registerParent: (dto: {
-    name: string; email: string; password: string; phoneNumber?: string; studentPhone?: string;
+    name: string; email?: string; password: string; phoneNumber: string; studentPhone?: string;
   }) => api('/api/onboarding/parent', { body: dto }),
 };

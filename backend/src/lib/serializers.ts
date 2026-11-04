@@ -84,6 +84,7 @@ export function serializeUser(row: UserRow): User {
     landingTheme: row.landingTheme,
     landingPublished: row.landingPublished,
     isActive: row.isActive,
+    mustChangePassword: row.mustChangePassword,
     dateOfBirth: row.dateOfBirth,
     subjectCategoryId: row.subjectCategoryId,
     gradeId: row.gradeId,

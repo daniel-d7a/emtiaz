@@ -5,7 +5,8 @@ import { auth } from '../../auth/auth';
 import { Public } from '../../auth/public.decorator';
 import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
-import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto } from '../../lib/schemas';
+import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto, ChangePasswordDto } from '../../lib/schemas';
+import { toWebHeaders } from '../../auth/web-headers';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import { db } from '../../db';
@@ -68,6 +69,15 @@ export class OnboardingController {
     @Body(new ZodBodyPipe(UpdateMeDto)) dto: z.infer<typeof UpdateMeDto>,
   ) {
     return this.onboarding.updateMe(req.user!.id, dto);
+  }
+
+  @Post('api/me/change-password')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
+  changePassword(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(ChangePasswordDto)) dto: z.infer<typeof ChangePasswordDto>,
+  ) {
+    return this.onboarding.changePassword(req.user!.id, dto, toWebHeaders(req.headers));
   }
 
   /** Redirects to a fresh signed URL for the caller's avatar. */

@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { and, asc, eq, ilike, isNull } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, ne } from 'drizzle-orm';
 import { db } from '../../db';
 import { auth } from '../../auth/auth';
 import { categories, courses, groupStudents, groups, parentStudents, users } from '../../db/schema';
@@ -126,16 +126,19 @@ export class OnboardingService {
 
   async createParent(dto: {
     name: string;
-    email: string;
+    email?: string;
     password: string;
-    phoneNumber?: string;
+    phoneNumber: string;
     studentPhone?: string;
   }) {
     if (dto.studentPhone) await this.parents.resolveStudent(dto.studentPhone);
+    const email = dto.email?.trim()
+      ? dto.email.trim().toLowerCase()
+      : `${dto.phoneNumber.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
     const data = await auth.api.signUpEmail({
       body: {
         name: dto.name,
-        email: dto.email,
+        email,
         password: dto.password,
         role: 'PARENT',
         phoneNumber: dto.phoneNumber,
@@ -151,16 +154,19 @@ export class OnboardingService {
 
   async createTeacher(dto: {
     name: string;
-    email: string;
+    email?: string;
     password: string;
-    phoneNumber?: string;
+    phoneNumber: string;
     subject: string;
   }) {
     const subjectCategoryId = (await this.ensureCategory(dto.subject)).id;
+    const email = dto.email?.trim()
+      ? dto.email.trim().toLowerCase()
+      : `${dto.phoneNumber.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
     const data = await auth.api.signUpEmail({
       body: {
         name: dto.name,
-        email: dto.email,
+        email,
         password: dto.password,
         role: 'TEACHER',
         phoneNumber: dto.phoneNumber,
@@ -170,6 +176,26 @@ export class OnboardingService {
     });
     const [user] = await db.select().from(users).where(eq(users.id, data.response.user.id));
     return serializeUser(user);
+  }
+
+  async changePassword(
+    userId: string,
+    dto: { currentPassword: string; newPassword: string },
+    headers: Headers,
+  ) {
+    await auth.api.changePassword({
+      body: {
+        currentPassword: dto.currentPassword,
+        newPassword: dto.newPassword,
+        revokeOtherSessions: false,
+      },
+      headers,
+    });
+    await db
+      .update(users)
+      .set({ mustChangePassword: false })
+      .where(eq(users.id, userId));
+    return { ok: true };
   }
 
   listCategories() {
@@ -219,7 +245,18 @@ export class OnboardingService {
     ) {
       throw new BadRequestException('landing pages are only available to teachers');
     }
-    if (dto.landingSlug !== undefined) allowed.landingSlug = dto.landingSlug.trim().toLowerCase() || null;
+    if (dto.landingSlug !== undefined) {
+      const slug = dto.landingSlug.trim().toLowerCase() || null;
+      if (slug) {
+        const [taken] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.landingSlug, slug), ne(users.id, userId)))
+          .limit(1);
+        if (taken) throw new ConflictException('Landing link already taken');
+      }
+      allowed.landingSlug = slug;
+    }
     if (dto.landingBio !== undefined) allowed.landingBio = dto.landingBio.trim() || null;
     if (dto.landingBanner !== undefined) {
       const banner = dto.landingBanner?.trim() || null;

@@ -4,7 +4,7 @@ import { ApiError, authApi } from '../api';
 import { Btn, ErrorBox, Field, Text, c, s } from '../ui';
 
 export default function Login({ onIn }: { onIn: (user: any) => void }) {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -13,12 +13,12 @@ export default function Login({ onIn }: { onIn: (user: any) => void }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await authApi.login(email.trim(), password);
+      const res = await authApi.login(identifier.trim(), password);
       onIn(res);
     } catch (e) {
       setError(
         e instanceof ApiError && e.status === 401
-          ? new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة.')
+          ? new Error('رقم الهاتف أو كلمة المرور غير صحيحة.')
           : (e as Error),
       );
     } finally {
@@ -38,12 +38,11 @@ export default function Login({ onIn }: { onIn: (user: any) => void }) {
           منصة تعلّم بسيطة للمعلمين والطلبة في سلطنة عُمان
         </Text>
         <Field
-          label="البريد الإلكتروني"
-          value={email}
-          onChange={setEmail}
-          placeholder="you@example.com"
+          label="رقم الهاتف أو البريد الإلكتروني"
+          value={identifier}
+          onChange={setIdentifier}
+          placeholder="+968…"
           dir="ltr"
-          keyboardType="email-address"
         />
         <Field label="كلمة المرور" value={password} onChange={setPassword} secure />
         {error && <ErrorBox error={error} />}

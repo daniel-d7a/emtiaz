@@ -86,6 +86,7 @@ export const users = pgTable('user', {
   landingTheme: jsonb('landing_theme').$type<TeacherTheme>(),
   landingPublished: boolean('landing_published').notNull().default(false),
   isActive: boolean('is_active').notNull().default(true),
+  mustChangePassword: boolean('must_change_password').notNull().default(false),
   dateOfBirth: date('date_of_birth'),
   subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),
   gradeId: uuid('grade_id').references(() => grades.id, { onDelete: 'set null' }),
