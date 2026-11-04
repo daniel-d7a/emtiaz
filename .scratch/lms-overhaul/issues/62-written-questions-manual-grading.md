@@ -4,14 +4,14 @@
 
 **Blocked by:** 61.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A teacher can add a written-answer question with a prompt and model answer.
-- [ ] A student can type and submit a written answer.
-- [ ] Objective questions still grade automatically.
-- [ ] A quiz with written answers is pending until the teacher grades it.
-- [ ] The teacher can open any student submission, see all answers, and enter a grade out of 10.
-- [ ] Grading updates the student's result and removes the pending state.
-- [ ] Only the owning teacher can grade.
-- [ ] Access rules in `docs/security.md` still hold.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] A teacher can add a written-answer question with a prompt and model answer.
+- [x] A student can type and submit a written answer.
+- [x] Objective questions still grade automatically.
+- [x] A quiz with written answers is pending until the teacher grades it.
+- [x] The teacher can open any student submission, see all answers, and enter a grade out of 10.
+- [x] Grading updates the student's result and removes the pending state.
+- [x] Only the owning teacher can grade.
+- [x] Access rules in `docs/security.md` still hold.
+- [x] Logic verified by tests; visual QA skipped by request.

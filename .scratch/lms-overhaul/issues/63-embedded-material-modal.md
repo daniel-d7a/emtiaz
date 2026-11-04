@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Embeddable materials open in a large wide modal.
 - [ ] The modal content scrolls internally; the page behind does not scroll.
 - [ ] Closing the modal restores focus and scroll position.
 - [ ] Non-embeddable materials keep their current behaviour.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

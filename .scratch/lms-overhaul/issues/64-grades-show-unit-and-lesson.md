@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Every grade row shows the unit name.
 - [ ] Every grade row shows the lesson name when the quiz belongs to a lesson.
 - [ ] Course-level or unit-level quizzes degrade cleanly without a lesson name.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

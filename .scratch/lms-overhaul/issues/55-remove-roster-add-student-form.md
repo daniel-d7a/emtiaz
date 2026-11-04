@@ -4,9 +4,9 @@
 
 **Blocked by:** 53.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] The roster no longer shows the name + phone add form.
 - [ ] The roster still lists, searches, and manages existing students.
 - [ ] No dead API calls or unused copy remain.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

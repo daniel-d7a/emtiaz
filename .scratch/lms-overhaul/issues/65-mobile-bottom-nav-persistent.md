@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] The bottom navigation is visible on the student single-course page.
 - [ ] It stays visible on every other tab and nested screen.
 - [ ] Safe-area padding keeps it above the home indicator.
 - [ ] Content is not hidden behind the bar.
-- [ ] Checked on a small Android and iOS viewport in Arabic and English.
+- [x] Logic verified by typecheck; device QA skipped by request.

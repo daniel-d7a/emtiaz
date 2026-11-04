@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Choosing a profile avatar or banner previews it without uploading.
 - [ ] Choosing a course image previews it without uploading.
 - [ ] Pressing Save uploads the selected image and persists the key.
 - [ ] Cancelling or leaving the page does not upload an orphan file.
 - [ ] Upload failures show an error and keep the form state.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

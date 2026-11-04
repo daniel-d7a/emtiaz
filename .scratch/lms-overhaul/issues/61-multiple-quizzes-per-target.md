@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A unit can hold multiple quizzes.
-- [ ] A lesson can hold multiple quizzes.
-- [ ] Teacher can create, order, edit, and delete each quiz independently.
-- [ ] Student sees every quiz for the target in display order.
-- [ ] Existing single-quiz data migrates without loss.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] A unit can hold multiple quizzes.
+- [x] A lesson can hold multiple quizzes.
+- [x] Teacher can create, order, edit, and delete each quiz independently.
+- [x] Student sees every quiz for the target in display order.
+- [x] Existing single-quiz data migrates without loss.
+- [x] Logic verified by tests; visual QA skipped by request.

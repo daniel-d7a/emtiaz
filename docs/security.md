@@ -5,9 +5,15 @@ the checklist to keep in mind when adding endpoints or screens.
 
 ## Authentication
 
-- Better Auth email/password sessions, stored in PostgreSQL and sent as
-  HTTP-only cookies (`/api/auth/*`). Session lifetime is 30 days, extended
-  every 24 hours.
+- Better Auth email/password and phone-number/password sessions, stored in
+  PostgreSQL and sent as HTTP-only cookies (`/api/auth/*`). Session lifetime is
+  30 days, extended every 24 hours. Phone numbers are normalized before lookup;
+  phone-only accounts use a synthetic `<digits>@phone.emtiaz.om` email so email
+  sign-in and admin tooling keep working.
+- Bulk-added students receive a temporary password equal to their phone digits
+  and `must_change_password = true`. The web and mobile apps force those users
+  to `/change-password` before any other screen. `POST /api/me/change-password`
+  requires the current password and clears the flag.
 - The global `AuthGuard` verifies the session against the database on every
   guarded request and ignores Better Auth's 5-minute cookie cache, so a
   suspended or deleted user cannot keep using a cached session.
@@ -49,12 +55,14 @@ or parent ownership rights.
 | Global metrics, directories, suspend/delete/restore, taxonomy, audit | with permission | no | no | no |
 | Create/edit own courses, modules, lessons, quizzes | no* | owner | no | no |
 | Create groups, pacing, roster, announcements, gradebook | no* | owner | no | no |
+| Read/write lesson attendance | no | owner | no | no |
 | Read group statistics | no* | owner | no | no |
 | Search students by phone to add to a roster | no | students only | no | no |
 | Join a group by code | no | no | yes | no |
 | Read own groups, curriculum, lessons, quizzes | no | no | enrolled | no |
 | Complete/uncomplete a lesson | no | no | enrolled + unlocked | no |
 | Submit a quiz | no | no | enrolled + group course | no |
+| Grade written quiz answers | no | owner | no | no |
 | Read own grades | no | no | enrolled | no |
 | Read a linked child's progress, attendance, grades, reports | no | no | no | linked |
 | Link/unlink a child by registered phone | no | no | no | yes |
@@ -91,12 +99,20 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
   and progress totals. A hidden quiz is absent from curriculum and rejected by
   direct reads and submissions for that group; `group_quiz_access` stores only
   per-group visibility, never quiz content.
+- Attendance is owner-only for the group's course. Marks are upserted per
+  `(lesson, student)` and only for students enrolled in that group; the lesson
+  must belong to the group's course. Group stats read the same rows.
 - Lesson completion is an upsert only after the enrollment + unlock check.
   Uncompleting is allowed for the student's own completion row.
 - Direct quiz reads resolve the quiz's course (lesson, module, or course quiz),
   require enrollment, and require the lesson to be unlocked when the quiz
   belongs to a lesson. Submissions additionally require the quiz to belong to
   the target group's course.
+- Written answers are never auto-graded. An attempt with written questions
+  stays pending until the course-owning teacher grades every written question;
+  grading is owner-only, validates the attempt belongs to that teacher's
+  course, and recomputes the score from objective answers plus written grades
+  (0–10 each).
 - Attachment download checks the attachment's course and optional group. Master
   files (no group) are visible to any enrolled group in the course; group files
   only to that group; both still require the lesson to be unlocked. External

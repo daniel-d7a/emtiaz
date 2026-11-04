@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Login accepts a phone number and password.
 - [ ] Registration uses phone as the primary field for students; email is optional.
@@ -13,4 +13,4 @@
 - [ ] Existing phone-only students without credentials can sign in or are migrated.
 - [ ] Wrong phone/password and duplicate phone cases show clear Arabic and English errors.
 - [ ] Access rules in `docs/security.md` still hold.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

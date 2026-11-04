@@ -4,7 +4,7 @@
 
 **Blocked by:** 54.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Creating a group opens a dedicated page, not an inline form.
 - [ ] The form captures name, time, and multiple days.
@@ -12,4 +12,4 @@
 - [ ] Existing phones are enrolled without creating duplicates.
 - [ ] New phones create a student who can sign in after ticket 54.
 - [ ] Saving shows a clear success state and returns to the course groups list.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

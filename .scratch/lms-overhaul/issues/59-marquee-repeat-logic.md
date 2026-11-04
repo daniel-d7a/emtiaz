@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Copy count follows the 70/50/30 width thresholds.
 - [ ] The loop has no visible gap or jump at any count.
 - [ ] The count recomputes on resize and language change.
 - [ ] No layout shift or hydration warning on first paint.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

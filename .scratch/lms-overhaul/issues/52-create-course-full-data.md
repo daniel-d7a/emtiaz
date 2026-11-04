@@ -4,11 +4,11 @@
 
 **Blocked by:** 57.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] The create-course form includes description, preview URL, and image.
 - [ ] Choosing an image previews it without uploading.
 - [ ] Saving creates the course and uploads the image.
 - [ ] A failed upload leaves a clear error and does not silently drop the course.
 - [ ] The new course shows the entered data on the teacher and public course pages.
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.

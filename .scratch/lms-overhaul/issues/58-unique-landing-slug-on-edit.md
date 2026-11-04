@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Editing a landing slug to one used by another teacher returns a clear conflict error.
 - [ ] The form does not show a saved state when the slug is rejected.

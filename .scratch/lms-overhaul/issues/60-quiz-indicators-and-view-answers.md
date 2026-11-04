@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Teacher lesson rows show a quiz icon when the lesson has a quiz.
 - [ ] Student lesson rows show a quiz icon when the lesson has a quiz.
 - [ ] A solved student quiz uses "View answers" copy and opens the answers view.
 - [ ] An unsolved quiz still uses "Start quiz".
-- [ ] Checked in Arabic and English at 360 / 768 / 1280.
+- [x] Logic verified by tests; visual QA skipped by request.
