@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
-import { Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
-import type { TeacherGradebook } from '../../../shared/api';
+import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
+import type { TeacherGradebook, TeacherQuizSubmissions } from '../../../shared/api';
 
 function ManualScore({
   groupId,
@@ -73,8 +73,118 @@ function ManualScore({
   );
 }
 
+function QuizSubmissions({
+  groupId,
+  quiz,
+  onClose,
+}: {
+  groupId: string;
+  quiz: { id: string; title: string };
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const [grades, setGrades] = useState<Record<string, Record<string, string>>>({});
+  const submissions = useQuery({
+    queryKey: ['teacher-quiz-submissions', groupId, quiz.id],
+    queryFn: () =>
+      api<TeacherQuizSubmissions>(
+        `/api/teacher/groups/${groupId}/quizzes/${quiz.id}/submissions`,
+      ),
+  });
+  useEffect(() => {
+    if (!submissions.data) return;
+    setGrades(
+      Object.fromEntries(
+        submissions.data.submissions.map((submission) => [
+          submission.id,
+          Object.fromEntries(
+            Object.entries(submission.writtenGrades ?? {}).map(([questionId, value]) => [
+              questionId,
+              String(value),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }, [submissions.data]);
+  const grade = useMutation({
+    mutationFn: ({ attemptId, values }: { attemptId: string; values: Record<string, number> }) =>
+      api(`/api/teacher/quiz-attempts/${attemptId}/grade`, {
+        method: 'PUT',
+        body: { grades: values },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['teacher-quiz-submissions', groupId, quiz.id] });
+      void qc.invalidateQueries({ queryKey: ['teacher-gradebook', groupId] });
+    },
+  });
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <ScrollView style={s.page}>
+        <Btn label="رجوع" variant="ghost" onPress={onClose} />
+        <Text style={s.h1}>{quiz.title}</Text>
+        {submissions.error ? <ErrorBox error={submissions.error} /> : null}
+        {!submissions.data ? <Loading /> : null}
+        {submissions.data?.submissions.length === 0 ? <Empty text="لا توجد إجابات بعد" /> : null}
+        {submissions.data?.submissions.map((submission) => {
+          const written = submissions.data!.questions.filter((q) => q.questionType === 'WRITTEN');
+          const values = grades[submission.id] ?? {};
+          return (
+            <Card key={submission.id}>
+              <View style={s.row}>
+                <Text style={{ fontWeight: '700' }}>{submission.student.name}</Text>
+                <Text style={s.badge}>
+                  {submission.pending ? 'بانتظار التصحيح' : `${submission.score}/${submission.maxScore}`}
+                </Text>
+              </View>
+              {submissions.data!.questions.map((question) => (
+                <View key={question.id} style={{ marginTop: 8 }}>
+                  <Text style={{ fontWeight: '600' }}>{question.prompt}</Text>
+                  <Text style={{ color: c.inkSoft, fontSize: 13 }}>
+                    {submission.answers[question.id] || 'لم تُجب'}
+                  </Text>
+                  {question.questionType === 'WRITTEN' ? (
+                    <TextInput
+                      value={values[question.id] ?? ''}
+                      onChangeText={(value) =>
+                        setGrades((current) => ({
+                          ...current,
+                          [submission.id]: { ...current[submission.id], [question.id]: value },
+                        }))
+                      }
+                      keyboardType="number-pad"
+                      placeholder="الدرجة من 10"
+                      placeholderTextColor={c.inkSoft}
+                      style={s.input}
+                    />
+                  ) : null}
+                </View>
+              ))}
+              {written.length > 0 ? (
+                <Btn
+                  label="حفظ الدرجات"
+                  loading={grade.isPending}
+                  disabled={written.some((q) => !values[q.id])}
+                  onPress={() =>
+                    grade.mutate({
+                      attemptId: submission.id,
+                      values: Object.fromEntries(written.map((q) => [q.id, Number(values[q.id])])),
+                    })
+                  }
+                />
+              ) : null}
+            </Card>
+          );
+        })}
+      </ScrollView>
+    </Modal>
+  );
+}
+
 export default function TeacherGroupGradebook({ groupId }: { groupId: string }) {
   const [filter, setFilter] = useState('');
+  const [openQuiz, setOpenQuiz] = useState<{ id: string; title: string } | null>(null);
   const gradebook = useQuery({
     queryKey: ['teacher-gradebook', groupId],
     queryFn: () => api<TeacherGradebook>(`/api/teacher/groups/${groupId}/gradebook`),
@@ -128,8 +238,10 @@ export default function TeacherGroupGradebook({ groupId }: { groupId: string }) 
                 {data.quizColumns.map((column) => {
                   const value = data.quizCells[`${student.id}:${column.quizId}`];
                   return (
-                    <View
+                    <Pressable
                       key={column.quizId}
+                      accessibilityRole="button"
+                      onPress={() => setOpenQuiz({ id: column.quizId, title: column.lessonTitle })}
                       style={{
                         borderWidth: 1,
                         borderColor: c.line,
@@ -143,7 +255,7 @@ export default function TeacherGroupGradebook({ groupId }: { groupId: string }) 
                       <Text style={{ fontWeight: '700', color: c.primaryDark }}>
                         {value ?? '—'} / {column.maxScore}
                       </Text>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -185,6 +297,9 @@ export default function TeacherGroupGradebook({ groupId }: { groupId: string }) 
           )}
         </Card>
       ))}
+      {openQuiz ? (
+        <QuizSubmissions groupId={groupId} quiz={openQuiz} onClose={() => setOpenQuiz(null)} />
+      ) : null}
     </View>
   );
 }

@@ -44,21 +44,21 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz, onOpe
       <Text style={{ color: c.inkSoft, marginBottom: 12 }}>
         {data.course.title} — {data.group.joinCode}
       </Text>
-      {data.quiz && (
-        <Card>
-          <Text style={{ fontWeight: '700', marginBottom: 4 }}>{data.quiz.title}</Text>
-          <Btn label="اختبار المقرر" onPress={() => onOpenQuizById(data.quiz!.id)} />
+      {data.quizzes.map((quiz) => (
+        <Card key={quiz.id}>
+          <Text style={{ fontWeight: '700', marginBottom: 4 }}>{quiz.title}</Text>
+          <Btn label="اختبار المقرر" onPress={() => onOpenQuizById(quiz.id)} />
         </Card>
-      )}
+      ))}
       {data.modules.map((mod) => (
         <View key={mod.title}>
           <Text style={s.h2}>{mod.title}</Text>
-          {mod.quiz && (
-            <Card>
-              <Text style={{ fontWeight: '700', marginBottom: 4 }}>{mod.quiz.title}</Text>
-              <Btn label="اختبار الوحدة" variant="ghost" onPress={() => onOpenQuizById(mod.quiz!.id)} />
+          {mod.quizzes.map((quiz) => (
+            <Card key={quiz.id}>
+              <Text style={{ fontWeight: '700', marginBottom: 4 }}>{quiz.title}</Text>
+              <Btn label="اختبار الوحدة" variant="ghost" onPress={() => onOpenQuizById(quiz.id)} />
             </Card>
-          )}
+          ))}
           {mod.lessons.map((l) => {
             const completing = complete.isPending && complete.variables === l.id;
             return (
@@ -75,16 +75,25 @@ export default function Group({ groupId, onBack, onOpenLesson, onOpenQuiz, onOpe
                   </Text>
                 )}
                 {l.unlocked && (
-                  <View style={[s.row, { justifyContent: 'flex-start' }]}>
-                    <Btn label="فتح الدرس" variant="ghost" onPress={() => onOpenLesson(l.id)} />
-                    {l.hasQuiz && <Btn label="اختبار" variant="ghost" onPress={() => onOpenQuiz(l.id)} />}
-                    <Btn
-                      label={l.completed ? 'أُتم ✓' : 'إتمام'}
-                      variant={l.completed ? 'ghost' : 'primary'}
-                      loading={completing}
-                      disabled={l.completed}
-                      onPress={() => !l.completed && complete.mutate(l.id)}
-                    />
+                  <View style={{ gap: 4 }}>
+                    <View style={[s.row, { justifyContent: 'flex-start' }]}>
+                      <Btn label="فتح الدرس" variant="ghost" onPress={() => onOpenLesson(l.id)} />
+                      <Btn
+                        label={l.completed ? 'أُتم ✓' : 'إتمام'}
+                        variant={l.completed ? 'ghost' : 'primary'}
+                        loading={completing}
+                        disabled={l.completed}
+                        onPress={() => !l.completed && complete.mutate(l.id)}
+                      />
+                    </View>
+                    {l.quizzes.map((quiz) => (
+                      <Btn
+                        key={quiz.id}
+                        label={`اختبار: ${quiz.title}`}
+                        variant="ghost"
+                        onPress={() => onOpenQuizById(quiz.id)}
+                      />
+                    ))}
                   </View>
                 )}
               </Card>

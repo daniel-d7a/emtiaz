@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
@@ -26,13 +26,18 @@ export default function StudentQuizPage() {
     queryFn: () => api<QuizPayload>(`/api/student/groups/${groupId}/quizzes/${quizId}`),
   });
 
+  const cleanAnswers = () =>
+    Object.fromEntries(
+      Object.entries(answers).filter(([, value]) => value.trim().length > 0),
+    );
+
   const submit = useMutation({
     mutationFn: () =>
       api<QuizSubmission>(`/api/student/quizzes/${quizId}/submit`, {
-        body: { groupId, answers },
+        body: { groupId, answers: cleanAnswers() },
       }),
     onSuccess: (res) => {
-      setResult({ ...res, answers });
+      setResult({ ...res, answers: cleanAnswers() });
       toast.success(t('sent'));
       void qc.invalidateQueries({ queryKey: ['group-quiz', groupId, quizId] });
       void qc.invalidateQueries({ queryKey: ['curriculum', groupId] });
@@ -66,17 +71,24 @@ export default function StudentQuizPage() {
                     <h1 className="text-xl font-bold">{quiz.title}</h1>
                     <p className="text-sm text-ink-soft">{t('quizResult')}</p>
                   </div>
-                  <Badge tone="primary" className="tabular-nums">{shown.score}/{shown.maxScore}</Badge>
+                  {shown.pending ? (
+                    <Badge><Clock className="inline" size={14} /> {t('pending')}</Badge>
+                  ) : (
+                    <Badge tone="primary" className="tabular-nums">{shown.score}/{shown.maxScore}</Badge>
+                  )}
                 </div>
               </Card>
 
               {data.questions.map((q, i) => {
                 const r = shown.result.find((x) => x.questionId === q.id);
                 const given = shown.answers[q.id];
+                const awaitingGrade = shown.pending && q.questionType === 'WRITTEN';
                 return (
                   <Card key={q.id} className={r?.correct ? 'border-primary/40' : 'border-line'}>
                     <div className="mb-2 flex items-start gap-2">
-                      {r?.correct ? (
+                      {awaitingGrade ? (
+                        <Clock size={18} className="mt-0.5 shrink-0 text-ink-soft" />
+                      ) : r?.correct ? (
                         <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary" />
                       ) : (
                         <XCircle size={18} className="mt-0.5 shrink-0 text-secondary" />
@@ -91,10 +103,12 @@ export default function StudentQuizPage() {
                         <dt className="text-ink-soft">{t('yourAnswer')}:</dt>
                         <dd>{given ? formatAnswer(given, t) : t('notAnswered')}</dd>
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        <dt className="text-ink-soft">{t('correctAnswer')}:</dt>
-                        <dd className="font-semibold text-primary">{formatAnswer(r?.expected ?? '', t)}</dd>
-                      </div>
+                      {!awaitingGrade && (
+                        <div className="flex flex-wrap gap-1">
+                          <dt className="text-ink-soft">{q.questionType === 'WRITTEN' ? t('modelAnswer') : t('correctAnswer')}:</dt>
+                          <dd className="font-semibold text-primary">{formatAnswer(r?.expected ?? '', t)}</dd>
+                        </div>
+                      )}
                       {r?.explanation && <p className="text-ink-soft">{r.explanation}</p>}
                     </dl>
                   </Card>
@@ -112,7 +126,7 @@ export default function StudentQuizPage() {
               {data.questions.map((q, i) => (
                 <Card key={q.id}>
                   <p className="mb-3 font-semibold">
-                    {i + 1}. {q.prompt} <span className="text-sm font-normal text-ink-soft">({q.points})</span>
+                    {i + 1}. {q.prompt} <span className="text-sm font-normal text-ink-soft">({q.questionType === 'WRITTEN' ? 10 : q.points})</span>
                   </p>
                   {q.imageUrl && (
                     <img src={q.imageUrl} alt="" className="mb-3 max-h-64 rounded-xl border border-line object-contain" />
@@ -153,6 +167,13 @@ export default function StudentQuizPage() {
                         </button>
                       ))}
                     </div>
+                  ) : q.questionType === 'WRITTEN' ? (
+                    <textarea
+                      className="min-h-24 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                      maxLength={5000}
+                      value={answers[q.id] ?? ''}
+                      onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+                    />
                   ) : (
                     <input
                       className="min-h-12 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-primary"

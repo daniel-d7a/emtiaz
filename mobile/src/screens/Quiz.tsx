@@ -18,9 +18,13 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
         : api<QuizPayload>(`/api/student/lessons/${lessonId}/quiz?groupId=${groupId}`),
     enabled: !!(quizId || lessonId),
   });
+  const cleanAnswers = (values: Record<string, string>) =>
+    Object.fromEntries(Object.entries(values).filter(([, value]) => value.trim().length > 0));
   const submit = useMutation({
     mutationFn: (vars: { quizId: string; answers: Record<string, string> }) =>
-      api<QuizSubmission>(`/api/student/quizzes/${vars.quizId}/submit`, { body: { groupId, answers: vars.answers } }),
+      api<QuizSubmission>(`/api/student/quizzes/${vars.quizId}/submit`, {
+        body: { groupId, answers: cleanAnswers(vars.answers) },
+      }),
     onSuccess: (res) => {
       setRetry(false);
       setResult(res);
@@ -47,13 +51,28 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
       {shown ? (
         <>
           <Text style={s.h1}>{quizData.title}</Text>
-          <Text style={s.h2}>{shown.score} / {shown.maxScore}</Text>
-          {shown.result.map((r, i) => (
-            <Card key={r.questionId}>
-              <Text style={{ fontWeight: '700' }}>{r.correct ? '✓ صحيح' : '✗ خطأ'} — سؤال {i + 1}</Text>
-              <Text style={{ color: c.inkSoft }}>الجواب الصحيح: {r.expected}{r.explanation ? ` — ${r.explanation}` : ''}</Text>
-            </Card>
-          ))}
+          {shown.pending ? (
+            <Text style={s.h2}>بانتظار التصحيح</Text>
+          ) : (
+            <Text style={s.h2}>{shown.score} / {shown.maxScore}</Text>
+          )}
+          {shown.result.map((r, i) => {
+            const question = data.questions.find((q) => q.id === r.questionId);
+            const awaitingGrade = shown.pending && question?.questionType === 'WRITTEN';
+            return (
+              <Card key={r.questionId}>
+                <Text style={{ fontWeight: '700' }}>
+                  {awaitingGrade ? '⏳ بانتظار التصحيح' : r.correct ? '✓ صحيح' : '✗ خطأ'} — سؤال {i + 1}
+                </Text>
+                {!awaitingGrade && (
+                  <Text style={{ color: c.inkSoft }}>
+                    {question?.questionType === 'WRITTEN' ? 'الإجابة النموذجية' : 'الجواب الصحيح'}: {r.expected}
+                    {r.explanation ? ` — ${r.explanation}` : ''}
+                  </Text>
+                )}
+              </Card>
+            );
+          })}
           <Btn label="إعادة المحاولة" variant="ghost" onPress={() => { setRetry(true); setResult(null); setAnswers({}); submit.reset(); }} />
         </>
       ) : (
@@ -61,7 +80,7 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
           <Text style={s.h1}>{quizData.title}</Text>
           {data.questions.map((q, i) => (
             <Card key={q.id}>
-              <Text style={{ fontWeight: '700', marginBottom: 8 }}>{i + 1}. {q.prompt} ({q.points})</Text>
+              <Text style={{ fontWeight: '700', marginBottom: 8 }}>{i + 1}. {q.prompt} ({q.questionType === 'WRITTEN' ? 10 : q.points})</Text>
               {q.options ? (
                 <View style={{ gap: 8 }}>
                   {q.options.map((opt) => (
@@ -94,7 +113,9 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
                 </View>
               ) : (
                 <TextInput
-                  style={s.input}
+                  style={[s.input, { minHeight: 96 }]}
+                  multiline
+                  maxLength={5000}
                   value={answers[q.id] ?? ''}
                   onChangeText={(v) => setAnswers((prev) => ({ ...prev, [q.id]: v }))}
                   placeholder="اكتب جوابك…"

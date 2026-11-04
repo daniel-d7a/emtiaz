@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowRight, CheckCircle2, Lock, NotebookPen, Paperclip, Trophy,
+  ArrowRight, CheckCircle2, Clock, Lock, NotebookPen, Paperclip, Trophy,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
@@ -62,6 +62,7 @@ export default function StudentGroup() {
             <ThemeHero
               theme={data.teacher.theme}
               bannerUrl={data.teacher.bannerUrl}
+              avatarUrl={data.teacher.avatarUrl}
               name={data.teacher.name}
               subject={data.course.title}
               showMarquee={false}
@@ -89,7 +90,7 @@ export default function StudentGroup() {
                   const isCurrent = mod.id === currentModuleId;
                   const items = [
                     ...mod.lessons.map((lesson) => ({ type: 'lesson' as const, order: lesson.displayOrder, lesson })),
-                    ...(mod.quiz ? [{ type: 'quiz' as const, order: mod.quiz.displayOrder, quiz: mod.quiz }] : []),
+                    ...mod.quizzes.map((quiz) => ({ type: 'quiz' as const, order: quiz.displayOrder, quiz })),
                   ].sort((a, b) => a.order - b.order);
                   return (
                     <section
@@ -106,12 +107,16 @@ export default function StudentGroup() {
                           item.type === 'quiz' ? (
                             <StudentQuiz key={item.quiz.id} quizId={item.quiz.id} groupId={groupId} />
                           ) : (
-                            <LessonRow
-                              key={item.lesson.id}
-                              lesson={item.lesson}
-                              groupId={groupId}
-                              current={item.lesson.id === currentLessonId}
-                            />
+                            <div key={item.lesson.id} className="flex min-w-0 flex-col gap-2">
+                              <LessonRow
+                                lesson={item.lesson}
+                                groupId={groupId}
+                                current={item.lesson.id === currentLessonId}
+                              />
+                              {item.lesson.unlocked && item.lesson.quizzes.map((quiz) => (
+                                <StudentQuiz key={quiz.id} quizId={quiz.id} groupId={groupId} />
+                              ))}
+                            </div>
                           ),
                         )}
                       </div>
@@ -119,10 +124,14 @@ export default function StudentGroup() {
                   );
                 })}
 
-                {data.quiz && (
+                {data.quizzes.length > 0 && (
                   <section className="min-w-0">
                     <h2 className="mb-3 text-lg font-bold">{t('finalQuiz')}</h2>
-                    <StudentQuiz quizId={data.quiz.id} groupId={groupId} />
+                    <div className="flex flex-col gap-2">
+                      {data.quizzes.map((quiz) => (
+                        <StudentQuiz key={quiz.id} quizId={quiz.id} groupId={groupId} />
+                      ))}
+                    </div>
                   </section>
                 )}
               </div>
@@ -138,8 +147,16 @@ export default function StudentGroup() {
                   <ul className="flex flex-col divide-y divide-line">
                     {grades.quizzes.map((q) => (
                       <li key={q.quizId} className="flex items-center justify-between gap-3 py-2 text-sm">
-                        <span>{q.title} <span className="text-ink-soft">({q.lessonTitle})</span></span>
-                        <span className="font-bold tabular-nums">{q.score}/{q.maxScore}</span>
+                        <span>
+                          {q.title}{' '}
+                          <span className="text-ink-soft">
+                            ({[q.unitTitle, q.lessonTitle].filter(Boolean).join(' · ')})
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          {q.pending && <Badge>{t('pending')}</Badge>}
+                          <span className="font-bold tabular-nums">{q.score}/{q.maxScore}</span>
+                        </span>
                       </li>
                     ))}
                     {grades.manual.map((m) => (
@@ -233,13 +250,19 @@ export function StudentQuiz({ lessonId, quizId, groupId }: { lessonId?: string; 
             </p>
           )}
         </div>
-        {attempt ? <Badge tone="primary">{t('completed')}</Badge> : <Badge>{t('startQuiz')}</Badge>}
+        {attempt?.pending ? (
+          <Badge><Clock className="inline" size={14} /> {t('pending')}</Badge>
+        ) : attempt ? (
+          <Badge tone="primary">{t('completed')}</Badge>
+        ) : (
+          <Badge>{t('startQuiz')}</Badge>
+        )}
         <Link
           to="/student/groups/$groupId/quizzes/$quizId"
           params={{ groupId, quizId: quiz.quiz.id }}
           className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
         >
-          {attempt ? t('viewResult') : t('startQuiz')}
+          {attempt ? t('viewAnswers') : t('startQuiz')}
         </Link>
       </div>
     </Card>

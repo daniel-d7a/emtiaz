@@ -15,7 +15,6 @@ import type {
   TeacherQuizQuestion as QuizQuestionData,
 } from '../../../../shared/api';
 
-type QuizData = TeacherQuiz | null;
 
 function swap<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;
@@ -56,8 +55,13 @@ export default function TeacherCurriculum() {
 
   const modules = data?.modules ?? [];
   const lessonCount = modules.reduce((total, mod) => total + mod.lessons.length, 0);
-  const quizCount = [data?.quiz, ...modules.flatMap((mod) => [mod.quiz, ...mod.lessons.map((lesson) => lesson.quiz)])]
-    .filter(Boolean).length;
+  const quizCount = [
+    ...(data?.quizzes ?? []),
+    ...modules.flatMap((mod) => [
+      ...mod.quizzes,
+      ...mod.lessons.flatMap((lesson) => lesson.quizzes),
+    ]),
+  ].length;
 
   return (
     <Page title={t('curriculum')} wide>
@@ -69,12 +73,33 @@ export default function TeacherCurriculum() {
             <StatCard label={t('quizzes')} value={quizCount} />
           </div>
           {data && (
-            <Card className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <span className="font-bold">{t('finalQuiz')}</span>
-                <p className="text-sm text-ink-soft">{data.quiz?.title ?? t('noQuiz')}</p>
+            <Card className="flex flex-col gap-3">
+              <span className="font-bold">{t('finalQuiz')}</span>
+              {data.quizzes.length === 0 && (
+                <p className="text-sm text-ink-soft">{t('noQuiz')}</p>
+              )}
+              {data.quizzes.map((quiz, index) => (
+                <div key={quiz.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm font-semibold">{quiz.title}</span>
+                  <span className="flex items-center gap-1">
+                    <QuizOrderButtons
+                      courseId={courseId}
+                      quizId={quiz.id}
+                      canUp={index > 0}
+                      canDown={index < data.quizzes.length - 1}
+                    />
+                    <QuizBuilder
+                      courseId={courseId}
+                      targetType="course"
+                      targetId={courseId}
+                      existing={quiz}
+                    />
+                  </span>
+                </div>
+              ))}
+              <div>
+                <QuizBuilder courseId={courseId} targetType="course" targetId={courseId} />
               </div>
-              <QuizBuilder courseId={courseId} endpoint={`/api/teacher/courses/${courseId}/quiz`} existing={data.quiz} />
             </Card>
           )}
           {modules.map((mod, mi) => (
@@ -172,10 +197,11 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
     },
     onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
-  const unitQuizCount = [mod.quiz, ...mod.lessons.map((lesson) => lesson.quiz)].filter(Boolean).length;
+  const unitQuizCount =
+    mod.quizzes.length + mod.lessons.reduce((total, lesson) => total + lesson.quizzes.length, 0);
   const unitItems = [
     ...mod.lessons.map((lesson) => ({ id: lesson.id, type: 'lesson' as const, order: lesson.displayOrder, lesson })),
-    ...(mod.quiz ? [{ id: mod.quiz.id, type: 'quiz' as const, order: mod.quiz.displayOrder, quiz: mod.quiz }] : []),
+    ...mod.quizzes.map((quiz) => ({ id: quiz.id, type: 'quiz' as const, order: quiz.displayOrder, quiz })),
   ].sort((a, b) => a.order - b.order);
 
   return (
@@ -215,8 +241,9 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
         <div className="flex shrink-0 items-center gap-1">
           <QuizBuilder
             courseId={courseId}
-            endpoint={`/api/teacher/modules/${mod.id}/quiz`}
-            existing={mod.quiz}
+            targetType="module"
+            targetId={mod.id}
+            existing={undefined}
           />
           <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="shrink-0 text-ink-soft hover:text-danger" title={t('delete')}>
             <Trash2 size={16} />
@@ -239,7 +266,12 @@ function ModuleCard({ mod, courseId, focusLessonId, canUp, canDown, moving, onMo
                   </span>
                   <NotebookPen size={16} className="shrink-0 text-primary" />
                   <span className="min-w-0 grow truncate text-sm font-semibold">{item.quiz.title}</span>
-                  <span className="shrink-0 text-xs text-ink-soft">{t('quiz')}</span>
+                  <QuizBuilder
+                    courseId={courseId}
+                    targetType="module"
+                    targetId={mod.id}
+                    existing={item.quiz}
+                  />
                 </div>
               );
             }
@@ -324,7 +356,8 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
           )}
           <button aria-expanded={open} className="flex grow items-center gap-2 text-start font-semibold" onClick={() => setOpen(!open)}>
             <ChevronDown className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : 'ltr:-rotate-90 rtl:rotate-90'}`} size={15} />
-            {title}
+            <span className="min-w-0 truncate">{title}</span>
+            {lesson.quizzes.length > 0 && <NotebookPen size={14} className="shrink-0 text-ink-soft" aria-label={t('quiz')} />}
           </button>
         </div>
         <button aria-label={t('delete')} onClick={() => setConfirming(true)} className="text-ink-soft hover:text-danger" title={t('delete')}>
@@ -350,12 +383,33 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
           </div>
           {save.error && <ErrorBox error={save.error} />}
           <LessonMaterials lesson={lesson} courseId={courseId} />
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2">
-            <div className="min-w-0">
-              <p className="text-sm font-bold">{t('quiz')}</p>
-              <p className="text-xs text-ink-soft">{lesson.quiz?.title ?? t('noQuiz')}</p>
+          <div className="flex flex-col gap-2 rounded-xl border border-line bg-white px-3 py-2">
+            <p className="text-sm font-bold">{t('quiz')}</p>
+            {lesson.quizzes.length === 0 && (
+              <p className="text-xs text-ink-soft">{t('noQuiz')}</p>
+            )}
+            {lesson.quizzes.map((quiz, index) => (
+              <div key={quiz.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 truncate text-sm font-semibold">{quiz.title}</span>
+                <span className="flex items-center gap-1">
+                  <QuizOrderButtons
+                    courseId={courseId}
+                    quizId={quiz.id}
+                    canUp={index > 0}
+                    canDown={index < lesson.quizzes.length - 1}
+                  />
+                  <QuizBuilder
+                    courseId={courseId}
+                    targetType="lesson"
+                    targetId={lesson.id}
+                    existing={quiz}
+                  />
+                </span>
+              </div>
+            ))}
+            <div>
+              <QuizBuilder courseId={courseId} targetType="lesson" targetId={lesson.id} />
             </div>
-            <QuizBuilder courseId={courseId} endpoint={`/api/teacher/lessons/${lesson.id}/quiz`} existing={lesson.quiz} />
           </div>
         </div>
       </Collapse>
@@ -554,13 +608,14 @@ function LessonMaterials({ lesson, courseId }: { lesson: Curriculum['modules'][0
 }
 
 type QuestionForm = {
-  questionType: 'MCQ' | 'TRUE_FALSE';
+  questionType: 'MCQ' | 'TRUE_FALSE' | 'WRITTEN';
   prompt: string;
   imageKey: string | null;
   imageUrl: string | null;
   options: string[];
   correctIndex: number | null;
   correctBool: 'true' | 'false' | '';
+  modelAnswer: string;
 };
 
 const blankQuestion = (): QuestionForm => ({
@@ -571,6 +626,7 @@ const blankQuestion = (): QuestionForm => ({
   options: ['', ''],
   correctIndex: null,
   correctBool: '',
+  modelAnswer: '',
 });
 
 const formQuestion = (q: QuizQuestionData): QuestionForm => ({
@@ -589,16 +645,64 @@ const formQuestion = (q: QuizQuestionData): QuestionForm => ({
         ? 'false'
         : 'true'
       : '',
+  modelAnswer: q.questionType === 'WRITTEN' ? q.correctAnswer : '',
 });
 
-function QuizBuilder({ courseId, endpoint, existing }: {
+function QuizOrderButtons({ courseId, quizId, canUp, canDown }: {
   courseId: string;
-  endpoint: string;
-  existing: QuizData;
+  quizId: string;
+  canUp: boolean;
+  canDown: boolean;
+}) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const move = useMutation({
+    mutationFn: (direction: 'up' | 'down') =>
+      api(`/api/teacher/quizzes/${quizId}/move`, {
+        method: 'PUT',
+        body: { direction },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+  return (
+    <span className="flex items-center gap-0.5">
+      <button
+        type="button"
+        aria-label={t('moveUp')}
+        title={t('moveUp')}
+        disabled={!canUp || move.isPending}
+        onClick={() => move.mutate('up')}
+        className="text-ink-soft hover:text-primary disabled:opacity-30"
+      >
+        <ChevronUp size={14} />
+      </button>
+      <button
+        type="button"
+        aria-label={t('moveDown')}
+        title={t('moveDown')}
+        disabled={!canDown || move.isPending}
+        onClick={() => move.mutate('down')}
+        className="text-ink-soft hover:text-primary disabled:opacity-30"
+      >
+        <ChevronDown size={14} />
+      </button>
+    </span>
+  );
+}
+
+function QuizBuilder({ courseId, targetType, targetId, existing }: {
+  courseId: string;
+  targetType: 'course' | 'module' | 'lesson';
+  targetId: string;
+  existing?: TeacherQuiz;
 }) {
   const { t } = useLang();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [title, setTitle] = useState('');
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [err, setErr] = useState<Error | null>(null);
@@ -613,26 +717,32 @@ function QuizBuilder({ courseId, endpoint, existing }: {
   };
 
   const upsert = useMutation({
-    mutationFn: () =>
-      api(endpoint, {
-        body: {
-          title,
-          questions: questions.map((q) => ({
-            questionType: q.questionType,
-            prompt: q.prompt,
-            imageKey: q.imageKey,
-            options:
-              q.questionType === 'MCQ'
-                ? q.options.map((option) => option.trim())
-                : undefined,
-            correctAnswer:
-              q.questionType === 'MCQ'
-                ? (q.options[q.correctIndex ?? -1] ?? '').trim()
+    mutationFn: () => {
+      const body = {
+        title,
+        questions: questions.map((q) => ({
+          questionType: q.questionType,
+          prompt: q.prompt,
+          imageKey: q.imageKey,
+          options:
+            q.questionType === 'MCQ'
+              ? q.options.map((option) => option.trim())
+              : undefined,
+          correctAnswer:
+            q.questionType === 'MCQ'
+              ? (q.options[q.correctIndex ?? -1] ?? '').trim()
+              : q.questionType === 'WRITTEN'
+                ? q.modelAnswer.trim()
                 : q.correctBool,
-            points: 1,
-          })),
-        },
-      }),
+          points: 1,
+        })),
+      };
+      return existing
+        ? api(`/api/teacher/quizzes/${existing.id}`, { method: 'PUT', body })
+        : api(`/api/teacher/courses/${courseId}/quizzes`, {
+            body: { ...body, targetType, targetId },
+          });
+    },
     onSuccess: () => {
       setErr(null);
       setOpen(false);
@@ -643,6 +753,17 @@ function QuizBuilder({ courseId, endpoint, existing }: {
       setErr(e);
       toast.error((e as Error).message || t('errorOccurred'));
     },
+  });
+
+  const remove = useMutation({
+    mutationFn: () =>
+      api(`/api/teacher/quizzes/${existing!.id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      setConfirming(false);
+      toast.success(t('deleted'));
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
   });
 
   const save = () => {
@@ -656,6 +777,7 @@ function QuizBuilder({ courseId, endpoint, existing }: {
           !!q.options[q.correctIndex]?.trim()
         );
       }
+      if (q.questionType === 'WRITTEN') return !!q.modelAnswer.trim();
       return q.correctBool === 'true' || q.correctBool === 'false';
     });
     if (!title.trim() || !valid) {
@@ -706,10 +828,23 @@ function QuizBuilder({ courseId, endpoint, existing }: {
 
   return (
     <>
-      <Button variant="ghost" className="!min-h-9 !px-3" onClick={show}>
-        {existing ? <Pencil className="inline" size={14} /> : <Plus className="inline" size={14} />}{' '}
-        {existing ? t('edit') : t('add')} {t('quiz')}
-      </Button>
+      <span className="flex items-center gap-1">
+        <Button variant="ghost" className="!min-h-9 !px-3" onClick={show}>
+          {existing ? <Pencil className="inline" size={14} /> : <Plus className="inline" size={14} />}{' '}
+          {existing ? t('edit') : t('add')} {t('quiz')}
+        </Button>
+        {existing && (
+          <button
+            type="button"
+            aria-label={t('delete')}
+            title={t('delete')}
+            onClick={() => setConfirming(true)}
+            className="text-ink-soft hover:text-danger"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </span>
       <Dialog
         open={open}
         onOpenChange={setOpen}
@@ -753,11 +888,13 @@ function QuizBuilder({ courseId, endpoint, existing }: {
                     questionType: e.target.value as QuestionForm['questionType'],
                     correctIndex: null,
                     correctBool: '',
+                    modelAnswer: '',
                   })
                 }
               >
                 <option value="MCQ">{t('mcq')}</option>
                 <option value="TRUE_FALSE">{t('trueFalse')}</option>
+                <option value="WRITTEN">{t('writtenQuestion')}</option>
               </Select>
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('question')}</span>
@@ -843,6 +980,16 @@ function QuizBuilder({ courseId, endpoint, existing }: {
                     </Button>
                   )}
                 </div>
+              ) : q.questionType === 'WRITTEN' ? (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('modelAnswer')}</span>
+                  <textarea
+                    className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
+                    rows={2}
+                    value={q.modelAnswer}
+                    onChange={(e) => update(qi, { modelAnswer: e.target.value })}
+                  />
+                </label>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {(['true', 'false'] as const).map((value) => (
@@ -870,6 +1017,15 @@ function QuizBuilder({ courseId, endpoint, existing }: {
           {err && <ErrorBox error={err} />}
         </div>
       </Dialog>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`${t('delete')} ${existing?.title ?? t('quiz')}?`}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => remove.mutate()}
+      />
     </>
   );
 }

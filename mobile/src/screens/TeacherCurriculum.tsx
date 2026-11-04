@@ -36,13 +36,14 @@ import type {
 
 type QuizFormQuestion = {
   id: string;
-  questionType: 'MCQ' | 'TRUE_FALSE';
+  questionType: 'MCQ' | 'TRUE_FALSE' | 'WRITTEN';
   prompt: string;
   imageKey: string | null;
   imageUrl: string | null;
   options: string[];
   correctIndex: number | null;
   correctBool: 'true' | 'false' | '';
+  modelAnswer: string;
 };
 
 function swap<T>(items: T[], index: number, direction: -1 | 1): T[] {
@@ -63,6 +64,7 @@ function blankQuestion(): QuizFormQuestion {
     options: ['', ''],
     correctIndex: null,
     correctBool: '',
+    modelAnswer: '',
   };
 }
 
@@ -84,17 +86,19 @@ function formQuestion(question: TeacherQuiz['questions'][number]): QuizFormQuest
           ? 'false'
           : 'true'
         : '',
+    modelAnswer: question.questionType === 'WRITTEN' ? question.correctAnswer : '',
   };
 }
 
 function quizCount(data: Curriculum): number {
-  return [
-    data.quiz,
-    ...data.modules.flatMap((mod) => [
-      mod.quiz,
-      ...mod.lessons.map((lesson) => lesson.quiz),
-    ]),
-  ].filter(Boolean).length;
+  return (
+    data.quizzes.length +
+    data.modules.reduce(
+      (total, mod) =>
+        total + mod.quizzes.length + mod.lessons.reduce((sum, lesson) => sum + lesson.quizzes.length, 0),
+      0,
+    )
+  );
 }
 
 export default function TeacherCurriculum({
@@ -161,19 +165,32 @@ export default function TeacherCurriculum({
       </View>
 
       <Card>
-        <View style={[s.row, { alignItems: 'flex-start' }]}>
-          <View style={{ flexShrink: 1 }}>
-            <Text style={s.h2}>الاختبار النهائي</Text>
-            <Text style={{ color: c.inkSoft, fontSize: 13 }}>
-              {data.quiz?.title ?? 'لا يوجد اختبار نهائي'}
-            </Text>
+        <Text style={s.h2}>الاختبار النهائي</Text>
+        {data.quizzes.length === 0 && (
+          <Text style={{ color: c.inkSoft, fontSize: 13 }}>لا يوجد اختبار نهائي</Text>
+        )}
+        {data.quizzes.map((quiz, index) => (
+          <View key={quiz.id} style={[s.row, { alignItems: 'flex-start', marginBottom: 4 }]}>
+            <Text style={{ flexShrink: 1, fontWeight: '600' }}>{quiz.title}</Text>
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <QuizOrderButtons
+                courseId={courseId}
+                quizId={quiz.id}
+                canUp={index > 0}
+                canDown={index < data.quizzes.length - 1}
+              />
+              <QuizBuilder
+                courseId={courseId}
+                targetType="course"
+                targetId={courseId}
+                existing={quiz}
+                label="تعديل"
+              />
+            </View>
           </View>
-          <QuizBuilder
-            courseId={courseId}
-            endpoint={`/api/teacher/courses/${courseId}/quiz`}
-            existing={data.quiz}
-            label={data.quiz ? 'تعديل' : 'إضافة'}
-          />
+        ))}
+        <View style={{ marginTop: 4 }}>
+          <QuizBuilder courseId={courseId} targetType="course" targetId={courseId} label="إضافة" />
         </View>
       </Card>
 
@@ -271,9 +288,12 @@ function ModuleCard({
       order: lesson.displayOrder,
       lesson,
     })),
-    ...(mod.quiz
-      ? [{ id: mod.quiz.id, type: 'quiz' as const, order: mod.quiz.displayOrder, quiz: mod.quiz }]
-      : []),
+    ...mod.quizzes.map((quiz) => ({
+      id: quiz.id,
+      type: 'quiz' as const,
+      order: quiz.displayOrder,
+      quiz,
+    })),
   ].sort((a, b) => a.order - b.order);
   const error = rename.error ?? remove.error ?? addLesson.error ?? reorder.error;
 
@@ -289,7 +309,10 @@ function ModuleCard({
         <View style={{ flexShrink: 1 }}>
           <Text style={s.h2}>{mod.title}</Text>
           <Text style={{ color: c.inkSoft, fontSize: 12 }}>
-            {mod.lessons.length} درس · {[mod.quiz, ...mod.lessons.map((lesson) => lesson.quiz)].filter(Boolean).length} اختبار
+            {mod.lessons.length} درس ·{' '}
+            {mod.quizzes.length +
+              mod.lessons.reduce((total, lesson) => total + lesson.quizzes.length, 0)}{' '}
+            اختبار
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -320,14 +343,21 @@ function ModuleCard({
       <Btn label={open ? 'إخفاء الدروس' : 'عرض الدروس'} variant="ghost" onPress={() => setOpen((value) => !value)} />
       {open ? (
         <View style={{ marginTop: 8 }}>
-          <View style={[s.row, { marginBottom: 8 }]}>
-            <Text style={{ fontWeight: '600' }}>اختبار الوحدة</Text>
-            <QuizBuilder
-              courseId={courseId}
-              endpoint={`/api/teacher/modules/${mod.id}/quiz`}
-              existing={mod.quiz}
-              label={mod.quiz ? 'تعديل' : 'إضافة'}
-            />
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600', marginBottom: 4 }}>اختبارات الوحدة</Text>
+            {mod.quizzes.map((quiz) => (
+              <View key={quiz.id} style={[s.row, { alignItems: 'flex-start', marginBottom: 4 }]}>
+                <Text style={{ flexShrink: 1, fontWeight: '600' }}>{quiz.title}</Text>
+                <QuizBuilder
+                  courseId={courseId}
+                  targetType="module"
+                  targetId={mod.id}
+                  existing={quiz}
+                  label="تعديل"
+                />
+              </View>
+            ))}
+            <QuizBuilder courseId={courseId} targetType="module" targetId={mod.id} label="إضافة" />
           </View>
           {items.length === 0 && <Text style={{ color: c.inkSoft, marginBottom: 8 }}>لا توجد دروس بعد</Text>}
           {items.map((item, index) => {
@@ -513,7 +543,7 @@ function LessonEditor({
         >
           <Text style={{ fontWeight: '600' }}>{lesson.title}</Text>
           <Text style={{ color: c.inkSoft, fontSize: 12 }}>
-            {lesson.attachments.length} مادة · {lesson.quiz ? 'يوجد اختبار' : 'بدون اختبار'}
+            {lesson.attachments.length} مادة · {lesson.quizzes.length > 0 ? 'يوجد اختبار' : 'بدون اختبار'}
           </Text>
         </Pressable>
         <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -527,14 +557,30 @@ function LessonEditor({
         <View style={{ marginTop: 8 }}>
           <Field label="عنوان الدرس" value={title} onChange={setTitle} maxLength={160} />
           <Field label="محتوى الدرس" value={content} onChange={setContent} multiline maxLength={20000} />
-          <View style={[s.row, { marginBottom: 8 }]}>
+          <View style={{ marginBottom: 8 }}>
             <Btn label="حفظ الدرس" onPress={() => save.mutate()} loading={save.isPending} disabled={!title.trim()} />
-            <QuizBuilder
-              courseId={courseId}
-              endpoint={`/api/teacher/lessons/${lesson.id}/quiz`}
-              existing={lesson.quiz}
-              label={lesson.quiz ? 'تعديل الاختبار' : 'إضافة اختبار'}
-            />
+            <Text style={{ fontWeight: '600', marginTop: 8, marginBottom: 4 }}>الاختبارات</Text>
+            {lesson.quizzes.map((quiz, index) => (
+              <View key={quiz.id} style={[s.row, { alignItems: 'flex-start', marginBottom: 4 }]}>
+                <Text style={{ flexShrink: 1, fontWeight: '600' }}>{quiz.title}</Text>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  <QuizOrderButtons
+                    courseId={courseId}
+                    quizId={quiz.id}
+                    canUp={index > 0}
+                    canDown={index < lesson.quizzes.length - 1}
+                  />
+                  <QuizBuilder
+                    courseId={courseId}
+                    targetType="lesson"
+                    targetId={lesson.id}
+                    existing={quiz}
+                    label="تعديل"
+                  />
+                </View>
+              </View>
+            ))}
+            <QuizBuilder courseId={courseId} targetType="lesson" targetId={lesson.id} label="إضافة اختبار" />
           </View>
 
           <Text style={s.label}>المواد والمرفقات</Text>
@@ -585,16 +631,41 @@ function LessonEditor({
   );
 }
 
+function QuizOrderButtons({ courseId, quizId, canUp, canDown }: {
+  courseId: string;
+  quizId: string;
+  canUp: boolean;
+  canDown: boolean;
+}) {
+  const qc = useQueryClient();
+  const move = useMutation({
+    mutationFn: (direction: 'up' | 'down') =>
+      api(`/api/teacher/quizzes/${quizId}/move`, {
+        method: 'PUT',
+        body: { direction },
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] }),
+  });
+  return (
+    <View style={{ flexDirection: 'row', gap: 4 }}>
+      <MiniBtn label="↑" accessibilityLabel="تحريك لأعلى" disabled={!canUp || move.isPending} onPress={() => move.mutate('up')} />
+      <MiniBtn label="↓" accessibilityLabel="تحريك لأسفل" disabled={!canDown || move.isPending} onPress={() => move.mutate('down')} />
+    </View>
+  );
+}
+
 // ponytail: quiz images can be kept but not added on mobile; add an image picker when requested.
 function QuizBuilder({
   courseId,
-  endpoint,
+  targetType,
+  targetId,
   existing,
   label,
 }: {
   courseId: string;
-  endpoint: string;
-  existing: TeacherQuiz | null;
+  targetType: 'course' | 'module' | 'lesson';
+  targetId: string;
+  existing?: TeacherQuiz;
   label: string;
 }) {
   const qc = useQueryClient();
@@ -603,30 +674,41 @@ function QuizBuilder({
   const [questions, setQuestions] = useState<QuizFormQuestion[]>([blankQuestion()]);
   const [formError, setFormError] = useState<string | null>(null);
   const upsert = useMutation({
-    mutationFn: () =>
-      api(endpoint, {
-        body: {
-          title: title.trim(),
-          questions: questions.map((question) => ({
-            questionType: question.questionType,
-            prompt: question.prompt.trim(),
-            imageKey: question.imageKey,
-            options:
-              question.questionType === 'MCQ'
-                ? question.options.map((option) => option.trim())
-                : undefined,
-            correctAnswer:
-              question.questionType === 'MCQ'
-                ? (question.options[question.correctIndex ?? -1] ?? '').trim()
+    mutationFn: () => {
+      const body = {
+        title: title.trim(),
+        questions: questions.map((question) => ({
+          questionType: question.questionType,
+          prompt: question.prompt.trim(),
+          imageKey: question.imageKey,
+          options:
+            question.questionType === 'MCQ'
+              ? question.options.map((option) => option.trim())
+              : undefined,
+          correctAnswer:
+            question.questionType === 'MCQ'
+              ? (question.options[question.correctIndex ?? -1] ?? '').trim()
+              : question.questionType === 'WRITTEN'
+                ? question.modelAnswer.trim()
                 : question.correctBool,
-            points: 1,
-          })),
-        },
-      }),
+          points: 1,
+        })),
+      };
+      return existing
+        ? api(`/api/teacher/quizzes/${existing.id}`, { method: 'PUT', body })
+        : api(`/api/teacher/courses/${courseId}/quizzes`, {
+            body: { ...body, targetType, targetId },
+          });
+    },
     onSuccess: () => {
       setOpen(false);
       void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
     },
+  });
+
+  const remove = useMutation({
+    mutationFn: () => api(`/api/teacher/quizzes/${existing!.id}`, { method: 'DELETE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] }),
   });
 
   const show = () => {
@@ -656,6 +738,7 @@ function QuizBuilder({
             question.correctIndex !== null
           );
         }
+        if (question.questionType === 'WRITTEN') return !!question.modelAnswer.trim();
         return question.correctBool === 'true' || question.correctBool === 'false';
       });
     if (!valid) {
@@ -668,7 +751,21 @@ function QuizBuilder({
 
   return (
     <>
-      <MiniBtn label={label} onPress={show} />
+      <View style={{ flexDirection: 'row', gap: 4 }}>
+        <MiniBtn label={label} onPress={show} />
+        {existing ? (
+          <MiniBtn
+            label="حذف"
+            tone="danger"
+            onPress={() =>
+              Alert.alert('حذف الاختبار', `هل تريد حذف "${existing.title}"؟`, [
+                { text: 'إلغاء', style: 'cancel' },
+                { text: 'حذف', style: 'destructive', onPress: () => remove.mutate() },
+              ])
+            }
+          />
+        ) : null}
+      </View>
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
           <ScrollView contentContainerStyle={s.pageContent} keyboardShouldPersistTaps="handled">
@@ -696,11 +793,13 @@ function QuizBuilder({
                       questionType: value,
                       correctIndex: null,
                       correctBool: value === 'TRUE_FALSE' ? 'true' : '',
+                      modelAnswer: '',
                     })
                   }
                   options={[
                     { value: 'MCQ', label: 'اختيار من متعدد' },
                     { value: 'TRUE_FALSE', label: 'صح أو خطأ' },
+                    { value: 'WRITTEN', label: 'إجابة مكتوبة' },
                   ]}
                 />
                 <Field
@@ -761,6 +860,14 @@ function QuizBuilder({
                       />
                     ) : null}
                   </>
+                ) : question.questionType === 'WRITTEN' ? (
+                  <Field
+                    label="الإجابة النموذجية"
+                    value={question.modelAnswer}
+                    onChange={(value) => update(index, { modelAnswer: value })}
+                    multiline
+                    maxLength={2000}
+                  />
                 ) : (
                   <Choice
                     label="الإجابة الصحيحة"

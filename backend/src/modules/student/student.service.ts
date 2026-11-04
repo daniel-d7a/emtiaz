@@ -51,6 +51,15 @@ export class StudentService {
     }
   }
 
+  private async signedAvatar(key: string | null): Promise<string | null> {
+    if (!key) return null;
+    try {
+      return await this.storage.presignedGet(key);
+    } catch {
+      return null;
+    }
+  }
+
   private async assertEnrolled(studentId: string, groupId: string) {
     const rows = await db
       .select({ membership: groupStudents })
@@ -364,9 +373,13 @@ export class StudentService {
         .sort((a, b) => b.score - a.score)[0];
       return attempt ? serializeQuizAttempt(attempt) : null;
     };
-    const courseQuiz = quizRows.find(
-      (q) => q.courseId === group.courseId && !hiddenQuizIds.has(q.id),
-    );
+    const visibleQuizzes = quizRows
+      .filter((q) => !hiddenQuizIds.has(q.id))
+      .sort((a, b) => a.displayOrder - b.displayOrder || a.id.localeCompare(b.id));
+    const withAttempt = (quiz: typeof quizRows[number]) => ({
+      ...serializeQuiz(quiz),
+      bestAttempt: bestFor(quiz.id),
+    });
     const [course] = await db
       .select()
       .from(courses)
@@ -376,6 +389,7 @@ export class StudentService {
         name: users.name,
         theme: users.landingTheme,
         banner: users.landingBanner,
+        avatar: users.image,
         slug: users.landingSlug,
         published: users.landingPublished,
       })
@@ -388,31 +402,32 @@ export class StudentService {
         name: teacher?.name ?? '',
         theme: teacher?.theme ?? null,
         bannerUrl: await this.signedBanner(teacher?.banner ?? null),
+        avatarUrl: await this.signedAvatar(teacher?.avatar ?? null),
         slug: teacher?.published ? teacher.slug : null,
       },
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
-      quiz: courseQuiz ? { ...serializeQuiz(courseQuiz), bestAttempt: bestFor(courseQuiz.id) } : null,
+      quizzes: visibleQuizzes
+        .filter((q) => q.courseId === group.courseId)
+        .map(withAttempt),
       modules: mods.map((m) => {
-        const moduleQuiz = quizRows.find(
-          (q) => q.moduleId === m.id && !hiddenQuizIds.has(q.id),
-        );
         return {
           ...serializeModule(m),
-          quiz: moduleQuiz
-            ? { ...serializeQuiz(moduleQuiz), bestAttempt: bestFor(moduleQuiz.id) }
-            : null,
+          quizzes: visibleQuizzes
+            .filter((q) => q.moduleId === m.id)
+            .map(withAttempt),
           lessons: visibleLessons
             .filter((l) => l.moduleId === m.id)
             .map((l) => {
-              const quiz = quizRows.find(
-                (q) => q.lessonId === l.id && !hiddenQuizIds.has(q.id),
-              );
+              const lessonQuizzes = visibleQuizzes.filter((q) => q.lessonId === l.id);
               return {
                 ...serializeLesson(l),
                 unlocked: isUnlocked(l.id),
                 completed: completions.some((c) => c.lessonId === l.id),
-                hasQuiz: !!quiz,
-                bestAttempt: bestFor(quiz?.id),
+                hasQuiz: lessonQuizzes.length > 0,
+                bestAttempt: lessonQuizzes.length
+                  ? bestFor(lessonQuizzes[0].id)
+                  : null,
+                quizzes: lessonQuizzes.map(withAttempt),
                 attachments: attachments
                   .filter(
                     (a) =>
@@ -573,7 +588,18 @@ export class StudentService {
 
     let score = 0;
     let maxScore = 0;
+    let pending = false;
     const result = questions.map((q) => {
+      if (q.questionType === 'WRITTEN') {
+        pending = true;
+        maxScore += 10;
+        return {
+          questionId: q.id,
+          correct: false,
+          expected: '',
+          explanation: q.explanation,
+        };
+      }
       maxScore += q.points;
       const answer = answers[q.id];
       const correct =
@@ -594,9 +620,10 @@ export class StudentService {
       score,
       maxScore,
       answersJson: answers,
+      pending,
     });
 
-    return { score, maxScore, result };
+    return { score, maxScore, pending, result };
   }
 
   /** A quiz is only reachable through a group whose course contains it. */
@@ -745,13 +772,24 @@ export class StudentService {
       answers,
       score: attempt.score,
       maxScore: attempt.maxScore,
+      pending: attempt.pending,
+      writtenGrades: attempt.writtenGrades ?? null,
       submittedAt: attempt.submittedAt,
-      result: questions.map((q) => ({
-        questionId: q.id,
-        correct: norm(answers[q.id] ?? '') === norm(q.correctAnswer),
-        expected: q.correctAnswer,
-        explanation: q.explanation,
-      })),
+      result: questions.map((q) =>
+        q.questionType === 'WRITTEN'
+          ? {
+              questionId: q.id,
+              correct: false,
+              expected: attempt.pending ? '' : q.correctAnswer,
+              explanation: q.explanation,
+            }
+          : {
+              questionId: q.id,
+              correct: norm(answers[q.id] ?? '') === norm(q.correctAnswer),
+              expected: q.correctAnswer,
+              explanation: q.explanation,
+            },
+      ),
     };
   }
 
@@ -769,6 +807,7 @@ export class StudentService {
         courseTitle: courses.title,
         score: quizAttempts.score,
         maxScore: quizAttempts.maxScore,
+        pending: quizAttempts.pending,
       })
       .from(quizAttempts)
       .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
@@ -806,9 +845,11 @@ export class StudentService {
             acc[r.quizId] = {
               quizId: r.quizId,
               title: r.quizTitle,
-              lessonTitle: r.lessonTitle ?? r.moduleTitle ?? r.courseTitle ?? '—',
+              unitTitle: r.moduleTitle ?? r.courseTitle ?? '—',
+              lessonTitle: r.lessonTitle ?? '',
               score: r.score,
               maxScore: r.maxScore,
+              pending: r.pending,
             };
           }
           return acc;

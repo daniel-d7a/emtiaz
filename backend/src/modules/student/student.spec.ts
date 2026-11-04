@@ -305,7 +305,7 @@ describe('Phase 3: student endpoints', () => {
       m.lessons.map((lesson: any) => lesson.id),
     );
     expect(lessonIds).not.toContain(world.lesson1);
-    expect(curriculum.body.modules[0].quiz).toBeNull();
+    expect(curriculum.body.modules[0].quizzes).toEqual([]);
 
     expect(
       (await s1.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`)).status,
