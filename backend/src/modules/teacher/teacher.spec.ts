@@ -927,6 +927,9 @@ describe('Phase 4: teacher endpoints', () => {
       expect(dl.status).toBe(200);
       expect(dl.body.url).toContain(att.body.r2ObjectKey);
 
+      const named = await s.get(`/api/storage/attachments/${att.body.id}/download?download=1`);
+      expect(decodeURIComponent(named.body.url)).toContain('attachment; filename="Worksheet_PDF"');
+
       const file = await s.get(`/api/storage/attachments/${att.body.id}/file`).redirects(0);
       expect(file.status).toBe(302);
       expect(file.headers.location).toContain(att.body.r2ObjectKey);

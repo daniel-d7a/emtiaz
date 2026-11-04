@@ -103,11 +103,14 @@ export class StorageService {
     return getSignedUrl(this.getPresignClient(), cmd, { expiresIn });
   }
 
-  async presignedGet(objectKey: string): Promise<string> {
+  async presignedGet(objectKey: string, downloadName?: string): Promise<string> {
     this.assertConfigured();
     const cmd = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: objectKey,
+      ...(downloadName
+        ? { ResponseContentDisposition: `attachment; filename="${downloadName.replace(/[^\w.\-]+/g, '_')}"` }
+        : {}),
     });
     return getSignedUrl(this.getPresignClient(), cmd, { expiresIn: 3600 });
   }

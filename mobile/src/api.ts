@@ -47,6 +47,12 @@ export async function resolveAttachmentUrl(a: { id: string; url: string | null }
   return d.url;
 }
 
+export async function resolveAttachmentDownloadUrl(a: { id: string; url: string | null }): Promise<string> {
+  if (a.url) return a.url;
+  const d = await api<{ url: string }>(`/api/storage/attachments/${a.id}/download?download=1`);
+  return d.url;
+}
+
 export async function uploadFile(uploadUrl: string, uri: string, mimeType: string) {
   const file = new File(uri);
   const res = await expoFetch(uploadUrl, {

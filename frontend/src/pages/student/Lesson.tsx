@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, ExternalLink, File } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, ExternalLink, File } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { attachmentIcon, attachmentUrl, previewableTypes } from '../../lib/attachment';
@@ -95,12 +95,12 @@ export default function StudentLesson() {
                         </>
                       );
                       return (
-                        <li key={a.id}>
+                        <li key={a.id} className="flex items-center gap-1">
                           {previewableTypes.has(a.fileType) ? (
                             <button
                               type="button"
                               onClick={() => setSelected(a.id)}
-                              className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-start hover:bg-line/40 ${selected === a.id ? 'bg-primary-light' : ''}`}
+                              className={`flex min-h-11 min-w-0 grow items-center gap-2 rounded-lg px-2 text-start hover:bg-line/40 ${selected === a.id ? 'bg-primary-light' : ''}`}
                             >
                               {content}
                             </button>
@@ -109,10 +109,20 @@ export default function StudentLesson() {
                               href={attachmentUrl(a)}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 hover:bg-line/40"
+                              className="flex min-h-11 min-w-0 grow items-center gap-2 rounded-lg px-2 hover:bg-line/40"
                             >
                               {content}
                               <ExternalLink size={14} className="shrink-0 text-ink-soft" />
+                            </a>
+                          )}
+                          {!a.url && (
+                            <a
+                              href={`/api/storage/attachments/${a.id}/file?download=1`}
+                              aria-label={t('download')}
+                              title={t('download')}
+                              className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-line/40"
+                            >
+                              <Download size={16} />
                             </a>
                           )}
                         </li>
@@ -133,14 +143,24 @@ export default function StudentLesson() {
         >
           {attachment && (
             <div className="max-h-[75vh] overflow-y-auto">
-              <a
-                href={attachmentSrc}
-                target="_blank"
-                rel="noreferrer"
-                className="mb-3 flex items-center gap-1 text-sm font-semibold text-primary underline"
-              >
-                <ExternalLink size={14} /> {t('openInNewTab')}
-              </a>
+              <div className="mb-3 flex flex-wrap items-center gap-4">
+                <a
+                  href={attachmentSrc}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-sm font-semibold text-primary underline"
+                >
+                  <ExternalLink size={14} /> {t('openInNewTab')}
+                </a>
+                {!attachment.url && (
+                  <a
+                    href={`/api/storage/attachments/${attachment.id}/file?download=1`}
+                    className="flex items-center gap-1 text-sm font-semibold text-primary underline"
+                  >
+                    <Download size={14} /> {t('download')}
+                  </a>
+                )}
+              </div>
               {attachment.fileType === 'IMAGE' && (
                 <img src={attachmentSrc} alt={attachment.title} className="max-h-[70vh] w-full rounded-xl border border-line object-contain" />
               )}

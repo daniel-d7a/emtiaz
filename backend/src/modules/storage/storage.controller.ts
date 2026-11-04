@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Injectable, Module, Param, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Injectable, Module, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto, QuizImageUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
@@ -151,10 +151,14 @@ export class StorageController {
 
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
   @Get('api/storage/attachments/:id/download')
-  async download(@Req() req: Request, @Param('id') id: string) {
+  async download(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Query('download') download?: string,
+  ) {
     const row = await this.readableAttachment(req.user!, id);
     if (!row.r2ObjectKey) throw new NotFoundException('Attachment has no file');
-    return { url: await this.storage.presignedGet(row.r2ObjectKey) };
+    return { url: await this.storage.presignedGet(row.r2ObjectKey, download ? row.title : undefined) };
   }
 
   @Roles('STUDENT', 'TEACHER', 'ADMIN')
@@ -162,11 +166,12 @@ export class StorageController {
   async file(
     @Req() req: Request,
     @Param('id') id: string,
+    @Query('download') download: string | undefined,
     @Res() res: Response,
   ) {
     const row = await this.readableAttachment(req.user!, id);
     if (!row.r2ObjectKey) throw new NotFoundException('Attachment has no file');
-    res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey));
+    res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey, download ? row.title : undefined));
   }
 
   private async readableAttachment(user: { id: string; role: string }, id: string) {
