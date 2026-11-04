@@ -40,6 +40,10 @@ type RootStackParamList = {
   TeacherCourse: { courseId: string };
   TeacherCurriculum: { courseId: string };
   TeacherNewCourse: undefined;
+};
+
+type StudentStackParamList = {
+  Courses: undefined;
   CourseBrowser: undefined;
   Group: { groupId: string };
   Lesson: { lessonId: string; groupId: string };
@@ -53,6 +57,7 @@ type TabParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const StudentStackNav = createNativeStackNavigator<StudentStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 const screenOptions = {
   headerShown: false,
@@ -84,26 +89,21 @@ function MainTabs({ home, onLogout }: { home: ReactNode; onLogout: () => void })
   );
 }
 
-function StudentStack({ onLogout }: { onLogout: () => void }) {
+function StudentHomeStack() {
   return (
-    <Stack.Navigator initialRouteName="Main" screenOptions={screenOptions}>
-      <Stack.Screen name="Main">
+    <StudentStackNav.Navigator initialRouteName="Courses" screenOptions={screenOptions}>
+      <StudentStackNav.Screen name="Courses">
         {({ navigation }) => (
-          <MainTabs
-            onLogout={onLogout}
-            home={
-              <Courses
-                onOpen={(groupId) => navigation.navigate('Group', { groupId })}
-                onBrowse={() => navigation.navigate('CourseBrowser')}
-              />
-            }
+          <Courses
+            onOpen={(groupId) => navigation.navigate('Group', { groupId })}
+            onBrowse={() => navigation.navigate('CourseBrowser')}
           />
         )}
-      </Stack.Screen>
-      <Stack.Screen name="CourseBrowser">
+      </StudentStackNav.Screen>
+      <StudentStackNav.Screen name="CourseBrowser">
         {({ navigation }) => <CourseBrowser onBack={() => navigation.goBack()} />}
-      </Stack.Screen>
-      <Stack.Screen name="Group">
+      </StudentStackNav.Screen>
+      <StudentStackNav.Screen name="Group">
         {({ navigation, route }) => (
           <Group
             groupId={route.params.groupId}
@@ -119,8 +119,8 @@ function StudentStack({ onLogout }: { onLogout: () => void }) {
             }
           />
         )}
-      </Stack.Screen>
-      <Stack.Screen name="Lesson">
+      </StudentStackNav.Screen>
+      <StudentStackNav.Screen name="Lesson">
         {({ navigation, route }) => (
           <LessonView
             lessonId={route.params.lessonId}
@@ -134,8 +134,8 @@ function StudentStack({ onLogout }: { onLogout: () => void }) {
             }
           />
         )}
-      </Stack.Screen>
-      <Stack.Screen name="Quiz">
+      </StudentStackNav.Screen>
+      <StudentStackNav.Screen name="Quiz">
         {({ navigation, route }) => (
           <Quiz
             lessonId={route.params.lessonId}
@@ -153,8 +153,24 @@ function StudentStack({ onLogout }: { onLogout: () => void }) {
             }}
           />
         )}
-      </Stack.Screen>
-    </Stack.Navigator>
+      </StudentStackNav.Screen>
+    </StudentStackNav.Navigator>
+  );
+}
+
+function StudentTabs({ onLogout }: { onLogout: () => void }) {
+  return (
+    <Tab.Navigator screenOptions={tabOptions}>
+      <Tab.Screen name="Home" options={{ title: 'الرئيسية' }}>
+        {() => <StudentHomeStack />}
+      </Tab.Screen>
+      <Tab.Screen name="Notifications" options={{ title: 'الإشعارات' }}>
+        {() => <Notifications />}
+      </Tab.Screen>
+      <Tab.Screen name="Profile" options={{ title: 'حسابي' }}>
+        {() => <Profile onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
   );
 }
 
@@ -275,7 +291,7 @@ function Root() {
       ) : session.user.role === 'TEACHER' ? (
         <TeacherStack onLogout={logout} />
       ) : (
-        <StudentStack onLogout={logout} />
+        <StudentTabs onLogout={logout} />
       )}
     </NavigationContainer>
   );
