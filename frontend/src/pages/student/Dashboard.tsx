@@ -19,10 +19,18 @@ export default function StudentDashboard() {
     queryFn: () => api<InboxItem[]>('/api/notifications?limit=5'),
   });
   const [code, setCode] = useState('');
+  const [entry, setEntry] = useState('');
   const join = useMutation({
-    mutationFn: () => api('/api/student/groups/join', { body: { joinCode: code.trim() } }),
+    mutationFn: () =>
+      api('/api/student/groups/join', {
+        body: {
+          joinCode: code.trim(),
+          entryCode: entry.trim() || undefined,
+        },
+      }),
     onSuccess: () => {
       setCode('');
+      setEntry('');
       toast.success(t('joinedOk'));
       void qc.invalidateQueries({ queryKey: ['student-home'] });
       void qc.invalidateQueries({ queryKey: ['inbox'] });
@@ -104,11 +112,20 @@ export default function StudentDashboard() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder={t('enterCodePlaceholder')}
+              maxLength={16}
+              dir="ltr"
+            />
+          </div>
+          <div className="grow">
+            <Input
+              label={t('entryCodeOptional')}
+              value={entry}
+              onChange={(e) => setEntry(e.target.value)}
               maxLength={8}
               dir="ltr"
             />
           </div>
-          <Button onClick={() => join.mutate()} disabled={code.trim().length < 6}>
+          <Button onClick={() => join.mutate()} disabled={code.trim().length < 3}>
             <Plus className="inline" size={18} /> {t('join')}
           </Button>
         </div>

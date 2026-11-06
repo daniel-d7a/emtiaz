@@ -8,7 +8,7 @@ import { Button, Card, ErrorBox, Input } from '../components/ui';
 
 export default function Login() {
   const { t } = useLang();
-  const { join } = useSearch({ from: '/login' });
+  const { join, entry } = useSearch({ from: '/login' });
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [identifier, setIdentifier] = useState('');
@@ -17,7 +17,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
 
   const go = (role: string) => {
-    if (join) return navigate({ to: '/join/$joinCode', params: { joinCode: join } });
+    if (join) return navigate({ to: '/join/$joinCode', params: { joinCode: join }, search: { entry } });
     const home = {
       TEACHER: '/teacher/dashboard',
       ADMIN: '/admin/dashboard',
@@ -59,13 +59,13 @@ export default function Login() {
           <Button type="submit" disabled={busy}>{t('login')}</Button>
         </form>
         <div className="mt-4 flex flex-wrap justify-between gap-2 text-sm">
-          <Link to="/register/$role" params={{ role: 'student' }} search={{ join }} className="text-primary underline">
+          <Link to="/register/$role" params={{ role: 'student' }} search={{ join, entry }} className="text-primary underline">
             {t('student')} — {t('register')}
           </Link>
-          <Link to="/register/$role" params={{ role: 'teacher' }} search={{ join }} className="text-primary underline">
+          <Link to="/register/$role" params={{ role: 'teacher' }} search={{ join, entry }} className="text-primary underline">
             {t('teacher')} — {t('register')}
           </Link>
-          <Link to="/register/$role" params={{ role: 'parent' }} search={{ join }} className="text-primary underline">
+          <Link to="/register/$role" params={{ role: 'parent' }} search={{ join, entry }} className="text-primary underline">
             {t('parent')} — {t('register')}
           </Link>
         </div>
@@ -80,6 +80,9 @@ import { requireRole } from '../lib/session';
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  validateSearch: (s: Record<string, unknown>): { join?: string } => ({ join: typeof s.join === 'string' ? s.join : undefined }),
+  validateSearch: (s: Record<string, unknown>): { join?: string; entry?: string } => ({
+    join: typeof s.join === 'string' ? s.join : undefined,
+    entry: typeof s.entry === 'string' ? s.entry : undefined,
+  }),
   component: Login,
 });

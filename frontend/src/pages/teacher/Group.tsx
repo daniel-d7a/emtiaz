@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, KeyRound, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, Users } from 'lucide-react';
+import QRCode from 'qrcode';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
   useReactTable, type ColumnDef, type PaginationState, type SortingState,
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
-import { useLang } from '../../lib/i18n';
+import { formatDateTime, useLang } from '../../lib/i18n';
 import { Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Progress, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   Group,
   TeacherAttendance,
+  TeacherEntryCodes,
   TeacherGradebook as Gradebook,
   TeacherGroupStats,
   TeacherPacing as Pacing,
@@ -21,8 +23,8 @@ import type {
   TeacherRoster as Roster,
 } from '../../../../shared/api';
 
-export type GroupTab = 'pacing' | 'attendance' | 'gradebook' | 'roster' | 'stats' | 'settings';
-const GROUP_TABS: GroupTab[] = ['pacing', 'attendance', 'gradebook', 'roster', 'stats', 'settings'];
+export type GroupTab = 'pacing' | 'attendance' | 'gradebook' | 'roster' | 'stats' | 'entry-codes' | 'settings';
+const GROUP_TABS: GroupTab[] = ['pacing', 'attendance', 'gradebook', 'roster', 'stats', 'entry-codes', 'settings'];
 
 export default function TeacherGroup() {
   const { groupId } = useParams({ from: '/teacher/groups/$groupId' });
@@ -63,7 +65,9 @@ export default function TeacherGroup() {
                     ? t('roster')
                     : key === 'stats'
                       ? t('stats')
-                      : t('settings')}
+                      : key === 'entry-codes'
+                        ? t('entryCodes')
+                        : t('settings')}
           </button>
         ))}
       </div>
@@ -73,6 +77,7 @@ export default function TeacherGroup() {
         {tab === 'gradebook' && <GradebookTab groupId={groupId} />}
         {tab === 'roster' && <RosterTab groupId={groupId} />}
         {tab === 'stats' && <StatsTab groupId={groupId} />}
+        {tab === 'entry-codes' && <EntryCodesTab groupId={groupId} />}
         {tab === 'settings' && <SettingsTab groupId={groupId} />}
       </div>
     </Page>
@@ -1092,6 +1097,131 @@ function StatsChart({
   );
 }
 
+export function EntryCodesTab({ groupId }: { groupId: string }) {
+  const { t, lang } = useLang();
+  const qc = useQueryClient();
+  const [maxUses, setMaxUses] = useState('10');
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['entry-codes', groupId],
+    queryFn: () => api<TeacherEntryCodes>(`/api/teacher/groups/${groupId}/entry-codes`),
+  });
+  const create = useMutation({
+    mutationFn: () =>
+      api(`/api/teacher/groups/${groupId}/entry-codes`, {
+        body: { maxUses: Number(maxUses) },
+      }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      void qc.invalidateQueries({ queryKey: ['entry-codes', groupId] });
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return null;
+
+  const copy = (value: string) =>
+    navigator.clipboard.writeText(value).then(
+      () => toast.success(t('copied')),
+      () => toast.error(t('errorOccurred')),
+    );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <h3 className="flex items-center gap-2 font-bold">
+          <KeyRound size={18} /> {t('entryCodes')}
+        </h3>
+        <p className="mt-1 text-sm text-ink-soft">{t('entryCodeHint')}</p>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <div className="min-w-40">
+            <Input
+              label={t('maxUses')}
+              type="number"
+              min={1}
+              max={1000}
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value)}
+              dir="ltr"
+            />
+          </div>
+          <Button
+            onClick={() => create.mutate()}
+            disabled={create.isPending || Number(maxUses) < 1}
+          >
+            <Plus className="inline" size={16} /> {t('generateCode')}
+          </Button>
+        </div>
+        {create.error && <div className="mt-3"><ErrorBox error={create.error} /></div>}
+      </Card>
+
+      {data.codes.length === 0 ? (
+        <Card><p className="text-sm text-ink-soft">{t('noEntryCodes')}</p></Card>
+      ) : (
+        data.codes.map((code) => {
+          const joinUrl = `${window.location.origin}/join/${data.group.joinCode}?entry=${encodeURIComponent(code.code)}`;
+          return (
+            <Card key={code.id}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span dir="ltr" className="rounded bg-background px-3 py-2 font-mono text-lg font-bold">
+                      {code.code}
+                    </span>
+                    <Badge tone={code.usedUp ? 'danger' : 'primary'}>
+                      {code.usedUp ? t('usedUp') : t('available')}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-ink-soft">
+                    {t('maxUses')}: <span className="tabular-nums">{code.maxUses}</span>
+                    {' · '}
+                    {t('usedBy')}: <span className="tabular-nums">{code.usedCount}</span>
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => copy(code.code)}>
+                      <Copy className="inline" size={16} /> {t('copyJoinCode')}
+                    </Button>
+                    <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => copy(joinUrl)}>
+                      <Link2 className="inline" size={16} /> {t('copyJoinLink')}
+                    </Button>
+                  </div>
+                </div>
+                <EntryCodeQr value={joinUrl} />
+              </div>
+              {code.uses.length > 0 && (
+                <ul className="mt-4 flex flex-col divide-y divide-line border-t border-line pt-2">
+                  {code.uses.map((use) => (
+                    <li key={use.studentId} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                      <span className="font-semibold">{use.name}</span>
+                      <span className="text-ink-soft">{formatDateTime(use.usedAt, lang)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function EntryCodeQr({ value }: { value: string }) {
+  const [src, setSrc] = useState('');
+  useEffect(() => {
+    let active = true;
+    QRCode.toDataURL(value, { width: 160, margin: 1 })
+      .then((url) => active && setSrc(url))
+      .catch(() => active && setSrc(''));
+    return () => {
+      active = false;
+    };
+  }, [value]);
+  if (!src) return null;
+  return <img src={src} width={160} height={160} alt="" className="rounded-lg border border-line bg-white p-1" />;
+}
+
 export function SettingsTab({ groupId }: { groupId: string }) {
   const { t } = useLang();
   const pacing = useQuery(pacingQuery(groupId));
@@ -1108,7 +1238,7 @@ export function SettingsTab({ groupId }: { groupId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <GroupSettingsForm
-        key={[group.id, group.name, group.days, group.time, group.isActive, group.joinCode, group.whatsappMessage].join('|')}
+        key={[group.id, group.name, group.days, group.time, group.isActive, group.joinCode, group.whatsappMessage, group.requiresEntryCode].join('|')}
         group={group}
         groupId={groupId}
       />
@@ -1135,6 +1265,7 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
   const [joinCode, setJoinCode] = useState(group.joinCode);
   const [whatsappMessage, setWhatsappMessage] = useState(group.whatsappMessage ?? '');
   const [isActive, setIsActive] = useState(group.isActive);
+  const [requiresEntryCode, setRequiresEntryCode] = useState(group.requiresEntryCode);
   const save = useMutation({
     mutationFn: () =>
       api<Group>(`/api/teacher/groups/${groupId}`, {
@@ -1146,6 +1277,7 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
           joinCode: joinCode.trim(),
           whatsappMessage: whatsappMessage.trim() || null,
           isActive,
+          requiresEntryCode,
         },
       }),
     onSuccess: () => {
@@ -1175,6 +1307,15 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
           dir="ltr"
         />
       </div>
+      <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-ink-soft">
+        <input
+          type="checkbox"
+          checked={requiresEntryCode}
+          onChange={(e) => setRequiresEntryCode(e.target.checked)}
+          className="size-4 accent-primary"
+        />
+        {t('requiresEntryCode')}
+      </label>
       <p className="mt-2 text-xs text-ink-soft">{t('groupNameFallback')}</p>
       <label className="mt-3 block">
         <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('whatsappMessage')}</span>

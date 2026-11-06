@@ -27,7 +27,7 @@ export default function Register() {
   });
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
-  const { join: joinCode } = useSearch({ from: '/register/$role' });
+  const { join: joinCode, entry } = useSearch({ from: '/register/$role' });
 
   useEffect(() => {
     document.title = `${t('register')} — ${t('appName')}`;
@@ -48,7 +48,7 @@ export default function Register() {
       qc.clear();
       qc.setQueryData(sessionQuery.queryKey, { user: res.user });
       if (res.user.mustChangePassword) return navigate({ to: '/change-password' });
-      if (joinCode && !isParent) return navigate({ to: '/join/$joinCode', params: { joinCode } });
+      if (joinCode && !isParent) return navigate({ to: '/join/$joinCode', params: { joinCode }, search: { entry } });
       navigate({ to: isTeacher ? '/teacher/dashboard' : isParent ? '/parent/children' : '/student/dashboard' });
     } catch (e) {
       setError(e as Error);
@@ -101,7 +101,7 @@ export default function Register() {
           <Button type="submit" disabled={busy}>{t('register')}</Button>
         </form>
         <p className="mt-4 text-center text-sm">
-          <Link to="/login" search={{ join: joinCode }} className="text-primary underline">
+          <Link to="/login" search={{ join: joinCode, entry }} className="text-primary underline">
             {t('login')}
           </Link>
         </p>
@@ -115,6 +115,9 @@ import { rootRoute } from '../routes/__root';
 export const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/register/$role',
-  validateSearch: (s: Record<string, unknown>): { join?: string } => ({ join: typeof s.join === 'string' ? s.join : undefined }),
+  validateSearch: (s: Record<string, unknown>): { join?: string; entry?: string } => ({
+    join: typeof s.join === 'string' ? s.join : undefined,
+    entry: typeof s.entry === 'string' ? s.entry : undefined,
+  }),
   component: Register,
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createRoute, useNavigate, useParams } from '@tanstack/react-router';
+import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '../lib/session';
 import { api, authApi, onboardingApi } from '../lib/api';
@@ -10,6 +10,7 @@ import { Button, Card, ErrorBox, Input, Loading } from '../components/ui';
  *  otherwise a 1-step quick register card. */
 export default function JoinPage() {
   const { joinCode } = useParams({ from: '/join/$joinCode' });
+  const { entry } = useSearch({ from: '/join/$joinCode' });
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading } = useSession();
@@ -24,7 +25,10 @@ export default function JoinPage() {
 
   const joinAndGo = async () => {
     try {
-      await api(`/api/onboarding/join/${joinCode}`, { method: 'POST' });
+      await api(`/api/onboarding/join/${joinCode}`, {
+        method: 'POST',
+        body: entry ? { entryCode: entry } : {},
+      });
       setJoined(true);
       qc.clear();
       setTimeout(() => navigate({ to: '/student/dashboard' }), 800);
@@ -36,7 +40,7 @@ export default function JoinPage() {
   useEffect(() => {
     if (isLoading || joined || error) return;
     if (data?.user?.role === 'STUDENT') void joinAndGo();
-  }, [data, isLoading, joined, error, joinCode]);
+  }, [data, isLoading, joined, error, joinCode, entry]);
 
   const quickRegister = async () => {
     setBusy(true);
@@ -87,5 +91,8 @@ import { rootRoute } from '../routes/__root';
 export const joinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/join/$joinCode',
+  validateSearch: (s: Record<string, unknown>): { entry?: string } => ({
+    entry: typeof s.entry === 'string' ? s.entry : undefined,
+  }),
   component: JoinPage,
 });
