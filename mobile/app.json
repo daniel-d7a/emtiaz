@@ -13,7 +13,15 @@
       "package": "om.emtiaz.app"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "السماح لامتياز باستخدام الكاميرا لمسح رمز QR",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ]
     ]
   }
 }

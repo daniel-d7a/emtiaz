@@ -5,13 +5,14 @@ import { api } from '../api';
 import { Btn, ErrorBox, Loading, Text, c, s } from '../ui';
 import type { TeacherPacing } from '../../../shared/api';
 import TeacherGroupAttendance from './TeacherGroupAttendance';
+import TeacherGroupEntryCodes from './TeacherGroupEntryCodes';
 import TeacherGroupGradebook from './TeacherGroupGradebook';
 import TeacherGroupPacing from './TeacherGroupPacing';
 import TeacherGroupRoster from './TeacherGroupRoster';
 import TeacherGroupSettings from './TeacherGroupSettings';
 import TeacherGroupStats from './TeacherGroupStats';
 
-type Tab = 'pacing' | 'attendance' | 'gradebook' | 'roster' | 'stats' | 'settings';
+type Tab = 'pacing' | 'attendance' | 'gradebook' | 'roster' | 'stats' | 'entry-codes' | 'settings';
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'pacing', label: 'المسار' },
@@ -19,6 +20,7 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'gradebook', label: 'الدرجات' },
   { id: 'roster', label: 'الطلاب' },
   { id: 'stats', label: 'الإحصاءات' },
+  { id: 'entry-codes', label: 'رموز الدخول' },
   { id: 'settings', label: 'الإعدادات' },
 ];
 
@@ -103,6 +105,7 @@ export default function TeacherGroup({
       {tab === 'gradebook' ? <TeacherGroupGradebook groupId={groupId} /> : null}
       {tab === 'roster' ? <TeacherGroupRoster groupId={groupId} /> : null}
       {tab === 'stats' ? <TeacherGroupStats groupId={groupId} /> : null}
+      {tab === 'entry-codes' ? <TeacherGroupEntryCodes groupId={groupId} /> : null}
       {tab === 'settings' ? <TeacherGroupSettings groupId={groupId} /> : null}
     </ScrollView>
   );

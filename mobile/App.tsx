@@ -27,6 +27,7 @@ import TeacherCurriculum from './src/screens/TeacherCurriculum';
 import TeacherGroup from './src/screens/TeacherGroup';
 import TeacherNewCourse from './src/screens/TeacherNewCourse';
 import Quiz from './src/screens/Quiz';
+import ScanJoin from './src/screens/ScanJoin';
 import { Loading, Text, c, f, s } from './src/ui';
 import { queryClient } from './src/query';
 import type { Session } from '../shared/api';
@@ -45,6 +46,7 @@ type RootStackParamList = {
 type StudentStackParamList = {
   Courses: undefined;
   CourseBrowser: undefined;
+  ScanJoin: undefined;
   Group: { groupId: string };
   Lesson: { lessonId: string; groupId: string };
   Quiz: { groupId: string; lessonId?: string; quizId?: string };
@@ -97,11 +99,22 @@ function StudentHomeStack() {
           <Courses
             onOpen={(groupId) => navigation.navigate('Group', { groupId })}
             onBrowse={() => navigation.navigate('CourseBrowser')}
+            onScan={() => navigation.navigate('ScanJoin')}
           />
         )}
       </StudentStackNav.Screen>
       <StudentStackNav.Screen name="CourseBrowser">
         {({ navigation }) => <CourseBrowser onBack={() => navigation.goBack()} />}
+      </StudentStackNav.Screen>
+      <StudentStackNav.Screen name="ScanJoin">
+        {({ navigation }) => (
+          <ScanJoin
+            onBack={() => navigation.goBack()}
+            onJoined={(groupId) =>
+              navigation.replace('Group', { groupId })
+            }
+          />
+        )}
       </StudentStackNav.Screen>
       <StudentStackNav.Screen name="Group">
         {({ navigation, route }) => (

@@ -13,6 +13,7 @@ export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
   const [joinCode, setJoinCode] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [requiresEntryCode, setRequiresEntryCode] = useState(false);
   const [columnTitle, setColumnTitle] = useState('');
   const pacing = useQuery({
     queryKey: ['teacher-pacing', groupId],
@@ -32,6 +33,7 @@ export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
     setJoinCode(group.joinCode);
     setWhatsappMessage(group.whatsappMessage ?? '');
     setIsActive(group.isActive);
+    setRequiresEntryCode(group.requiresEntryCode);
   }, [pacing.data?.group]);
 
   const invalidate = () => {
@@ -50,6 +52,7 @@ export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
           joinCode: joinCode.trim(),
           whatsappMessage: whatsappMessage.trim() || null,
           isActive,
+          requiresEntryCode,
         },
       }),
     onSuccess: invalidate,
@@ -88,6 +91,15 @@ export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
           <Switch
             value={isActive}
             onValueChange={setIsActive}
+            trackColor={{ false: c.line, true: c.primary }}
+            ios_backgroundColor={c.line}
+          />
+        </View>
+        <View style={[s.row, { paddingVertical: 6, marginBottom: 8 }]}>
+          <Text style={{ fontWeight: '600' }}>يتطلب رمز دخول</Text>
+          <Switch
+            value={requiresEntryCode}
+            onValueChange={setRequiresEntryCode}
             trackColor={{ false: c.line, true: c.primary }}
             ios_backgroundColor={c.line}
           />

@@ -8,12 +8,15 @@ import type { StudentGroup as Group, StudentHome } from '../../../shared/api';
 export default function Courses({
   onOpen,
   onBrowse,
+  onScan,
 }: {
   onOpen: (groupId: string) => void;
   onBrowse: () => void;
+  onScan: () => void;
 }) {
   const qc = useQueryClient();
   const [joinCode, setJoin] = useState('');
+  const [entryCode, setEntry] = useState('');
   const home = useQuery({
     queryKey: ['student-home'],
     queryFn: () => api<StudentHome>('/api/student/home'),
@@ -23,9 +26,16 @@ export default function Courses({
     queryFn: () => api<Group[]>('/api/student/groups'),
   });
   const join = useMutation({
-    mutationFn: (code: string) => api('/api/student/groups/join', { body: { joinCode: code } }),
+    mutationFn: () =>
+      api('/api/student/groups/join', {
+        body: {
+          joinCode: joinCode.trim(),
+          entryCode: entryCode.trim() || undefined,
+        },
+      }),
     onSuccess: () => {
       setJoin('');
+      setEntry('');
       void qc.invalidateQueries({ queryKey: ['student-groups'] });
       void qc.invalidateQueries({ queryKey: ['student-home'] });
     },
@@ -85,13 +95,23 @@ export default function Courses({
           autoCapitalize="characters"
           placeholderTextColor={c.inkSoft}
         />
+        <TextInput
+          style={s.input}
+          value={entryCode}
+          onChangeText={setEntry}
+          placeholder="رمز الدخول (إن وجد)"
+          autoCapitalize="characters"
+          placeholderTextColor={c.inkSoft}
+          maxLength={8}
+        />
         {join.error && <ErrorBox error={join.error} />}
         <Btn
           label="انضم"
-          onPress={() => joinCode.trim() && join.mutate(joinCode)}
+          onPress={() => joinCode.trim() && join.mutate()}
           disabled={!joinCode.trim()}
           loading={join.isPending}
         />
+        <Btn label="مسح رمز QR" variant="ghost" onPress={onScan} />
       </Card>
 
       <Text style={s.h2}>مقرراتي</Text>

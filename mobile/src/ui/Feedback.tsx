@@ -8,6 +8,11 @@ function messageFor(error: unknown) {
   if (/network request failed|failed to fetch|timeout/i.test(raw)) {
     return 'تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
   }
+  if (/entry code is required/i.test(raw)) return 'رمز الدخول مطلوب لهذه المجموعة.';
+  if (/invalid entry code/i.test(raw)) return 'رمز الدخول غير صحيح.';
+  if (/entry code is used up/i.test(raw)) return 'انتهت استخدامات رمز الدخول.';
+  if (/invalid group code/i.test(raw)) return 'رمز المجموعة غير صحيح.';
+  if (/group inactive/i.test(raw)) return 'هذه المجموعة غير نشطة.';
   const status = (error as { status?: number })?.status;
   if (status === 400) return 'تحقق من البيانات المدخلة وحاول مرة أخرى.';
   if (status === 401) return 'انتهت جلستك. سجّل الدخول من جديد.';
