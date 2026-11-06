@@ -127,6 +127,7 @@ export function serializeGroup(row: GroupRow): Group {
     days: row.days,
     time: row.time,
     whatsappMessage: row.whatsappMessage,
+    requiresEntryCode: row.requiresEntryCode,
     unlockAllByDefault: row.unlockAllByDefault,
     isActive: row.isActive,
     createdAt: iso(row.createdAt),

@@ -41,7 +41,7 @@ Docker Compose runs `web`, `api`, `db`, `redis`, and `rustfs`; a one-shot
 |---|---|
 | `onboarding` | Role signup, `GET/PATCH /api/me`, avatar URL, categories, health |
 | `student` | Groups, join-by-code, curriculum, lesson view/completion, quizzes, grades |
-| `teacher` | Home stats, course/module/lesson CRUD, quizzes, group settings/pacing/visibility, roster, announcements, gradebook, group statistics |
+| `teacher` | Home stats, course/module/lesson CRUD, quizzes, group settings/pacing/visibility, entry codes, roster, announcements, gradebook, group statistics |
 | `admin` | Global metrics, directories, suspend/delete/restore, manual enrollment, taxonomy, notifications, audit |
 | `parent` | Link/unlink children by student phone, read-only progress, attendance, grades, and delivered reports |
 | `public` | Published course catalogue, teacher storefront/course detail, avatar/banner, branding/support, sitemap, robots |
@@ -67,6 +67,9 @@ Core relationships:
 - `groups.course_id → courses.id`; `groups` holds the display schedule
   (`days`, `time`), join code, status, and WhatsApp join message
 - `group_students(group_id, student_id)` — enrollment, unique pair
+- `groups.requires_entry_code` gates joins; `group_entry_codes(group_id, code,
+  max_uses, used_count)` holds teacher-issued codes, and
+  `group_entry_code_uses(entry_code_id, student_id)` records each first use
 - `group_lesson_access(group_id, lesson_id, is_unlocked, is_hidden)` — per-group
   pacing and visibility; absence falls back to `groups.unlock_all_by_default`
 - `group_quiz_access(group_id, quiz_id, is_hidden)` — per-group quiz visibility
@@ -106,7 +109,8 @@ Full matrix and storage/export rules: [`security.md`](./security.md).
   the attachment's group (or any enrolled group for master files) with the
   lesson unlocked.
 - Group joins are student-only. Parents are read-only and must be linked to the
-  student through `parent_students`.
+  student through `parent_students`. A protected group also requires an entry
+  code owned by that group with remaining uses; re-joining consumes nothing.
 - Progress counts only currently unlocked lessons, so locking a lesson cannot
   push progress above 100%.
 

@@ -1,0 +1,593 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "cff5d329-86d3-4c90-94de-404335b9545d",
+  "prevIds": [
+    "e283eb3f-616b-4bfb-92bd-f4923c87df3a"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_entry_code_uses"
+      ],
+      "writes": [
+        "s|tbl|public.group_entry_code_uses",
+        "n|tbl|public.group_entry_code_uses",
+        "e|tbl|public.group_entry_code_uses",
+        "n|rel|public.group_entry_code_uses",
+        "n|type|public.group_entry_code_uses",
+        "n|rel|public.group_entry_code_uses_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_entry_codes"
+      ],
+      "writes": [
+        "s|tbl|public.group_entry_codes",
+        "n|tbl|public.group_entry_codes",
+        "e|tbl|public.group_entry_codes",
+        "n|rel|public.group_entry_codes",
+        "n|type|public.group_entry_codes",
+        "n|rel|public.group_entry_codes_pkey",
+        "n|rel|public.group_entry_codes_code_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "groups",
+        "requires_entry_code"
+      ],
+      "writes": [
+        "s|col|public.groups.requires_entry_code",
+        "n|col|public.groups.requires_entry_code",
+        "e|col|public.groups.requires_entry_code"
+      ],
+      "reads": [
+        "n|tbl|public.groups",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_entry_code_uses",
+        "unique_entry_code_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_entry_code_student_idx",
+        "n|idx|public.unique_entry_code_student_idx",
+        "e|idx|public.unique_entry_code_student_idx",
+        "n|rel|public.unique_entry_code_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_entry_code_uses",
+        "n|sch|public",
+        "n|col|public.group_entry_code_uses.entry_code_id",
+        "n|col|public.group_entry_code_uses.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_entry_code_uses",
+        "entry_code_use_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.entry_code_use_student_idx",
+        "n|idx|public.entry_code_use_student_idx",
+        "e|idx|public.entry_code_use_student_idx",
+        "n|rel|public.entry_code_use_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_entry_code_uses",
+        "n|sch|public",
+        "n|col|public.group_entry_code_uses.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_entry_codes",
+        "entry_code_group_idx"
+      ],
+      "writes": [
+        "s|idx|public.entry_code_group_idx",
+        "n|idx|public.entry_code_group_idx",
+        "e|idx|public.entry_code_group_idx",
+        "n|rel|public.entry_code_group_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_entry_codes",
+        "n|sch|public",
+        "n|col|public.group_entry_codes.group_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_entry_code_uses"
+      ],
+      "writes": [
+        "s|fk|public.group_entry_code_uses.group_entry_code_uses_entry_code_id_group_entry_codes_id_fkey",
+        "n|fk|public.group_entry_code_uses.group_entry_code_uses_entry_code_id_group_entry_codes_id_fkey",
+        "e|fk|public.group_entry_code_uses.group_entry_code_uses_entry_code_id_group_entry_codes_id_fkey",
+        "n|con|public.group_entry_code_uses.group_entry_code_uses_entry_code_id_group_entry_codes_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_entry_code_uses",
+        "n|sch|public",
+        "n|tbl|public.group_entry_codes",
+        "n|sch|public",
+        "n|col|public.group_entry_code_uses.entry_code_id",
+        "n|col|public.group_entry_codes.id",
+        "e|uniqueness|public.group_entry_codes.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_entry_code_uses"
+      ],
+      "writes": [
+        "s|fk|public.group_entry_code_uses.group_entry_code_uses_student_id_user_id_fkey",
+        "n|fk|public.group_entry_code_uses.group_entry_code_uses_student_id_user_id_fkey",
+        "e|fk|public.group_entry_code_uses.group_entry_code_uses_student_id_user_id_fkey",
+        "n|con|public.group_entry_code_uses.group_entry_code_uses_student_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_entry_code_uses",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.group_entry_code_uses.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_entry_codes"
+      ],
+      "writes": [
+        "s|fk|public.group_entry_codes.group_entry_codes_group_id_groups_id_fkey",
+        "n|fk|public.group_entry_codes.group_entry_codes_group_id_groups_id_fkey",
+        "e|fk|public.group_entry_codes.group_entry_codes_group_id_groups_id_fkey",
+        "n|con|public.group_entry_codes.group_entry_codes_group_id_groups_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_entry_codes",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.group_entry_codes.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "group_entry_code_uses",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "group_entry_codes",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "entry_code_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "student_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "used_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "group_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "code",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "max_uses",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "used_count",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "groups",
+        "name": "requires_entry_code",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "unique_entry_code_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "entry_code_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "entry_code_use_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "entry_code_group_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "group_entry_code_uses_entry_code_id_group_entry_codes_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "entry_code_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "group_entry_codes",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "group_entry_code_uses_student_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "student_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "group_entry_codes_group_id_groups_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "group_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "groups",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_code_uses",
+        "name": "group_entry_code_uses_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "group_entry_codes_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "group_entry_codes_code_key",
+        "nameExplicit": false,
+        "columns": [
+          "code"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "entry_code_max_uses_check",
+        "value": "\"max_uses\" >= 1",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_entry_codes",
+        "name": "entry_code_used_count_check",
+        "value": "\"used_count\" >= 0",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

@@ -224,6 +224,7 @@ export const AddGroupDto = z.object({
     )
     .max(60)
     .optional(),
+  requiresEntryCode: z.boolean().optional(),
 });
 export const UpdateGroupDto = z.object({
   name: z.string().trim().max(120).optional(),
@@ -238,7 +239,33 @@ export const UpdateGroupDto = z.object({
     .regex(/^[A-Za-z0-9_-]+$/, 'must be letters, numbers, - or _')
     .optional(),
   whatsappMessage: z.string().trim().max(500).nullable().optional(),
+  requiresEntryCode: z.boolean().optional(),
 });
+const entryCode = z
+  .string()
+  .trim()
+  .min(6)
+  .max(8)
+  .transform((value) => value.toUpperCase());
+
+export const JoinGroupDto = z.object({
+  joinCode: z
+    .string()
+    .trim()
+    .min(1)
+    .max(16)
+    .transform((value) => value.toUpperCase()),
+  entryCode: entryCode.optional(),
+});
+
+export const JoinEntryDto = z.object({
+  entryCode: entryCode.optional(),
+});
+
+export const CreateEntryCodeDto = z.object({
+  maxUses: z.number().int().min(1).max(1000),
+});
+
 export const SearchStudentsDto = z.object({
   phone: z
     .string()

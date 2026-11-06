@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { auth } from '../../auth/auth';
 import { categories, courses, groupStudents, groups, parentStudents, users } from '../../db/schema';
 import * as schema from '../../db/schema';
+import { joinGroupByCode } from '../../lib/group-join';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 import { ParentService } from '../parent/parent.service';
@@ -23,42 +24,14 @@ export class OnboardingService {
   ) {}
 
   /** Adds the given student to a group identified by its join code. */
-  async joinByCode(studentId: string, joinCode: string) {
-    const group = await db
-      .select({ group: groups, course: courses })
-      .from(groups)
-      .innerJoin(courses, eq(groups.courseId, courses.id))
-      .where(
-        and(
-          eq(groups.joinCode, joinCode),
-          isNull(groups.deletedAt),
-          isNull(courses.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (!group.length) throw new NotFoundException('Invalid group code');
-
-    const { group: groupRow, course } = group[0];
-    if (!groupRow.isActive) throw new NotFoundException('Group inactive');
-
-    const existing = await db
-      .select()
-      .from(groupStudents)
-      .where(
-        and(
-          eq(groupStudents.groupId, groupRow.id),
-          eq(groupStudents.studentId, studentId),
-        ),
-      )
-      .limit(1);
-    if (!existing.length) {
-      await db
-        .insert(groupStudents)
-        .values({ groupId: groupRow.id, studentId });
-      await this.notifyEnrolled(studentId, groupRow);
-    }
-
-    return { group: serializeGroup(groupRow), course: serializeCourse(course) };
+  async joinByCode(studentId: string, joinCode: string, entryCode?: string) {
+    const { group, course, enrolled } = await joinGroupByCode(
+      studentId,
+      joinCode,
+      entryCode,
+    );
+    if (enrolled) await this.notifyEnrolled(studentId, group);
+    return { group: serializeGroup(group), course: serializeCourse(course) };
   }
 
   /** One welcome note per new enrollment; failure never blocks the join. */

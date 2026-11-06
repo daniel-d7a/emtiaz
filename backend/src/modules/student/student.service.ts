@@ -24,6 +24,7 @@ import {
   quizzes,
   users,
 } from '../../db/schema';
+import { joinGroupByCode } from '../../lib/group-join';
 import { StorageService } from '../storage/storage.service';
 import {
   serializeCourse,
@@ -256,39 +257,9 @@ export class StudentService {
     };
   }
 
-  async joinByCode(studentId: string, joinCode: string) {
-    const [group] = await db
-      .select({ group: groups, course: courses })
-      .from(groups)
-      .innerJoin(courses, eq(groups.courseId, courses.id))
-      .where(
-        and(
-          eq(groups.joinCode, joinCode),
-          eq(groups.isActive, true),
-          isNull(groups.deletedAt),
-          isNull(courses.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (!group) throw new NotFoundException('Invalid group code');
-
-    const existing = await db
-      .select()
-      .from(groupStudents)
-      .where(
-        and(
-          eq(groupStudents.groupId, group.group.id),
-          eq(groupStudents.studentId, studentId),
-        ),
-      )
-      .limit(1);
-    if (!existing.length) {
-      await db
-        .insert(groupStudents)
-        .values({ groupId: group.group.id, studentId });
-    }
-    return { group: serializeGroup(group.group), course: serializeCourse(group.course) };
-
+  async joinByCode(studentId: string, joinCode: string, entryCode?: string) {
+    const { group, course } = await joinGroupByCode(studentId, joinCode, entryCode);
+    return { group: serializeGroup(group), course: serializeCourse(course) };
   }
 
   async curriculum(studentId: string, groupId: string) {

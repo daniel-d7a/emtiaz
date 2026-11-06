@@ -232,6 +232,37 @@ describe('Phase 2: auth & onboarding', () => {
     expect(rows[0].c).toBe(1);
   });
 
+  it('requires an entry code for protected onboarding joins', async () => {
+    const { rows: courseRows } = await pool.query(
+      `INSERT INTO courses (title, teacher_id) SELECT 'Protected', id FROM "user" WHERE email='salim@teacher.om' RETURNING id`,
+    );
+    const group = (
+      await pool.query(
+        `INSERT INTO groups (course_id, name, join_code, requires_entry_code)
+         VALUES ($1, 'Protected batch', 'OM555555', true) RETURNING id`,
+        [courseRows[0].id],
+      )
+    ).rows[0].id;
+    await pool.query(
+      `INSERT INTO group_entry_codes (group_id, code, max_uses) VALUES ($1, 'ENTRY123', 1)`,
+      [group],
+    );
+
+    const s = request.agent(server);
+    await s
+      .post('/api/auth/sign-in/email')
+      .send({ email: 'aisha@student.om', password: 'Passw0rd!123' });
+
+    const missing = await s.post('/api/onboarding/join/OM555555');
+    expect(missing.status).toBe(400);
+
+    const joined = await s
+      .post('/api/onboarding/join/OM555555')
+      .send({ entryCode: 'ENTRY123' });
+    expect(joined.status).toBe(201);
+    expect(joined.body.group.id).toBe(group);
+  });
+
   it('mock-whatsapp messages are logged for new enrollments only', async () => {
     const { rows: courseRows } = await pool.query(
       `INSERT INTO courses (title, teacher_id) SELECT 'Chem', id FROM "user" WHERE email='salim@teacher.om' RETURNING id`,

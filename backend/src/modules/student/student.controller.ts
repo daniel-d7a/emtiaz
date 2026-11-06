@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, QuizSubmitDto } from '../../lib/schemas';
+import { ZodBodyPipe, QuizSubmitDto, JoinGroupDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { StudentService } from './student.service';
 
@@ -25,9 +25,9 @@ export class StudentController {
   @Roles('STUDENT')
   join(
     @Req() req: Request,
-    @Body(new ZodBodyPipe(z.object({ joinCode: z.string().trim().min(1).max(16) }))) dto: { joinCode: string },
+    @Body(new ZodBodyPipe(JoinGroupDto)) dto: z.infer<typeof JoinGroupDto>,
   ) {
-    return this.students.joinByCode(req.user!.id, dto.joinCode);
+    return this.students.joinByCode(req.user!.id, dto.joinCode, dto.entryCode);
   }
 
   @Get('api/student/groups/:groupId/curriculum')

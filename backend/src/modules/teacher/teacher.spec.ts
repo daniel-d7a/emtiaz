@@ -494,6 +494,106 @@ describe('Phase 4: teacher endpoints', () => {
       await t.patch(`/api/teacher/groups/${newGroupId}`).send({ isActive: true });
     });
 
+    describe('entry codes', () => {
+      let groupId: string;
+      let entryCode: string;
+      let student: Awaited<ReturnType<typeof login>>['session'];
+      const createdGroups: string[] = [];
+
+      beforeAll(async () => {
+        student = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+      });
+
+      afterAll(async () => {
+        if (createdGroups.length) {
+          await testPool.query(`DELETE FROM groups WHERE id = ANY($1)`, [createdGroups]);
+        }
+      });
+
+      it('requires a valid entry code when the group is protected', async () => {
+        const created = await t
+          .post(`/api/teacher/courses/${world.courseId}/groups`)
+          .send({ name: 'Protected batch', requiresEntryCode: true });
+        expect(created.status).toBe(201);
+        expect(created.body.requiresEntryCode).toBe(true);
+        groupId = created.body.id;
+        createdGroups.push(groupId);
+
+        const missing = await student
+          .post('/api/student/groups/join')
+          .send({ joinCode: created.body.joinCode });
+        expect(missing.status).toBe(400);
+
+        const wrong = await student
+          .post('/api/student/groups/join')
+          .send({ joinCode: created.body.joinCode, entryCode: 'WRONG123' });
+        expect(wrong.status).toBe(400);
+
+        const forbidden = await student.get(
+          `/api/teacher/groups/${groupId}/entry-codes`,
+        );
+        expect(forbidden.status).toBe(403);
+      });
+
+      it('creates a code and does not consume it on rejoin', async () => {
+        const created = await t
+          .post(`/api/teacher/groups/${groupId}/entry-codes`)
+          .send({ maxUses: 2 });
+        expect(created.status).toBe(201);
+        expect(created.body.code.code).toMatch(/^[A-Z2-9]{8}$/);
+        entryCode = created.body.code.code;
+
+        const joinCode = (
+          await t.get(`/api/teacher/groups/${groupId}/pacing`)
+        ).body.group.joinCode;
+        const first = await student
+          .post('/api/student/groups/join')
+          .send({ joinCode, entryCode });
+        expect(first.status).toBe(201);
+
+        const again = await student
+          .post('/api/student/groups/join')
+          .send({ joinCode, entryCode });
+        expect(again.status).toBe(201);
+
+        const listed = await t.get(`/api/teacher/groups/${groupId}/entry-codes`);
+        expect(listed.status).toBe(200);
+        const code = listed.body.codes.find((c: any) => c.code === entryCode);
+        expect(code.usedCount).toBe(1);
+        expect(code.usedUp).toBe(false);
+        expect(code.uses).toEqual([
+          expect.objectContaining({ studentId: world.s1.id, name: STUDENT1.name }),
+        ]);
+      });
+
+      it('rejects a new student after the code is used up', async () => {
+        const created = await t
+          .post(`/api/teacher/courses/${world.courseId}/groups`)
+          .send({ name: 'Single-use batch', requiresEntryCode: true });
+        createdGroups.push(created.body.id);
+        const code = await t
+          .post(`/api/teacher/groups/${created.body.id}/entry-codes`)
+          .send({ maxUses: 1 });
+
+        const first = await student
+          .post('/api/student/groups/join')
+          .send({
+            joinCode: created.body.joinCode,
+            entryCode: code.body.code.code,
+          });
+        expect(first.status).toBe(201);
+
+        const s2 = (await login(server, STUDENT2.email, STUDENT2.password)).session;
+        const second = await s2
+          .post('/api/student/groups/join')
+          .send({
+            joinCode: created.body.joinCode,
+            entryCode: code.body.code.code,
+          });
+        expect(second.status).toBe(400);
+      });
+    });
+
     it('pacing shows all course lessons with unlock flags', async () => {
       const res = await t.get(`/api/teacher/groups/${newGroupId}/pacing`);
       expect(res.status).toBe(200);

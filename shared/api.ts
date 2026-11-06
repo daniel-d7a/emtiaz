@@ -328,9 +328,33 @@ export type Group = {
   days: string | null;
   time: string | null;
   whatsappMessage: string | null;
+  requiresEntryCode: boolean;
   unlockAllByDefault: boolean;
   isActive: boolean;
   createdAt: string;
+};
+
+export type GroupEntryCodeUse = {
+  studentId: string;
+  name: string;
+  phoneNumber: string | null;
+  usedAt: string;
+};
+
+export type GroupEntryCode = {
+  id: string;
+  groupId: string;
+  code: string;
+  maxUses: number;
+  usedCount: number;
+  usedUp: boolean;
+  createdAt: string;
+  uses: GroupEntryCodeUse[];
+};
+
+export type TeacherEntryCodes = {
+  group: Group;
+  codes: GroupEntryCode[];
 };
 
 export type Module = {

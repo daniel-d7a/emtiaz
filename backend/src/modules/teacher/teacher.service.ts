@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
+import { randomInt } from 'crypto';
 import { auth } from '../../auth/auth';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -25,6 +26,8 @@ import {
   categories,
   courses,
   grades,
+  groupEntryCodeUses,
+  groupEntryCodes,
   groupLessonAccess,
   groupQuizAccess,
   groupStudents,
@@ -45,6 +48,10 @@ import {
 
 export const genJoinCode = () =>
   `OM${Math.floor(100000 + Math.random() * 900000)}`;
+
+const ENTRY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const genEntryCode = () =>
+  Array.from({ length: 8 }, () => ENTRY_ALPHABET[randomInt(ENTRY_ALPHABET.length)]).join('');
 
 type QuizPayload = {
   title: string;
@@ -1008,6 +1015,89 @@ export class TeacherService {
 
   // ---------- Groups ----------
 
+  async entryCodes(user: { id: string; role: string }, groupId: string) {
+    const { group } = await this.assertOwnsGroup(user, groupId);
+    const codes = await db
+      .select()
+      .from(groupEntryCodes)
+      .where(eq(groupEntryCodes.groupId, groupId))
+      .orderBy(desc(groupEntryCodes.createdAt));
+    const uses = codes.length
+      ? await db
+          .select({
+            entryCodeId: groupEntryCodeUses.entryCodeId,
+            studentId: groupEntryCodeUses.studentId,
+            name: users.name,
+            phoneNumber: users.phoneNumber,
+            usedAt: groupEntryCodeUses.usedAt,
+          })
+          .from(groupEntryCodeUses)
+          .innerJoin(users, eq(groupEntryCodeUses.studentId, users.id))
+          .where(
+            inArray(
+              groupEntryCodeUses.entryCodeId,
+              codes.map((code) => code.id),
+            ),
+          )
+          .orderBy(desc(groupEntryCodeUses.usedAt))
+      : [];
+    return {
+      group: serializeGroup(group),
+      codes: codes.map((code) => ({
+        id: code.id,
+        groupId: code.groupId,
+        code: code.code,
+        maxUses: code.maxUses,
+        usedCount: code.usedCount,
+        usedUp: code.usedCount >= code.maxUses,
+        createdAt: code.createdAt.toISOString(),
+        uses: uses
+          .filter((use) => use.entryCodeId === code.id)
+          .map(({ studentId, name, phoneNumber, usedAt }) => ({
+            studentId,
+            name,
+            phoneNumber,
+            usedAt: usedAt.toISOString(),
+          })),
+      })),
+    };
+  }
+
+  async createEntryCode(
+    user: { id: string; role: string },
+    groupId: string,
+    maxUses: number,
+  ) {
+    const { group } = await this.assertOwnsGroup(user, groupId);
+    let code = genEntryCode();
+    for (let i = 0; i < 5; i++) {
+      const duplicate = await db
+        .select({ id: groupEntryCodes.id })
+        .from(groupEntryCodes)
+        .where(eq(groupEntryCodes.code, code))
+        .limit(1);
+      if (!duplicate.length) break;
+      code = genEntryCode();
+    }
+    const [created] = await db
+      .insert(groupEntryCodes)
+      .values({ groupId, code, maxUses })
+      .returning();
+    return {
+      group: serializeGroup(group),
+      code: {
+        id: created.id,
+        groupId: created.groupId,
+        code: created.code,
+        maxUses: created.maxUses,
+        usedCount: created.usedCount,
+        usedUp: false,
+        createdAt: created.createdAt.toISOString(),
+        uses: [],
+      },
+    };
+  }
+
   private async assertOwnsGroup(user: { id: string; role: string }, groupId: string) {
     const [row] = await db
       .select({ group: groups, course: courses })
@@ -1057,6 +1147,7 @@ export class TeacherService {
       days?: string | null;
       time?: string | null;
       students?: Array<{ name: string; phoneNumber: string }>;
+      requiresEntryCode?: boolean;
     },
   ) {
     const course = await this.assertCourseAccess(user, courseId);
@@ -1079,6 +1170,7 @@ export class TeacherService {
         days: dto.days?.trim() || null,
         time: dto.time?.trim() || null,
         joinCode,
+        requiresEntryCode: dto.requiresEntryCode ?? false,
       })
       .returning();
     if (dto.students?.length) {
@@ -1102,6 +1194,7 @@ export class TeacherService {
       isActive?: boolean;
       joinCode?: string;
       whatsappMessage?: string | null;
+      requiresEntryCode?: boolean;
     },
   ) {
     const { course } = await this.assertOwnsGroup(user, groupId);
@@ -1115,6 +1208,9 @@ export class TeacherService {
     if (dto.isActive !== undefined) patch.isActive = dto.isActive;
     if (dto.whatsappMessage !== undefined) {
       patch.whatsappMessage = dto.whatsappMessage?.trim() || null;
+    }
+    if (dto.requiresEntryCode !== undefined) {
+      patch.requiresEntryCode = dto.requiresEntryCode;
     }
     if (dto.joinCode !== undefined) {
       const joinCode = dto.joinCode.trim().toUpperCase();

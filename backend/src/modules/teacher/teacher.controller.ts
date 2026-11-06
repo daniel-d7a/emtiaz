@@ -23,6 +23,7 @@ import {
   AnnounceDto,
   BulkStudentsDto,
   CreateCourseDto,
+  CreateEntryCodeDto,
   CreateQuizDto,
   GradeQuizAttemptDto,
   GradeCellDto,
@@ -278,6 +279,23 @@ export class TeacherController {
     dto: z.infer<typeof UpdateGroupDto>,
   ) {
     return this.teachers.updateGroup(req.user!, groupId, dto);
+  }
+
+  @Get('api/teacher/groups/:groupId/entry-codes')
+  @Roles('TEACHER')
+  entryCodes(@Req() req: Request, @Param('groupId') groupId: string) {
+    return this.teachers.entryCodes(req.user!, groupId);
+  }
+
+  @Post('api/teacher/groups/:groupId/entry-codes')
+  @Roles('TEACHER')
+  createEntryCode(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Body(new ZodBodyPipe(CreateEntryCodeDto))
+    dto: z.infer<typeof CreateEntryCodeDto>,
+  ) {
+    return this.teachers.createEntryCode(req.user!, groupId, dto.maxUses);
   }
 
   @Get('api/teacher/groups/:groupId/pacing')

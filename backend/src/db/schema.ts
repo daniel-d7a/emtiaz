@@ -191,6 +191,7 @@ export const groups = pgTable('groups', {
   days: text('days'),
   time: text('time'),
   whatsappMessage: text('whatsapp_message'),
+  requiresEntryCode: boolean('requires_entry_code').notNull().default(false),
   unlockAllByDefault: boolean('unlock_all_by_default').notNull().default(true),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -216,6 +217,43 @@ export const groupStudents = pgTable(
     ),
     studentIdx: index('group_student_student_idx').on(table.studentId),
   }),
+);
+
+export const groupEntryCodes = pgTable(
+  'group_entry_codes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    code: text('code').notNull().unique(),
+    maxUses: integer('max_uses').notNull(),
+    usedCount: integer('used_count').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('entry_code_group_idx').on(table.groupId),
+    check('entry_code_max_uses_check', sql`${table.maxUses} >= 1`),
+    check('entry_code_used_count_check', sql`${table.usedCount} >= 0`),
+  ],
+);
+
+export const groupEntryCodeUses = pgTable(
+  'group_entry_code_uses',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    entryCodeId: uuid('entry_code_id')
+      .notNull()
+      .references(() => groupEntryCodes.id, { onDelete: 'cascade' }),
+    studentId: text('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    usedAt: timestamp('used_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('unique_entry_code_student_idx').on(table.entryCodeId, table.studentId),
+    index('entry_code_use_student_idx').on(table.studentId),
+  ],
 );
 
 export const groupLessonAccess = pgTable(

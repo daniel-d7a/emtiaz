@@ -59,6 +59,7 @@ or parent ownership rights.
 | Read group statistics | no* | owner | no | no |
 | Search students by phone to add to a roster | no | students only | no | no |
 | Join a group by code | no | no | yes | no |
+| Generate/read group entry codes | no | owner | no | no |
 | Read own groups, curriculum, lessons, quizzes | no | no | enrolled | no |
 | Complete/uncomplete a lesson | no | no | enrolled + unlocked | no |
 | Submit a quiz | no | no | enrolled + group course | no |
@@ -91,6 +92,7 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
 ## Content access rules
 
+- Group entry codes are owner-only. Joining a protected group requires a code that belongs to that group and has remaining uses. Re-joining an existing membership does not consume a use. A use is recorded per `(entry_code, student)` and the counter is incremented only when that student first uses the code.
 - A student is "in a course" only through `group_students` → `groups.course_id`.
 - Lesson access requires enrollment in that course and an unlocked lesson for
   at least one of the student's groups. `group_lesson_access` overrides the

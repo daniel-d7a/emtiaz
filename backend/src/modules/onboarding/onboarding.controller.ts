@@ -5,7 +5,7 @@ import { auth } from '../../auth/auth';
 import { Public } from '../../auth/public.decorator';
 import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
-import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto, ChangePasswordDto } from '../../lib/schemas';
+import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto, ChangePasswordDto, JoinEntryDto } from '../../lib/schemas';
 import { toWebHeaders } from '../../auth/web-headers';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -22,9 +22,13 @@ export class OnboardingController {
   /** Authenticated students join a group by code (past signup). */
   @Roles('STUDENT')
   @Post('api/onboarding/join/:joinCode')
-  async join(@Param('joinCode') joinCode: string, @Req() req: Request) {
+  async join(
+    @Param('joinCode') joinCode: string,
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(JoinEntryDto)) dto: z.infer<typeof JoinEntryDto>,
+  ) {
     // @ts-expect-error user attached by guard
-    return this.onboarding.joinByCode(req.user.id, joinCode);
+    return this.onboarding.joinByCode(req.user.id, joinCode, dto.entryCode);
   }
   @Public()
   @Post('api/onboarding/teacher')
