@@ -4,8 +4,8 @@
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Mobile teachers can choose a lesson and mark students present or absent.
-- [ ] The screen supports marking all students present.
-- [ ] Attendance percentages update in the mobile gradebook and stats.
+- [x] Mobile teachers can choose a lesson and mark students present or absent.
+- [x] The screen supports marking all students present.
+- [x] Attendance percentages update in the mobile gradebook and stats.

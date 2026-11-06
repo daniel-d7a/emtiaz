@@ -4,16 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, ErrorBox, Loading, Text, c, s } from '../ui';
 import type { TeacherPacing } from '../../../shared/api';
+import TeacherGroupAttendance from './TeacherGroupAttendance';
 import TeacherGroupGradebook from './TeacherGroupGradebook';
 import TeacherGroupPacing from './TeacherGroupPacing';
 import TeacherGroupRoster from './TeacherGroupRoster';
 import TeacherGroupSettings from './TeacherGroupSettings';
 import TeacherGroupStats from './TeacherGroupStats';
 
-type Tab = 'pacing' | 'gradebook' | 'roster' | 'stats' | 'settings';
+type Tab = 'pacing' | 'attendance' | 'gradebook' | 'roster' | 'stats' | 'settings';
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'pacing', label: 'المسار' },
+  { id: 'attendance', label: 'الحضور' },
   { id: 'gradebook', label: 'الدرجات' },
   { id: 'roster', label: 'الطلاب' },
   { id: 'stats', label: 'الإحصاءات' },
@@ -97,6 +99,7 @@ export default function TeacherGroup({
       </ScrollView>
 
       {tab === 'pacing' ? <TeacherGroupPacing groupId={groupId} /> : null}
+      {tab === 'attendance' ? <TeacherGroupAttendance groupId={groupId} /> : null}
       {tab === 'gradebook' ? <TeacherGroupGradebook groupId={groupId} /> : null}
       {tab === 'roster' ? <TeacherGroupRoster groupId={groupId} /> : null}
       {tab === 'stats' ? <TeacherGroupStats groupId={groupId} /> : null}
