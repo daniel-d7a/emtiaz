@@ -53,6 +53,15 @@ export async function resolveAttachmentDownloadUrl(a: { id: string; url: string 
   return d.url;
 }
 
+export async function deleteUploadedObject(objectKey?: string | null) {
+  if (!objectKey) return;
+  try {
+    await api('/api/storage/uploaded', { method: 'DELETE', body: { objectKey } });
+  } catch {
+    // Best-effort cleanup; keep the original save error.
+  }
+}
+
 export async function uploadFile(uploadUrl: string, uri: string, mimeType: string) {
   const file = new File(uri);
   const res = await expoFetch(uploadUrl, {

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, ListTree, MoreVertical, Pencil, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
+import { deleteUploadedObject } from '../../lib/upload';
 import { useLang } from '../../lib/i18n';
 import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
 import type { MeResponse, PresignedUpload, TeacherCourse as Course, TeacherStats } from '../../../../shared/api';
@@ -164,32 +165,37 @@ function EditCourse({ course }: { course: Course }) {
   const save = useMutation({
     mutationFn: async () => {
       let image: string | undefined;
-      if (imageFile) {
-        const up = await api<PresignedUpload>('/api/storage/course-image', {
+      try {
+        if (imageFile) {
+          const up = await api<PresignedUpload>('/api/storage/course-image', {
+            body: {
+              courseId: course.id,
+              fileName: imageFile.name,
+              mimeType: imageFile.type,
+              fileSizeBytes: imageFile.size,
+            },
+          });
+          image = up.objectKey;
+          const put = await fetch(up.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': imageFile.type },
+            body: imageFile,
+          });
+          if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+        }
+        return await api(`/api/teacher/courses/${course.id}`, {
+          method: 'PATCH',
           body: {
-            courseId: course.id,
-            fileName: imageFile.name,
-            mimeType: imageFile.type,
-            fileSizeBytes: imageFile.size,
+            title,
+            description,
+            previewUrl: previewUrl.trim() || null,
+            ...(image ? { image } : {}),
           },
         });
-        const put = await fetch(up.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': imageFile.type },
-          body: imageFile,
-        });
-        if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
-        image = up.objectKey;
+      } catch (error) {
+        await deleteUploadedObject(image);
+        throw error;
       }
-      return api(`/api/teacher/courses/${course.id}`, {
-        method: 'PATCH',
-        body: {
-          title,
-          description,
-          previewUrl: previewUrl.trim() || null,
-          ...(image ? { image } : {}),
-        },
-      });
     },
     onSuccess: () => {
       toast.success(t('saved'));

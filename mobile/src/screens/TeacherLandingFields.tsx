@@ -3,7 +3,7 @@ import { Image, Switch, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, uploadFile } from '../api';
+import { api, deleteUploadedObject, uploadFile } from '../api';
 import { Btn, Card, Choice, ErrorBox, Field, Text, c, s } from '../ui';
 import { normalizeTeacherTheme } from '../ui/theme';
 import type { MeResponse, PresignedUpload, TeacherTheme } from '../../../shared/api';
@@ -79,7 +79,12 @@ export default function TeacherLandingFields({ me }: { me: MeResponse }) {
         },
       });
       await uploadFile(up.uploadUrl, asset.uri, mime);
-      await api('/api/me', { method: 'PATCH', body: { landingBanner: up.objectKey } });
+      try {
+        await api('/api/me', { method: 'PATCH', body: { landingBanner: up.objectKey } });
+      } catch (error) {
+        await deleteUploadedObject(up.objectKey);
+        throw error;
+      }
       invalidate();
     } catch (error) {
       setBannerError(error as Error);

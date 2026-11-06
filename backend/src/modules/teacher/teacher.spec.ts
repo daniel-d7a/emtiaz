@@ -951,6 +951,22 @@ describe('Phase 4: teacher endpoints', () => {
       expect(file.status).toBe(302);
       expect(file.headers.location).toContain(att.body.r2ObjectKey);
 
+      const courseImage = await t.post('/api/storage/course-image').send({
+        courseId: world.courseId,
+        fileName: 'cover.jpg',
+        mimeType: 'image/jpeg',
+        fileSizeBytes: 10,
+      });
+      expect(courseImage.status).toBe(201);
+      const cleaned = await t
+        .delete('/api/storage/uploaded')
+        .send({ objectKey: courseImage.body.objectKey });
+      expect(cleaned.status).toBe(200);
+      const cannotClean = await s
+        .delete('/api/storage/uploaded')
+        .send({ objectKey: courseImage.body.objectKey });
+      expect(cannotClean.status).toBe(403);
+
       const view = await s.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`);
       expect(view.status).toBe(200);
       expect(view.body.attachments[0]).toMatchObject({

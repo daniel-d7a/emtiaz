@@ -6,6 +6,7 @@ import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
+import { deleteUploadedObject } from '../../lib/upload';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Page, Select } from '../../components/ui';
 import type { Course, PresignedUpload, TaxonomyItem } from '../../../../shared/api';
@@ -94,6 +95,7 @@ export default function NewCourse() {
       });
       let imageError: Error | null = null;
       if (imageFile) {
+        let objectKey: string | undefined;
         try {
           const up = await api<PresignedUpload>('/api/storage/course-image', {
             body: {
@@ -103,6 +105,7 @@ export default function NewCourse() {
               fileSizeBytes: imageFile.size,
             },
           });
+          objectKey = up.objectKey;
           const put = await fetch(up.uploadUrl, {
             method: 'PUT',
             headers: { 'Content-Type': imageFile.type },
@@ -114,6 +117,7 @@ export default function NewCourse() {
             body: { image: up.objectKey },
           });
         } catch (e) {
+          await deleteUploadedObject(objectKey);
           imageError = e as Error;
         }
       }

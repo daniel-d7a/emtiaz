@@ -3,7 +3,7 @@ import { Image, ScrollView, Share, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, uploadFile } from '../api';
+import { api, deleteUploadedObject, uploadFile } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, Text, c, s } from '../ui';
 import type { PresignedUpload, TeacherCourse } from '../../../shared/api';
 
@@ -109,7 +109,12 @@ export default function TeacherCourse({
         },
       });
       await uploadFile(up.uploadUrl, asset.uri, mime);
-      await save.mutateAsync(up.objectKey);
+      try {
+        await save.mutateAsync(up.objectKey);
+      } catch (error) {
+        await deleteUploadedObject(up.objectKey);
+        throw error;
+      }
     } catch (error) {
       setUploadError(error as Error);
     } finally {

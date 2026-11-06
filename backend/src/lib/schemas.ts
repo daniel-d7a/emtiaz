@@ -281,6 +281,9 @@ export const ToGroupDto = z.object({ toGroupId: uuid });
 export const AnnounceDto = z.object({ message: safeText(1000) });
 
 // ---------- storage ----------
+export const DeleteUploadDto = z.object({
+  objectKey: z.string().trim().min(1).max(512),
+});
 export const AvatarUploadDto = z.object({
   fileName: safeText(200),
   mimeType: z.string().regex(/^image\//, 'must be an image'),

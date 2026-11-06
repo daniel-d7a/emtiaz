@@ -7,7 +7,8 @@ import { localizeName, useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading, Page, Select } from '../components/ui';
 import { ThemeHero, ThemeSurface } from '../components/TeacherTheme';
 import { normalizeTheme } from '../lib/theme';
-import type { MeResponse, PresignedUpload, TeacherTheme } from '../../../shared/api';
+import { deleteUploadedObject, uploadFile } from '../lib/upload';
+import type { MeResponse, TeacherTheme } from '../../../shared/api';
 
 export default function Profile() {
   const { t, lang } = useLang();
@@ -86,43 +87,37 @@ export default function Profile() {
     setRemoveBanner(false);
   };
 
-  const uploadFile = async (endpoint: string, file: File) => {
-    const up = await api<PresignedUpload>(endpoint, {
-      body: { fileName: file.name, mimeType: file.type, fileSizeBytes: file.size },
-    });
-    const put = await fetch(up.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    });
-    if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
-    return up.objectKey;
-  };
-
   const save = useMutation({
     mutationFn: async () => {
-      const image = avatarFile ? await uploadFile('/api/storage/avatar', avatarFile) : undefined;
-      const landingBanner = bannerFile
-        ? await uploadFile('/api/storage/banner', bannerFile)
-        : removeBanner
-          ? null
-          : undefined;
-      return api('/api/me', {
-        method: 'PATCH',
-        body: {
-          name,
-          phoneNumber: phone || undefined,
-          subject: user?.role === 'TEACHER' && subject ? subject : undefined,
-          ...(image ? { image } : {}),
-          ...(landingBanner !== undefined ? { landingBanner } : {}),
-          ...(user?.role === 'STUDENT'
-            ? { dateOfBirth: dateOfBirth || null, gradeId: gradeId || null }
-            : {}),
-          ...(user?.role === 'TEACHER'
-            ? { landingSlug, landingBio, landingPublished, landingTheme: theme }
-            : {}),
-        },
-      });
+      let image: string | undefined;
+      let landingBanner: string | null | undefined;
+      try {
+        image = avatarFile ? await uploadFile('/api/storage/avatar', avatarFile) : undefined;
+        landingBanner = bannerFile
+          ? await uploadFile('/api/storage/banner', bannerFile)
+          : removeBanner
+            ? null
+            : undefined;
+        return await api('/api/me', {
+          method: 'PATCH',
+          body: {
+            name,
+            phoneNumber: phone || undefined,
+            subject: user?.role === 'TEACHER' && subject ? subject : undefined,
+            ...(image ? { image } : {}),
+            ...(landingBanner !== undefined ? { landingBanner } : {}),
+            ...(user?.role === 'STUDENT'
+              ? { dateOfBirth: dateOfBirth || null, gradeId: gradeId || null }
+              : {}),
+            ...(user?.role === 'TEACHER'
+              ? { landingSlug, landingBio, landingPublished, landingTheme: theme }
+              : {}),
+          },
+        });
+      } catch (error) {
+        await Promise.all([deleteUploadedObject(image), deleteUploadedObject(landingBanner)]);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success(t('saved'));

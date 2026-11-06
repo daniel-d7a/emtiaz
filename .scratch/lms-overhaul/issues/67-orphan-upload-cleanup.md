@@ -4,7 +4,7 @@
 
 **Blocked by:** None.
 
-- [ ] Failed course image, banner, or avatar saves remove the just-uploaded object.
-- [ ] Cleanup failure is best-effort and does not hide the original error.
+- [x] Failed course image, banner, or avatar saves remove the just-uploaded object.
+- [x] Cleanup failure is best-effort and does not hide the original error.
 
-**Status:** ready-for-agent
+**Status:** done

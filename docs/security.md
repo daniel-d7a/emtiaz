@@ -136,8 +136,10 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 - Avatars: images only, max 2 MB. Lesson attachments: max 100 MB. Quiz question
   images: images only, max 5 MB. Uploads are typed from the declared MIME type;
   URL materials are classified as a YouTube video or an external link.
-- Replaced/cleared avatars, banners, and course covers are deleted best-effort. Objects uploaded but never
-  attached still need a bucket lifecycle rule.
+- Replaced/cleared avatars, banners, and course covers are deleted best-effort.
+  Client cleanup after a failed save is limited to the caller's own
+  `avatars/<userId>/` or `banners/<userId>/` prefix, or a course they own.
+  Objects uploaded but never attached still need a bucket lifecycle rule.
 - Public teacher avatars and banners are served through a published-teacher
   check, not a public bucket listing. Public catalogue and course detail
   resolve only published courses of a published, active teacher and expose no

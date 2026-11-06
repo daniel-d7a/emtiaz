@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Injectable, Module, Param, Post, Query, Req, Res } from '@nestjs/common';
-import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto, QuizImageUploadDto } from '../../lib/schemas';
+import { ZodBodyPipe, PresignedUploadDto, AttachDto, AvatarUploadDto, BannerUploadDto, CourseImageUploadDto, QuizImageUploadDto, DeleteUploadDto } from '../../lib/schemas';
 import { z } from 'zod';
 import type { Request, Response } from 'express';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
@@ -93,6 +93,31 @@ export class StorageController {
   ) {
     const objectKey = StorageService.buildAvatarKey(req.user!.id, dto.fileName);
     return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
+  }
+
+  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Delete('api/storage/uploaded')
+  async deleteUploaded(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(DeleteUploadDto)) dto: z.infer<typeof DeleteUploadDto>,
+  ) {
+    const key = dto.objectKey;
+    const user = req.user!;
+    const ownPrefixes = [`avatars/${user.id}/`, `banners/${user.id}/`];
+    if (!ownPrefixes.some((prefix) => key.startsWith(prefix))) {
+      if (!key.startsWith('courses/')) {
+        throw new ForbiddenException('Cannot delete this object');
+      }
+      const courseId = key.split('/')[1];
+      const [course] = await db
+        .select()
+        .from(courses)
+        .where(and(eq(courses.id, courseId), isNull(courses.deletedAt)));
+      if (!course) throw new NotFoundException('Course not found');
+      if (course.teacherId !== user.id) throw new ForbiddenException('Not your course');
+    }
+    await this.storage.deleteObject(key);
+    return { ok: true };
   }
 
   @Roles('TEACHER')

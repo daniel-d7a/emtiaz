@@ -3,7 +3,7 @@ import { Image, ScrollView, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, authApi, uploadFile } from '../api';
+import { api, authApi, deleteUploadedObject, uploadFile } from '../api';
 import { Btn, Card, ErrorBox, Loading, Text, c, f, s } from '../ui';
 import TeacherLandingFields from './TeacherLandingFields';
 import type { MeResponse as Me, PresignedUpload } from '../../../shared/api';
@@ -76,7 +76,12 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
         },
       });
       await uploadFile(up.uploadUrl, asset.uri, mime);
-      await api('/api/me', { method: 'PATCH', body: { image: up.objectKey } });
+      try {
+        await api('/api/me', { method: 'PATCH', body: { image: up.objectKey } });
+      } catch (error) {
+        await deleteUploadedObject(up.objectKey);
+        throw error;
+      }
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['me'] });
