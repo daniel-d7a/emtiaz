@@ -215,6 +215,15 @@ export const AddGroupDto = z.object({
   name: z.string().trim().max(120).default(''),
   days: z.string().trim().max(200).nullable().optional(),
   time: z.string().trim().max(120).nullable().optional(),
+  students: z
+    .array(
+      z.object({
+        name: safeText(120),
+        phoneNumber,
+      }),
+    )
+    .max(60)
+    .optional(),
 });
 export const UpdateGroupDto = z.object({
   name: z.string().trim().max(120).optional(),

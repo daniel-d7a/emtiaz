@@ -1052,7 +1052,12 @@ export class TeacherService {
   async addGroup(
     user: { id: string; role: string },
     courseId: string,
-    dto: { name: string; days?: string | null; time?: string | null },
+    dto: {
+      name: string;
+      days?: string | null;
+      time?: string | null;
+      students?: Array<{ name: string; phoneNumber: string }>;
+    },
   ) {
     const course = await this.assertCourseAccess(user, courseId);
     let joinCode = genJoinCode();
@@ -1076,6 +1081,14 @@ export class TeacherService {
         joinCode,
       })
       .returning();
+    if (dto.students?.length) {
+      try {
+        await this.bulkAddStudents(user, group.id, dto.students);
+      } catch (error) {
+        await db.delete(groups).where(eq(groups.id, group.id));
+        throw error;
+      }
+    }
     return serializeGroup(group);
   }
 

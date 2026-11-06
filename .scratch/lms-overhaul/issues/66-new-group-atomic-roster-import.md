@@ -4,7 +4,7 @@
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A failed roster import does not leave an empty group.
-- [ ] The teacher sees one clear error for the whole operation.
+- [x] A failed roster import does not leave an empty group.
+- [x] The teacher sees one clear error for the whole operation.

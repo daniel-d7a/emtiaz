@@ -440,6 +440,23 @@ describe('Phase 4: teacher endpoints', () => {
       newGroupId = res.body.id;
     });
 
+    it('creates a group and its roster in one request', async () => {
+      const res = await t
+        .post(`/api/teacher/courses/${world.courseId}/groups`)
+        .send({
+          name: 'Atomic batch',
+          students: [{ name: 'Atomic Student', phoneNumber: '+96890000030' }],
+        });
+      expect(res.status).toBe(201);
+      const roster = await t.get(`/api/teacher/groups/${res.body.id}/roster`);
+      expect(roster.status).toBe(200);
+      expect(roster.body.students).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Atomic Student', phoneNumber: '+96890000030' }),
+        ]),
+      );
+    });
+
     it('falls back to a generated name when the group name is blank', async () => {
       const res = await t
         .post(`/api/teacher/courses/${world.courseId}/groups`)

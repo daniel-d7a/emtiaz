@@ -52,24 +52,17 @@ export default function NewGroup() {
           normalizePhone(student.phone).replace(/\D/g, '').length < 8,
       );
       if (invalid) throw new Error(t('phoneInvalid'));
-      const group = await api<Group>(`/api/teacher/courses/${courseId}/groups`, {
+      return api<Group>(`/api/teacher/courses/${courseId}/groups`, {
         body: {
           name,
           time: time.trim() || null,
           days: days.length ? days.join(', ') : null,
+          students: rows.map((student) => ({
+            name: student.name.trim(),
+            phoneNumber: normalizePhone(student.phone),
+          })),
         },
       });
-      if (rows.length) {
-        await api(`/api/teacher/groups/${group.id}/roster/bulk`, {
-          body: {
-            students: rows.map((student) => ({
-              name: student.name.trim(),
-              phoneNumber: normalizePhone(student.phone),
-            })),
-          },
-        });
-      }
-      return group;
     },
     onSuccess: () => {
       toast.success(t('saved'));
