@@ -4,8 +4,8 @@
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Mobile students can open their grades for a group.
-- [ ] Grades show unit and lesson names.
-- [ ] Pending written attempts are marked as pending.
+- [x] Mobile students can open their grades for a group.
+- [x] Grades show unit and lesson names.
+- [x] Pending written attempts are marked as pending.
