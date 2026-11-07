@@ -2,7 +2,7 @@
 
 The backlog and UI audit that lived here are now tracked elsewhere:
 
-- Work items: [`.scratch/lms-overhaul/issues/`](.scratch/lms-overhaul/issues/), [`.scratch/group-entry-codes/issues/`](.scratch/group-entry-codes/issues/), [`.scratch/top-teacher/issues/`](.scratch/top-teacher/issues/), [`.scratch/teacher-plans/issues/`](.scratch/teacher-plans/issues/), [`.scratch/onboarding-and-guidance/issues/`](.scratch/onboarding-and-guidance/issues/), [`.scratch/logic-and-adr-audit/issues/`](.scratch/logic-and-adr-audit/issues/)
+- Work items: [`.scratch/lms-overhaul/issues/`](.scratch/lms-overhaul/issues/), [`.scratch/group-entry-codes/issues/`](.scratch/group-entry-codes/issues/), [`.scratch/top-teacher/issues/`](.scratch/top-teacher/issues/), [`.scratch/teacher-plans/issues/`](.scratch/teacher-plans/issues/), [`.scratch/onboarding-and-guidance/issues/`](.scratch/onboarding-and-guidance/issues/), [`.scratch/homework/issues/`](.scratch/homework/issues/), [`.scratch/logic-and-adr-audit/issues/`](.scratch/logic-and-adr-audit/issues/)
 - Decisions: [`docs/adr/`](docs/adr/)
 - Architecture: [`docs/architecture.md`](docs/architecture.md)
 - Access rules: [`docs/security.md`](docs/security.md)
@@ -23,8 +23,6 @@ checklist here.
 - add upload size limits per file, limit uploads per lesson
 
 - check event logs, I want every event to be logged (creation, update, delete, enroll, ...etc) (courses, groups, quizes, ...etc)
-
-- let's work on homework feature, where a teacher can add a homework file or link to lesson, and students should submit it, and then the teacher can mark it for them, and the grades appear on the platform
 
 ### just some ideas that shouldn't be implemented now
 

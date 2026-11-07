@@ -7,8 +7,16 @@ Arabic-first cohort LMS where teachers build a master course curriculum once, ru
 ### Core Curriculum & Cohorts
 
 **Course**:
-A teacher's master curriculum (modules, lessons, materials, and quizzes), classified as either academic (tied to a grade and semester) or general (tied to a specialization category).
+A teacher's master curriculum (modules, lessons, materials, quizzes, and homework), classified as either academic (tied to a grade and semester) or general (tied to a specialization category).
 _Avoid_: Class, subject, program
+
+**Homework**:
+An assignment attached to a Lesson with instructions, an optional reference attachment or external link, and a maximum score, whose due dates and visibility can be paced per Group.
+_Avoid_: Task, exercise, worksheet
+
+**Homework Submission**:
+A student's turn-in for a Homework assignment within their enrolled Group, containing an uploaded file, external link, or text response, evaluated by the teacher with a score, feedback, or revision request.
+_Avoid_: Turn-in, homework reply
 
 **Course Focus**:
 A teacher's primary teaching mode chosen during onboarding (`ACADEMIC` for school-curriculum courses tied to country-specific Grades, or `GENERAL` for skill/subject tracks tied to Categories), used to default their course creation flow.
