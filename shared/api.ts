@@ -19,7 +19,9 @@ export type AttachmentType =
   | 'IMAGE'
   | 'ARCHIVE'
   | 'LINK'
-  | 'VIDEO';
+  | 'VIDEO'
+  | 'NONE'
+  | 'OTHER';
 
 export type TaughtGrade = {
   id: string;
@@ -1106,3 +1108,118 @@ export type SentResponse = { sent: number };
 export type OkResponse = { ok: true };
 export type PresignedUpload = { objectKey: string; uploadUrl: string };
 export type DownloadUrl = { url: string };
+
+// ==========================================
+// HOMEWORK & SUBMISSIONS CONTRACTS
+// ==========================================
+
+export type HomeworkAttachmentType =
+  | 'NONE'
+  | 'PDF'
+  | 'DOC'
+  | 'AUDIO'
+  | 'IMAGE'
+  | 'ARCHIVE'
+  | 'LINK'
+  | 'VIDEO'
+  | 'OTHER';
+
+export type HomeworkSubmissionStatus = 'SUBMITTED' | 'GRADED' | 'REVISION_REQUESTED';
+
+export interface HomeworkDto {
+  id: string;
+  lessonId: string;
+  groupId: string | null;
+  title: string;
+  instructions: string | null;
+  attachmentType: HomeworkAttachmentType;
+  r2ObjectKey: string | null;
+  url: string | null;
+  fileSizeBytes: number | null;
+  mimeType: string | null;
+  maxScore: number;
+  displayOrder: number;
+  createdAt: string;
+  // Cohort-specific properties when queried in the context of a group:
+  dueDate?: string | null;
+  isHidden?: boolean;
+}
+
+export interface HomeworkSubmissionDto {
+  id: string;
+  homeworkId: string;
+  groupId: string;
+  studentId: string;
+  studentName?: string;
+  content: string | null;
+  attachmentType: HomeworkAttachmentType;
+  r2ObjectKey: string | null;
+  url: string | null;
+  fileSizeBytes: number | null;
+  mimeType: string | null;
+  status: HomeworkSubmissionStatus;
+  isLate: boolean;
+  revisionCount: number;
+  score: number | null;
+  maxScore?: number;
+  teacherFeedback: string | null;
+  submittedAt: string;
+  gradedAt: string | null;
+}
+
+export interface HomeworkRosterSummaryDto {
+  homework: HomeworkDto;
+  stats: {
+    totalEnrolled: number;
+    submitted: number;
+    graded: number;
+    pendingReview: number;
+    revisionRequested: number;
+    notSubmitted: number;
+    late: number;
+  };
+  submissions: Array<{
+    studentId: string;
+    studentName: string;
+    submission: HomeworkSubmissionDto | null;
+  }>;
+}
+
+export interface CreateHomeworkDto {
+  title: string;
+  instructions?: string | null;
+  attachmentType?: HomeworkAttachmentType;
+  r2ObjectKey?: string | null;
+  url?: string | null;
+  fileSizeBytes?: number | null;
+  mimeType?: string | null;
+  maxScore?: number;
+  displayOrder?: number;
+  groupId?: string | null;
+}
+
+export interface UpdateHomeworkDto {
+  title?: string;
+  instructions?: string | null;
+  attachmentType?: HomeworkAttachmentType;
+  r2ObjectKey?: string | null;
+  url?: string | null;
+  fileSizeBytes?: number | null;
+  mimeType?: string | null;
+  maxScore?: number;
+  displayOrder?: number;
+}
+
+export interface SetGroupHomeworkAccessDto {
+  dueDate?: string | null;
+  isHidden?: boolean;
+}
+
+export interface GroupHomeworkAccessDto {
+  id: string;
+  groupId: string;
+  homeworkId: string;
+  dueDate: string | null;
+  isHidden: boolean;
+  createdAt: string;
+}

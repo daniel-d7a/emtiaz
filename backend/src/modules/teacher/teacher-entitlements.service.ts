@@ -129,17 +129,31 @@ export class TeacherEntitlementsService {
   }
 
   /**
-   * Sum of lesson attachment file_size_bytes across all non-deleted courses owned by teacher.
+   * Sum of lesson attachment and homework file_size_bytes across all non-deleted courses owned by teacher.
    */
   async calculateUsedStorageBytes(teacherId: string): Promise<number> {
     const result = await db.execute<{ used_bytes: string | number }>(sql`
-      SELECT coalesce(sum(la.file_size_bytes), 0)::bigint AS used_bytes
-      FROM lesson_attachments la
-      JOIN lessons l ON l.id = la.lesson_id
-      JOIN modules m ON m.id = l.module_id
-      JOIN courses c ON c.id = m.course_id
-      WHERE c.teacher_id = ${teacherId}
-        AND c.deleted_at IS NULL
+      SELECT (
+        coalesce((
+          SELECT sum(la.file_size_bytes)
+          FROM lesson_attachments la
+          JOIN lessons l ON l.id = la.lesson_id
+          JOIN modules m ON m.id = l.module_id
+          JOIN courses c ON c.id = m.course_id
+          WHERE c.teacher_id = ${teacherId}
+            AND c.deleted_at IS NULL
+        ), 0)
+        +
+        coalesce((
+          SELECT sum(h.file_size_bytes)
+          FROM homework h
+          JOIN lessons l ON l.id = h.lesson_id
+          JOIN modules m ON m.id = l.module_id
+          JOIN courses c ON c.id = m.course_id
+          WHERE c.teacher_id = ${teacherId}
+            AND c.deleted_at IS NULL
+        ), 0)
+      )::bigint AS used_bytes
     `);
     return Number(result.rows[0]?.used_bytes ?? 0);
   }

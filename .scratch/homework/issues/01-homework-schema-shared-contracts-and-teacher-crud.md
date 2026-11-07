@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Create `homework`, `group_homework_access`, and `homework_submissions` tables in `backend/src/db/schema.ts` with indices and cascade rules.
-- [ ] Update `backend/src/db/schema.spec.ts` table list and run migrations (`npm run db:generate && npm run db:migrate`).
-- [ ] Define `HomeworkDto`, `HomeworkSubmissionDto`, `HomeworkRosterSummaryDto`, and related request/response contracts in `shared/api.ts`, `frontend/src/lib/api.ts`, and `mobile/src/api.ts`.
-- [ ] Implement Teacher CRUD endpoints in `teacher.controller.ts` & `teacher.service.ts` for homework on master lessons and group-scoped overrides, enforcing teacher lesson storage quota check (`assertCanUploadStorage`) on uploaded reference files.
-- [ ] Implement `PUT /api/teacher/groups/:groupId/homework/:homeworkId/access` to set cohort due date and visibility (`isHidden`).
-- [ ] Write integration tests in `backend/src/modules/teacher/teacher.spec.ts` verifying homework CRUD, group due date updates, and storage limit enforcement.
+- [x] Create `homework`, `group_homework_access`, and `homework_submissions` tables in `backend/src/db/schema.ts` with indices and cascade rules.
+- [x] Update `backend/src/db/schema.spec.ts` table list and run migrations (`npm run db:generate && npm run db:migrate`).
+- [x] Define `HomeworkDto`, `HomeworkSubmissionDto`, `HomeworkRosterSummaryDto`, and related request/response contracts in `shared/api.ts`, `frontend/src/lib/api.ts`, and `mobile/src/api.ts`.
+- [x] Implement Teacher CRUD endpoints in `teacher.controller.ts` & `teacher.service.ts` for homework on master lessons and group-scoped overrides, enforcing teacher lesson storage quota check (`assertCanUploadStorage`) on uploaded reference files.
+- [x] Implement `PUT /api/teacher/groups/:groupId/homework/:homeworkId/access` to set cohort due date and visibility (`isHidden`).
+- [x] Write integration tests in `backend/src/modules/teacher/teacher.spec.ts` verifying homework CRUD, group due date updates, and storage limit enforcement.

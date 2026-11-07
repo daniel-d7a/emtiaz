@@ -24,6 +24,7 @@ describe('Phase 1: database schema', () => {
       'courses', 'modules', 'lessons',
       'groups', 'group_students', 'group_lesson_access',
       'lesson_attachments',
+      'homework', 'group_homework_access', 'homework_submissions',
       'quizzes', 'quiz_questions', 'quiz_attempts', 'lesson_completions',
       'manual_grade_columns', 'manual_grade_values',
       'plans', 'teacher_subscriptions', 'teacher_discounts',

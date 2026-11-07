@@ -1230,7 +1230,9 @@
         "IMAGE",
         "ARCHIVE",
         "LINK",
-        "VIDEO"
+        "VIDEO",
+        "NONE",
+        "OTHER"
       ],
       "entityType": "enums"
     },

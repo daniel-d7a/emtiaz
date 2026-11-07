@@ -244,6 +244,49 @@ export const UpdateLessonDto = z
     message: 'nothing to update',
   });
 
+// ---------- homework ----------
+export const HomeworkAttachmentTypeEnum = z.enum([
+  'NONE',
+  'PDF',
+  'DOC',
+  'AUDIO',
+  'IMAGE',
+  'ARCHIVE',
+  'LINK',
+  'VIDEO',
+  'OTHER',
+]);
+
+export const CreateHomeworkDto = z.object({
+  title: safeText(200),
+  instructions: optText(20000).nullable(),
+  attachmentType: HomeworkAttachmentTypeEnum.optional().default('NONE'),
+  r2ObjectKey: z.string().trim().max(1000).optional().nullable(),
+  url: z.string().trim().max(2000).optional().nullable(),
+  fileSizeBytes: z.number().int().nonnegative().optional().nullable(),
+  mimeType: z.string().trim().max(200).optional().nullable(),
+  maxScore: z.number().int().min(1).max(1000).optional().default(10),
+  displayOrder: z.number().int().min(0).optional().default(0),
+  groupId: uuid.optional().nullable(),
+});
+
+export const UpdateHomeworkDto = z.object({
+  title: safeText(200).optional(),
+  instructions: optText(20000).nullable(),
+  attachmentType: HomeworkAttachmentTypeEnum.optional(),
+  r2ObjectKey: z.string().trim().max(1000).optional().nullable(),
+  url: z.string().trim().max(2000).optional().nullable(),
+  fileSizeBytes: z.number().int().nonnegative().optional().nullable(),
+  mimeType: z.string().trim().max(200).optional().nullable(),
+  maxScore: z.number().int().min(1).max(1000).optional(),
+  displayOrder: z.number().int().min(0).optional(),
+});
+
+export const SetGroupHomeworkAccessDto = z.object({
+  dueDate: z.string().optional().nullable(),
+  isHidden: z.boolean().optional(),
+});
+
 // ---------- quizzes ----------
 export const QuizQuestionDto = z
   .object({

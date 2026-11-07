@@ -17,6 +17,8 @@ import {
   serializeCourse,
   serializeGrade,
   serializeGroup,
+  serializeGroupHomeworkAccess,
+  serializeHomework,
   serializeLesson,
   serializeManualGradeColumn,
   serializeModule,
@@ -30,10 +32,13 @@ import {
   grades,
   groupEntryCodeUses,
   groupEntryCodes,
+  groupHomeworkAccess,
   groupLessonAccess,
   groupQuizAccess,
   groupStudents,
   groups,
+  homework,
+  homeworkSubmissions,
   lessonAttachments,
   lessonAttendance,
   lessonCompletions,
@@ -47,6 +52,11 @@ import {
   quizzes,
   users,
 } from '../../db/schema';
+import type {
+  CreateHomeworkDto,
+  UpdateHomeworkDto,
+  SetGroupHomeworkAccessDto,
+} from '../../../shared/api';
 import { ENTRY_ALPHABET, genJoinCode, generateUniqueMonitoringCode } from '../../lib/group-join';
 export { genJoinCode };
 
@@ -1108,6 +1118,218 @@ export class TeacherService {
     await this.assertCourseAccess(user, mod.courseId);
     await db.delete(modules).where(eq(modules.id, moduleId));
     return { ok: true };
+  }
+
+  // ---------- Homework ----------
+
+  private async assertOwnsLesson(
+    user: { id: string; role: string },
+    lessonId: string,
+  ) {
+    const [row] = await db
+      .select({ lesson: lessons, module: modules, course: courses })
+      .from(lessons)
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .innerJoin(courses, eq(modules.courseId, courses.id))
+      .where(and(eq(lessons.id, lessonId), isNull(courses.deletedAt)));
+    if (!row) throw new NotFoundException('Lesson not found');
+    if (row.course.teacherId !== user.id && user.role !== 'ADMIN') {
+      throw new ForbiddenException('Not your lesson');
+    }
+    return row;
+  }
+
+  private async assertOwnsHomework(
+    user: { id: string; role: string },
+    homeworkId: string,
+  ) {
+    const [row] = await db
+      .select({ homework, lesson: lessons, module: modules, course: courses })
+      .from(homework)
+      .innerJoin(lessons, eq(homework.lessonId, lessons.id))
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .innerJoin(courses, eq(modules.courseId, courses.id))
+      .where(and(eq(homework.id, homeworkId), isNull(courses.deletedAt)));
+    if (!row) throw new NotFoundException('Homework not found');
+    if (row.course.teacherId !== user.id && user.role !== 'ADMIN') {
+      throw new ForbiddenException('Not your homework');
+    }
+    return row;
+  }
+
+  async createHomework(
+    user: { id: string; role: string },
+    lessonId: string,
+    dto: CreateHomeworkDto,
+  ) {
+    const { course } = await this.assertOwnsLesson(user, lessonId);
+
+    if (dto.groupId) {
+      const { group } = await this.assertOwnsGroup(user, dto.groupId);
+      if (group.courseId !== course.id) {
+        throw new ForbiddenException('Group does not belong to this course');
+      }
+    }
+
+    if (dto.fileSizeBytes && dto.fileSizeBytes > 0) {
+      await this.entitlementsService.assertCanUploadStorage(user.id, dto.fileSizeBytes);
+    }
+
+    let displayOrder = dto.displayOrder;
+    if (displayOrder === undefined) {
+      const existing = await db
+        .select({ displayOrder: homework.displayOrder })
+        .from(homework)
+        .where(eq(homework.lessonId, lessonId));
+      displayOrder = Math.max(-1, ...existing.map((h) => h.displayOrder)) + 1;
+    }
+
+    const [created] = await db
+      .insert(homework)
+      .values({
+        lessonId,
+        groupId: dto.groupId ?? null,
+        title: dto.title.trim(),
+        instructions: dto.instructions?.trim() || null,
+        attachmentType: dto.attachmentType ?? 'NONE',
+        r2ObjectKey: dto.r2ObjectKey?.trim() || null,
+        url: dto.url?.trim() || null,
+        fileSizeBytes: dto.fileSizeBytes ?? null,
+        mimeType: dto.mimeType?.trim() || null,
+        maxScore: dto.maxScore ?? 10,
+        displayOrder,
+      })
+      .returning();
+
+    return serializeHomework(created);
+  }
+
+  async getLessonHomework(
+    user: { id: string; role: string },
+    lessonId: string,
+  ) {
+    await this.assertOwnsLesson(user, lessonId);
+
+    const rows = await db
+      .select()
+      .from(homework)
+      .where(eq(homework.lessonId, lessonId))
+      .orderBy(asc(homework.displayOrder), asc(homework.createdAt));
+
+    return rows.map((r) => serializeHomework(r));
+  }
+
+  async updateHomework(
+    user: { id: string; role: string },
+    homeworkId: string,
+    dto: UpdateHomeworkDto,
+  ) {
+    const { homework: existing } = await this.assertOwnsHomework(user, homeworkId);
+
+    if (dto.fileSizeBytes !== undefined && dto.fileSizeBytes !== null) {
+      const existingBytes = existing.fileSizeBytes ?? 0;
+      const diff = dto.fileSizeBytes - existingBytes;
+      if (diff > 0) {
+        await this.entitlementsService.assertCanUploadStorage(user.id, diff);
+      }
+    }
+
+    const patch: Partial<typeof homework.$inferInsert> = {};
+    if (dto.title !== undefined) patch.title = dto.title.trim();
+    if (dto.instructions !== undefined) patch.instructions = dto.instructions?.trim() || null;
+    if (dto.attachmentType !== undefined) patch.attachmentType = dto.attachmentType;
+    if (dto.r2ObjectKey !== undefined) patch.r2ObjectKey = dto.r2ObjectKey?.trim() || null;
+    if (dto.url !== undefined) patch.url = dto.url?.trim() || null;
+    if (dto.fileSizeBytes !== undefined) patch.fileSizeBytes = dto.fileSizeBytes;
+    if (dto.mimeType !== undefined) patch.mimeType = dto.mimeType?.trim() || null;
+    if (dto.maxScore !== undefined) patch.maxScore = dto.maxScore;
+    if (dto.displayOrder !== undefined) patch.displayOrder = dto.displayOrder;
+
+    const [updated] = await db
+      .update(homework)
+      .set(patch)
+      .where(eq(homework.id, homeworkId))
+      .returning();
+
+    if (
+      existing.r2ObjectKey &&
+      patch.r2ObjectKey !== undefined &&
+      existing.r2ObjectKey !== patch.r2ObjectKey
+    ) {
+      try {
+        await this.storage.deleteObject(existing.r2ObjectKey);
+      } catch (err) {
+        logger.warn({ err, key: existing.r2ObjectKey }, 'failed to delete old homework attachment');
+      }
+    }
+
+    return serializeHomework(updated);
+  }
+
+  async deleteHomework(
+    user: { id: string; role: string },
+    homeworkId: string,
+  ) {
+    const { homework: existing } = await this.assertOwnsHomework(user, homeworkId);
+
+    await db.delete(homework).where(eq(homework.id, homeworkId));
+
+    if (existing.r2ObjectKey) {
+      try {
+        await this.storage.deleteObject(existing.r2ObjectKey);
+      } catch (err) {
+        logger.warn({ err, key: existing.r2ObjectKey }, 'failed to delete homework attachment');
+      }
+    }
+
+    return { success: true };
+  }
+
+  async setGroupHomeworkAccess(
+    user: { id: string; role: string },
+    groupId: string,
+    homeworkId: string,
+    dto: SetGroupHomeworkAccessDto,
+  ) {
+    const { group } = await this.assertOwnsGroup(user, groupId);
+
+    const [hw] = await db.select().from(homework).where(eq(homework.id, homeworkId));
+    if (!hw) throw new NotFoundException('Homework not found');
+
+    const [row] = await db
+      .select({ lesson: lessons, module: modules })
+      .from(lessons)
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .where(eq(lessons.id, hw.lessonId));
+    if (!row || row.module.courseId !== group.courseId) {
+      throw new ForbiddenException('Homework not in this group course');
+    }
+
+    if (hw.groupId && hw.groupId !== groupId) {
+      throw new ForbiddenException('Homework is scoped to another group');
+    }
+
+    const dueDateVal = dto.dueDate !== undefined ? (dto.dueDate ? new Date(dto.dueDate) : null) : null;
+    const isHiddenVal = dto.isHidden ?? false;
+
+    const [access] = await db
+      .insert(groupHomeworkAccess)
+      .values({
+        groupId,
+        homeworkId,
+        dueDate: dueDateVal,
+        isHidden: isHiddenVal,
+      })
+      .onConflictDoUpdate({
+        target: [groupHomeworkAccess.groupId, groupHomeworkAccess.homeworkId],
+        set: {
+          ...(dto.dueDate !== undefined ? { dueDate: dueDateVal } : {}),
+          ...(dto.isHidden !== undefined ? { isHidden: dto.isHidden } : {}),
+        },
+      })
+      .returning();
+
+    return serializeGroupHomeworkAccess(access);
   }
 
   // ---------- Groups ----------

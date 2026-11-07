@@ -29,6 +29,8 @@ export const attachmentTypeEnum = pgEnum('attachment_type', [
   'ARCHIVE',
   'LINK',
   'VIDEO', // Reserved for future phase
+  'NONE',
+  'OTHER',
 ]);
 export const questionTypeEnum = pgEnum('question_type', ['MCQ', 'TRUE_FALSE', 'WRITTEN']);
 export const countryEnum = pgEnum('country', ['OM', 'EG']);
@@ -350,6 +352,99 @@ export const lessonAttachments = pgTable('lesson_attachments', {
   mimeType: text('mime_type'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => [index('attachment_lesson_idx').on(t.lessonId)]);
+
+// ==========================================
+// 6b. HOMEWORK & SUBMISSIONS
+// ==========================================
+export const homework = pgTable(
+  'homework',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    lessonId: uuid('lesson_id')
+      .notNull()
+      .references(() => lessons.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id').references(() => groups.id, {
+      onDelete: 'cascade',
+    }), // Null = Master Course Homework; Populated = Specific to one Group only
+    title: text('title').notNull(),
+    instructions: text('instructions'),
+    attachmentType: attachmentTypeEnum('attachment_type').notNull().default('NONE'),
+    r2ObjectKey: text('r2_object_key'),
+    url: text('url'),
+    fileSizeBytes: integer('file_size_bytes'),
+    mimeType: text('mime_type'),
+    maxScore: integer('max_score').notNull().default(10),
+    displayOrder: integer('display_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('homework_lesson_idx').on(t.lessonId),
+    index('homework_group_idx').on(t.groupId),
+  ],
+);
+
+export type Homework = typeof homework.$inferSelect;
+export type NewHomework = typeof homework.$inferInsert;
+
+export const groupHomeworkAccess = pgTable(
+  'group_homework_access',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    homeworkId: uuid('homework_id')
+      .notNull()
+      .references(() => homework.id, { onDelete: 'cascade' }),
+    dueDate: timestamp('due_date'),
+    isHidden: boolean('is_hidden').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('unique_group_homework_access_idx').on(t.groupId, t.homeworkId),
+    index('group_homework_group_idx').on(t.groupId),
+  ],
+);
+
+export type GroupHomeworkAccess = typeof groupHomeworkAccess.$inferSelect;
+export type NewGroupHomeworkAccess = typeof groupHomeworkAccess.$inferInsert;
+
+export const homeworkSubmissions = pgTable(
+  'homework_submissions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    homeworkId: uuid('homework_id')
+      .notNull()
+      .references(() => homework.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    studentId: text('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    content: text('content'),
+    attachmentType: attachmentTypeEnum('attachment_type').notNull().default('NONE'),
+    r2ObjectKey: text('r2_object_key'),
+    url: text('url'),
+    fileSizeBytes: integer('file_size_bytes'),
+    mimeType: text('mime_type'),
+    status: text('status').notNull().default('SUBMITTED'),
+    isLate: boolean('is_late').notNull().default(false),
+    revisionCount: integer('revision_count').notNull().default(0),
+    score: integer('score'),
+    teacherFeedback: text('teacher_feedback'),
+    submittedAt: timestamp('submitted_at').notNull().defaultNow(),
+    gradedAt: timestamp('graded_at'),
+  },
+  (t) => [
+    uniqueIndex('unique_homework_submission_idx').on(t.homeworkId, t.groupId, t.studentId),
+    index('homework_sub_group_idx').on(t.groupId),
+    index('homework_sub_student_idx').on(t.studentId),
+  ],
+);
+
+export type HomeworkSubmission = typeof homeworkSubmissions.$inferSelect;
+export type NewHomeworkSubmission = typeof homeworkSubmissions.$inferInsert;
 
 // ==========================================
 // 7. QUIZZES, ATTEMPTS & COMPLETION

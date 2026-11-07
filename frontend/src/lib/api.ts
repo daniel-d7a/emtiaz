@@ -43,6 +43,15 @@ import type {
   PublicSupport,
   TeacherSummary,
   CourseType,
+  HomeworkAttachmentType,
+  HomeworkSubmissionStatus,
+  HomeworkDto,
+  HomeworkSubmissionDto,
+  HomeworkRosterSummaryDto,
+  CreateHomeworkDto,
+  UpdateHomeworkDto,
+  SetGroupHomeworkAccessDto,
+  GroupHomeworkAccessDto,
 } from '../../../shared/api';
 import { normalizePhone } from './phone';
 
@@ -92,6 +101,15 @@ export type {
   AdminTeacherEntitlementsResponse,
   AdminAssignSubscriptionDto,
   AdminGrantGiftDto,
+  HomeworkAttachmentType,
+  HomeworkSubmissionStatus,
+  HomeworkDto,
+  HomeworkSubmissionDto,
+  HomeworkRosterSummaryDto,
+  CreateHomeworkDto,
+  UpdateHomeworkDto,
+  SetGroupHomeworkAccessDto,
+  GroupHomeworkAccessDto,
 } from '../../../shared/api';
 
 export class ApiError extends Error {
@@ -189,6 +207,16 @@ export const teacherApi = {
     api<ActivateGiftResponse>(`/api/teacher/entitlements/gifts/${giftId}/activate`, { method: 'POST' }),
   deleteSavedGift: (giftId: string) =>
     api<DeleteGiftResponse>(`/api/teacher/entitlements/gifts/${giftId}`, { method: 'DELETE' }),
+  createHomework: (lessonId: string, dto: CreateHomeworkDto) =>
+    api<HomeworkDto>(`/api/teacher/lessons/${lessonId}/homework`, { body: dto }),
+  getLessonHomework: (lessonId: string) =>
+    api<HomeworkDto[]>(`/api/teacher/lessons/${lessonId}/homework`),
+  updateHomework: (id: string, dto: UpdateHomeworkDto) =>
+    api<HomeworkDto>(`/api/teacher/homework/${id}`, { method: 'PATCH', body: dto }),
+  deleteHomework: (id: string) =>
+    api<{ success: boolean }>(`/api/teacher/homework/${id}`, { method: 'DELETE' }),
+  setGroupHomeworkAccess: (groupId: string, homeworkId: string, dto: SetGroupHomeworkAccessDto) =>
+    api<GroupHomeworkAccessDto>(`/api/teacher/groups/${groupId}/homework/${homeworkId}/access`, { method: 'PUT', body: dto }),
 };
 
 export const onboardingApi = {

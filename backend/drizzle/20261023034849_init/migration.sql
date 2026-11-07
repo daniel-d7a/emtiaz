@@ -1,4 +1,4 @@
-CREATE TYPE "public"."attachment_type" AS ENUM('PDF', 'DOC', 'AUDIO', 'IMAGE', 'ARCHIVE', 'LINK', 'VIDEO');--> statement-breakpoint
+CREATE TYPE "public"."attachment_type" AS ENUM('PDF', 'DOC', 'AUDIO', 'IMAGE', 'ARCHIVE', 'LINK', 'VIDEO', 'NONE', 'OTHER');--> statement-breakpoint
 CREATE TYPE "public"."course_type" AS ENUM('ACADEMIC', 'GENERAL');--> statement-breakpoint
 CREATE TYPE "public"."question_type" AS ENUM('MCQ', 'TRUE_FALSE', 'SHORT_ANSWER');--> statement-breakpoint
 CREATE TYPE "public"."role" AS ENUM('ADMIN', 'TEACHER', 'STUDENT');--> statement-breakpoint

@@ -17,6 +17,8 @@ const typeLabel: Record<AttachmentType, string> = {
   ARCHIVE: 'أرشيف',
   LINK: 'رابط',
   VIDEO: 'فيديو',
+  NONE: 'بدون',
+  OTHER: 'أخرى',
 };
 
 function mediaHtml(src: string, tag: 'video' | 'audio') {

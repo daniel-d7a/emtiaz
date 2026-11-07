@@ -20,6 +20,9 @@ import type {
   Course,
   GradeItem,
   Group,
+  GroupHomeworkAccessDto,
+  HomeworkAttachmentType,
+  HomeworkDto,
   InboxItem,
   Lesson,
   ManualGradeColumn,
@@ -45,7 +48,10 @@ import type {
   categories,
   courses,
   grades,
+  groupHomeworkAccess,
   groups,
+  homework,
+  homeworkSubmissions,
   inboxNotifications,
   lessonAttachments,
   lessons,
@@ -65,6 +71,8 @@ type GroupRow = typeof groups.$inferSelect;
 type ModuleRow = typeof modules.$inferSelect;
 type LessonRow = typeof lessons.$inferSelect;
 type AttachmentRow = typeof lessonAttachments.$inferSelect;
+type HomeworkRow = typeof homework.$inferSelect;
+type GroupHomeworkAccessRow = typeof groupHomeworkAccess.$inferSelect;
 type QuizRow = typeof quizzes.$inferSelect;
 type QuizQuestionRow = typeof quizQuestions.$inferSelect;
 type QuizAttemptRow = typeof quizAttempts.$inferSelect;
@@ -225,6 +233,42 @@ export function serializeStudentAttachment(row: AttachmentRow): StudentAttachmen
     fileType: row.fileType,
     fileSizeBytes: row.fileSizeBytes,
     mimeType: row.mimeType,
+    createdAt: iso(row.createdAt),
+  };
+}
+
+export function serializeHomework(
+  row: HomeworkRow,
+  extra?: { dueDate?: Date | null; isHidden?: boolean },
+): HomeworkDto {
+  return {
+    id: row.id,
+    lessonId: row.lessonId,
+    groupId: row.groupId,
+    title: row.title,
+    instructions: row.instructions,
+    attachmentType: row.attachmentType as HomeworkAttachmentType,
+    r2ObjectKey: row.r2ObjectKey,
+    url: row.url,
+    fileSizeBytes: row.fileSizeBytes,
+    mimeType: row.mimeType,
+    maxScore: row.maxScore,
+    displayOrder: row.displayOrder,
+    createdAt: iso(row.createdAt),
+    ...(extra?.dueDate !== undefined ? { dueDate: extra.dueDate ? iso(extra.dueDate) : null } : {}),
+    ...(extra?.isHidden !== undefined ? { isHidden: extra.isHidden } : {}),
+  };
+}
+
+export function serializeGroupHomeworkAccess(
+  row: GroupHomeworkAccessRow,
+): GroupHomeworkAccessDto {
+  return {
+    id: row.id,
+    groupId: row.groupId,
+    homeworkId: row.homeworkId,
+    dueDate: row.dueDate ? iso(row.dueDate) : null,
+    isHidden: row.isHidden,
     createdAt: iso(row.createdAt),
   };
 }

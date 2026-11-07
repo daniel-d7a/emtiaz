@@ -24,6 +24,7 @@ import {
   BulkStudentsDto,
   CreateCourseDto,
   CreateEntryCodeDto,
+  CreateHomeworkDto,
   CreateQuizDto,
   GradeQuizAttemptDto,
   GradeCellDto,
@@ -32,10 +33,12 @@ import {
   ReorderModuleItemsDto,
   SearchStudentsDto,
   SetAttendanceDto,
+  SetGroupHomeworkAccessDto,
   SetLessonAccessDto,
   ToGroupDto,
   UpdateCourseDto,
   UpdateGroupDto,
+  UpdateHomeworkDto,
   UpdateLessonDto,
   UpdateModuleDto,
   UpsertQuizDto,
@@ -202,6 +205,60 @@ export class TeacherController {
   @Roles('TEACHER')
   deleteLesson(@Req() req: Request, @Param('lessonId') lessonId: string) {
     return this.teachers.deleteLesson(req.user!, lessonId);
+  }
+
+  // ---------- Homework ----------
+
+  @Post('api/teacher/lessons/:lessonId/homework')
+  @Roles('TEACHER')
+  createHomework(
+    @Req() req: Request,
+    @Param('lessonId') lessonId: string,
+    @Body(new ZodBodyPipe(CreateHomeworkDto))
+    dto: z.infer<typeof CreateHomeworkDto>,
+  ) {
+    return this.teachers.createHomework(req.user!, lessonId, dto);
+  }
+
+  @Get('api/teacher/lessons/:lessonId/homework')
+  @Roles('TEACHER')
+  getLessonHomework(
+    @Req() req: Request,
+    @Param('lessonId') lessonId: string,
+  ) {
+    return this.teachers.getLessonHomework(req.user!, lessonId);
+  }
+
+  @Patch('api/teacher/homework/:id')
+  @Roles('TEACHER')
+  updateHomework(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(UpdateHomeworkDto))
+    dto: z.infer<typeof UpdateHomeworkDto>,
+  ) {
+    return this.teachers.updateHomework(req.user!, id, dto);
+  }
+
+  @Delete('api/teacher/homework/:id')
+  @Roles('TEACHER')
+  deleteHomework(
+    @Req() req: Request,
+    @Param('id') id: string,
+  ) {
+    return this.teachers.deleteHomework(req.user!, id);
+  }
+
+  @Put('api/teacher/groups/:groupId/homework/:homeworkId/access')
+  @Roles('TEACHER')
+  setGroupHomeworkAccess(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('homeworkId') homeworkId: string,
+    @Body(new ZodBodyPipe(SetGroupHomeworkAccessDto))
+    dto: z.infer<typeof SetGroupHomeworkAccessDto>,
+  ) {
+    return this.teachers.setGroupHomeworkAccess(req.user!, groupId, homeworkId, dto);
   }
 
   @Post('api/teacher/lessons/:lessonId/quiz')

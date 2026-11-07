@@ -1,0 +1,1378 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "d300712c-bfe9-4798-a9e6-2b78122acddc",
+  "prevIds": [
+    "ef74a581-fa0c-4500-bf30-d32a1689a3ca"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "attachment_type"
+      ],
+      "writes": [
+        "s|enum|public.attachment_type"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_homework_access"
+      ],
+      "writes": [
+        "s|tbl|public.group_homework_access",
+        "n|tbl|public.group_homework_access",
+        "e|tbl|public.group_homework_access",
+        "n|rel|public.group_homework_access",
+        "n|type|public.group_homework_access",
+        "n|rel|public.group_homework_access_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework"
+      ],
+      "writes": [
+        "s|tbl|public.homework",
+        "n|tbl|public.homework",
+        "e|tbl|public.homework",
+        "n|rel|public.homework",
+        "n|type|public.homework",
+        "n|rel|public.homework_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.attachment_type"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework_submissions"
+      ],
+      "writes": [
+        "s|tbl|public.homework_submissions",
+        "n|tbl|public.homework_submissions",
+        "e|tbl|public.homework_submissions",
+        "n|rel|public.homework_submissions",
+        "n|type|public.homework_submissions",
+        "n|rel|public.homework_submissions_pkey"
+      ],
+      "reads": [
+        "n|sch|public",
+        "n|enum|public.attachment_type"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_homework_access",
+        "unique_group_homework_access_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_group_homework_access_idx",
+        "n|idx|public.unique_group_homework_access_idx",
+        "e|idx|public.unique_group_homework_access_idx",
+        "n|rel|public.unique_group_homework_access_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_homework_access",
+        "n|sch|public",
+        "n|col|public.group_homework_access.group_id",
+        "n|col|public.group_homework_access.homework_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "group_homework_access",
+        "group_homework_group_idx"
+      ],
+      "writes": [
+        "s|idx|public.group_homework_group_idx",
+        "n|idx|public.group_homework_group_idx",
+        "e|idx|public.group_homework_group_idx",
+        "n|rel|public.group_homework_group_idx"
+      ],
+      "reads": [
+        "n|tbl|public.group_homework_access",
+        "n|sch|public",
+        "n|col|public.group_homework_access.group_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "homework",
+        "homework_lesson_idx"
+      ],
+      "writes": [
+        "s|idx|public.homework_lesson_idx",
+        "n|idx|public.homework_lesson_idx",
+        "e|idx|public.homework_lesson_idx",
+        "n|rel|public.homework_lesson_idx"
+      ],
+      "reads": [
+        "n|tbl|public.homework",
+        "n|sch|public",
+        "n|col|public.homework.lesson_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "homework",
+        "homework_group_idx"
+      ],
+      "writes": [
+        "s|idx|public.homework_group_idx",
+        "n|idx|public.homework_group_idx",
+        "e|idx|public.homework_group_idx",
+        "n|rel|public.homework_group_idx"
+      ],
+      "reads": [
+        "n|tbl|public.homework",
+        "n|sch|public",
+        "n|col|public.homework.group_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "homework_submissions",
+        "unique_homework_submission_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_homework_submission_idx",
+        "n|idx|public.unique_homework_submission_idx",
+        "e|idx|public.unique_homework_submission_idx",
+        "n|rel|public.unique_homework_submission_idx"
+      ],
+      "reads": [
+        "n|tbl|public.homework_submissions",
+        "n|sch|public",
+        "n|col|public.homework_submissions.homework_id",
+        "n|col|public.homework_submissions.group_id",
+        "n|col|public.homework_submissions.student_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "homework_submissions",
+        "homework_sub_group_idx"
+      ],
+      "writes": [
+        "s|idx|public.homework_sub_group_idx",
+        "n|idx|public.homework_sub_group_idx",
+        "e|idx|public.homework_sub_group_idx",
+        "n|rel|public.homework_sub_group_idx"
+      ],
+      "reads": [
+        "n|tbl|public.homework_submissions",
+        "n|sch|public",
+        "n|col|public.homework_submissions.group_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "homework_submissions",
+        "homework_sub_student_idx"
+      ],
+      "writes": [
+        "s|idx|public.homework_sub_student_idx",
+        "n|idx|public.homework_sub_student_idx",
+        "e|idx|public.homework_sub_student_idx",
+        "n|rel|public.homework_sub_student_idx"
+      ],
+      "reads": [
+        "n|tbl|public.homework_submissions",
+        "n|sch|public",
+        "n|col|public.homework_submissions.student_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_homework_access"
+      ],
+      "writes": [
+        "s|fk|public.group_homework_access.group_homework_access_group_id_groups_id_fkey",
+        "n|fk|public.group_homework_access.group_homework_access_group_id_groups_id_fkey",
+        "e|fk|public.group_homework_access.group_homework_access_group_id_groups_id_fkey",
+        "n|con|public.group_homework_access.group_homework_access_group_id_groups_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_homework_access",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.group_homework_access.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "group_homework_access"
+      ],
+      "writes": [
+        "s|fk|public.group_homework_access.group_homework_access_homework_id_homework_id_fkey",
+        "n|fk|public.group_homework_access.group_homework_access_homework_id_homework_id_fkey",
+        "e|fk|public.group_homework_access.group_homework_access_homework_id_homework_id_fkey",
+        "n|con|public.group_homework_access.group_homework_access_homework_id_homework_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.group_homework_access",
+        "n|sch|public",
+        "n|tbl|public.homework",
+        "n|sch|public",
+        "n|col|public.group_homework_access.homework_id",
+        "n|col|public.homework.id",
+        "e|uniqueness|public.homework.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework"
+      ],
+      "writes": [
+        "s|fk|public.homework.homework_lesson_id_lessons_id_fkey",
+        "n|fk|public.homework.homework_lesson_id_lessons_id_fkey",
+        "e|fk|public.homework.homework_lesson_id_lessons_id_fkey",
+        "n|con|public.homework.homework_lesson_id_lessons_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.homework",
+        "n|sch|public",
+        "n|tbl|public.lessons",
+        "n|sch|public",
+        "n|col|public.homework.lesson_id",
+        "n|col|public.lessons.id",
+        "e|uniqueness|public.lessons.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework"
+      ],
+      "writes": [
+        "s|fk|public.homework.homework_group_id_groups_id_fkey",
+        "n|fk|public.homework.homework_group_id_groups_id_fkey",
+        "e|fk|public.homework.homework_group_id_groups_id_fkey",
+        "n|con|public.homework.homework_group_id_groups_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.homework",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.homework.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework_submissions"
+      ],
+      "writes": [
+        "s|fk|public.homework_submissions.homework_submissions_homework_id_homework_id_fkey",
+        "n|fk|public.homework_submissions.homework_submissions_homework_id_homework_id_fkey",
+        "e|fk|public.homework_submissions.homework_submissions_homework_id_homework_id_fkey",
+        "n|con|public.homework_submissions.homework_submissions_homework_id_homework_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.homework_submissions",
+        "n|sch|public",
+        "n|tbl|public.homework",
+        "n|sch|public",
+        "n|col|public.homework_submissions.homework_id",
+        "n|col|public.homework.id",
+        "e|uniqueness|public.homework.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework_submissions"
+      ],
+      "writes": [
+        "s|fk|public.homework_submissions.homework_submissions_group_id_groups_id_fkey",
+        "n|fk|public.homework_submissions.homework_submissions_group_id_groups_id_fkey",
+        "e|fk|public.homework_submissions.homework_submissions_group_id_groups_id_fkey",
+        "n|con|public.homework_submissions.homework_submissions_group_id_groups_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.homework_submissions",
+        "n|sch|public",
+        "n|tbl|public.groups",
+        "n|sch|public",
+        "n|col|public.homework_submissions.group_id",
+        "n|col|public.groups.id",
+        "e|uniqueness|public.groups.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "homework_submissions"
+      ],
+      "writes": [
+        "s|fk|public.homework_submissions.homework_submissions_student_id_user_id_fkey",
+        "n|fk|public.homework_submissions.homework_submissions_student_id_user_id_fkey",
+        "e|fk|public.homework_submissions.homework_submissions_student_id_user_id_fkey",
+        "n|con|public.homework_submissions.homework_submissions_student_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.homework_submissions",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.homework_submissions.student_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "group_homework_access",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "homework",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "homework_submissions",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "group_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "homework_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "due_date",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "is_hidden",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "lesson_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "group_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "title",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "instructions",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "attachment_type",
+        "type": "attachment_type",
+        "typeSchema": "public",
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'NONE'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "r2_object_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "file_size_bytes",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "mime_type",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "max_score",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "10",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "display_order",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "group_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "student_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "content",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "attachment_type",
+        "type": "attachment_type",
+        "typeSchema": "public",
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'NONE'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "r2_object_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "file_size_bytes",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "mime_type",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'SUBMITTED'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "is_late",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "revision_count",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "score",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "teacher_feedback",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "submitted_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "graded_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "unique_group_homework_access_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "homework_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "group_homework_group_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "homework_lesson_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "lesson_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "homework_group_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "unique_homework_submission_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "homework_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_sub_group_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "group_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_sub_student_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "student_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "group_homework_access_group_id_groups_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "group_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "groups",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "group_homework_access_homework_id_homework_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "homework_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "homework",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "homework_lesson_id_lessons_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "lesson_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "lessons",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "homework_group_id_groups_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "group_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "groups",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_submissions_homework_id_homework_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "homework_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "homework",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_submissions_group_id_groups_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "group_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "groups",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_submissions_student_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "student_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "group_homework_access",
+        "name": "group_homework_access_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework",
+        "name": "homework_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "homework_submissions",
+        "name": "homework_submissions_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "enums\u0000[\"public\",\"attachment_type\"]",
+      "set": {
+        "values": [
+          "PDF",
+          "DOC",
+          "AUDIO",
+          "IMAGE",
+          "ARCHIVE",
+          "LINK",
+          "VIDEO",
+          "NONE",
+          "OTHER"
+        ]
+      }
+    }
+  ]
+}

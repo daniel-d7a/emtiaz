@@ -1449,4 +1449,135 @@ describe('Phase 4: teacher endpoints', () => {
       expect(foreignAttach.status).toBe(403);
     });
   });
+
+  describe('homework & pacing', () => {
+    let homeworkId: string;
+
+    it('creates homework on master lesson and returns serialized dto', async () => {
+      const res = await t.post(`/api/teacher/lessons/${world.lesson1}/homework`).send({
+        title: 'Exercise 1: Cell division',
+        instructions: 'Read Chapter 4 and answer questions 1 to 5.',
+        attachmentType: 'PDF',
+        maxScore: 15,
+        displayOrder: 0,
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.id).toBeTruthy();
+      expect(res.body.title).toBe('Exercise 1: Cell division');
+      expect(res.body.instructions).toBe('Read Chapter 4 and answer questions 1 to 5.');
+      expect(res.body.attachmentType).toBe('PDF');
+      expect(res.body.maxScore).toBe(15);
+      expect(res.body.lessonId).toBe(world.lesson1);
+      expect(res.body.groupId).toBeNull();
+      homeworkId = res.body.id;
+    });
+
+    it('lists homework for a lesson in order', async () => {
+      const second = await t.post(`/api/teacher/lessons/${world.lesson1}/homework`).send({
+        title: 'Exercise 2: Mitosis',
+        displayOrder: 1,
+      });
+      expect(second.status).toBe(201);
+
+      const res = await t.get(`/api/teacher/lessons/${world.lesson1}/homework`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(2);
+      expect(res.body[0].title).toBe('Exercise 1: Cell division');
+      expect(res.body[1].title).toBe('Exercise 2: Mitosis');
+    });
+
+    it('updates homework title, instructions, and maxScore', async () => {
+      const res = await t.patch(`/api/teacher/homework/${homeworkId}`).send({
+        title: 'Exercise 1: Cell division (Updated)',
+        maxScore: 20,
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.title).toBe('Exercise 1: Cell division (Updated)');
+      expect(res.body.maxScore).toBe(20);
+    });
+
+    it('sets cohort pacing due date and visibility via group homework access', async () => {
+      const dueDate = new Date(Date.now() + 86400000 * 3).toISOString();
+      const res = await t
+        .put(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/access`)
+        .send({
+          dueDate,
+          isHidden: false,
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.groupId).toBe(world.group1);
+      expect(res.body.homeworkId).toBe(homeworkId);
+      expect(res.body.dueDate).toBeTruthy();
+      expect(res.body.isHidden).toBe(false);
+
+      // Verify toggle isHidden
+      const hideRes = await t
+        .put(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/access`)
+        .send({
+          isHidden: true,
+        });
+      expect(hideRes.status).toBe(200);
+      expect(hideRes.body.isHidden).toBe(true);
+    });
+
+    it('enforces storage quota on homework file attachment upload', async () => {
+      const excessiveBytes = 100 * 1024 * 1024 * 1024;
+      const res = await t.post(`/api/teacher/lessons/${world.lesson1}/homework`).send({
+        title: 'Big File Homework',
+        fileSizeBytes: excessiveBytes,
+        attachmentType: 'PDF',
+      });
+      expect(res.status).toBe(402);
+      expect(res.body.error).toBe('PLAN_LIMIT_REACHED');
+      expect(res.body.limitType).toBe('STORAGE');
+    });
+
+    it('enforces storage quota when updating homework with larger file', async () => {
+      const excessiveBytes = 100 * 1024 * 1024 * 1024;
+      const res = await t.patch(`/api/teacher/homework/${homeworkId}`).send({
+        fileSizeBytes: excessiveBytes,
+      });
+      expect(res.status).toBe(402);
+      expect(res.body.error).toBe('PLAN_LIMIT_REACHED');
+      expect(res.body.limitType).toBe('STORAGE');
+    });
+
+    it('refuses access to another teacher', async () => {
+      const stranger = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({ ...TEACHER, email: 'hw-stranger@teacher.om', phoneNumber: '+96890000012' });
+      expect(stranger.status).toBe(201);
+      const st = (await login(server, 'hw-stranger@teacher.om', TEACHER.password)).session;
+
+      const createRes = await st.post(`/api/teacher/lessons/${world.lesson1}/homework`).send({
+        title: 'Unauthorized HW',
+      });
+      expect(createRes.status).toBe(403);
+
+      const listRes = await st.get(`/api/teacher/lessons/${world.lesson1}/homework`);
+      expect(listRes.status).toBe(403);
+
+      const updateRes = await st.patch(`/api/teacher/homework/${homeworkId}`).send({
+        title: 'Hijack',
+      });
+      expect(updateRes.status).toBe(403);
+
+      const accessRes = await st
+        .put(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/access`)
+        .send({ isHidden: true });
+      expect(accessRes.status).toBe(403);
+
+      const deleteRes = await st.delete(`/api/teacher/homework/${homeworkId}`);
+      expect(deleteRes.status).toBe(403);
+    });
+
+    it('deletes homework and cascades', async () => {
+      const res = await t.delete(`/api/teacher/homework/${homeworkId}`);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const list = await t.get(`/api/teacher/lessons/${world.lesson1}/homework`);
+      expect(list.body.some((h: any) => h.id === homeworkId)).toBe(false);
+    });
+  });
 });
