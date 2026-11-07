@@ -1,0 +1,524 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "72e304bf-f825-47c0-983e-68ca6f1d1f22",
+  "prevIds": [
+    "8912de2a-54d2-4417-8891-fe1239e4681e"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_grades"
+      ],
+      "writes": [
+        "s|tbl|public.teacher_grades",
+        "n|tbl|public.teacher_grades",
+        "e|tbl|public.teacher_grades",
+        "n|rel|public.teacher_grades",
+        "n|type|public.teacher_grades",
+        "n|rel|public.teacher_grades_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "categories",
+        "name_ar"
+      ],
+      "writes": [
+        "s|col|public.categories.name_ar",
+        "n|col|public.categories.name_ar",
+        "e|col|public.categories.name_ar"
+      ],
+      "reads": [
+        "n|tbl|public.categories",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "categories",
+        "name_en"
+      ],
+      "writes": [
+        "s|col|public.categories.name_en",
+        "n|col|public.categories.name_en",
+        "e|col|public.categories.name_en"
+      ],
+      "reads": [
+        "n|tbl|public.categories",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "grades",
+        "country"
+      ],
+      "writes": [
+        "s|col|public.grades.country",
+        "n|col|public.grades.country",
+        "e|col|public.grades.country"
+      ],
+      "reads": [
+        "n|tbl|public.grades",
+        "n|sch|public",
+        "n|enum|public.country"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "grades",
+        "name_ar"
+      ],
+      "writes": [
+        "s|col|public.grades.name_ar",
+        "n|col|public.grades.name_ar",
+        "e|col|public.grades.name_ar"
+      ],
+      "reads": [
+        "n|tbl|public.grades",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "grades",
+        "name_en"
+      ],
+      "writes": [
+        "s|col|public.grades.name_en",
+        "n|col|public.grades.name_en",
+        "e|col|public.grades.name_en"
+      ],
+      "reads": [
+        "n|tbl|public.grades",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "course_focus"
+      ],
+      "writes": [
+        "s|col|public.user.course_focus",
+        "n|col|public.user.course_focus",
+        "e|col|public.user.course_focus"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|enum|public.course_type"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "onboarding_completed_at"
+      ],
+      "writes": [
+        "s|col|public.user.onboarding_completed_at",
+        "n|col|public.user.onboarding_completed_at",
+        "e|col|public.user.onboarding_completed_at"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "teacher_grades",
+        "unique_teacher_grade_idx"
+      ],
+      "writes": [
+        "s|idx|public.unique_teacher_grade_idx",
+        "n|idx|public.unique_teacher_grade_idx",
+        "e|idx|public.unique_teacher_grade_idx",
+        "n|rel|public.unique_teacher_grade_idx"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_grades",
+        "n|sch|public",
+        "n|col|public.teacher_grades.teacher_id",
+        "n|col|public.teacher_grades.grade_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "teacher_grades",
+        "teacher_grades_teacher_idx"
+      ],
+      "writes": [
+        "s|idx|public.teacher_grades_teacher_idx",
+        "n|idx|public.teacher_grades_teacher_idx",
+        "e|idx|public.teacher_grades_teacher_idx",
+        "n|rel|public.teacher_grades_teacher_idx"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_grades",
+        "n|sch|public",
+        "n|col|public.teacher_grades.teacher_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_grades"
+      ],
+      "writes": [
+        "s|fk|public.teacher_grades.teacher_grades_teacher_id_user_id_fkey",
+        "n|fk|public.teacher_grades.teacher_grades_teacher_id_user_id_fkey",
+        "e|fk|public.teacher_grades.teacher_grades_teacher_id_user_id_fkey",
+        "n|con|public.teacher_grades.teacher_grades_teacher_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_grades",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.teacher_grades.teacher_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_grades"
+      ],
+      "writes": [
+        "s|fk|public.teacher_grades.teacher_grades_grade_id_grades_id_fkey",
+        "n|fk|public.teacher_grades.teacher_grades_grade_id_grades_id_fkey",
+        "e|fk|public.teacher_grades.teacher_grades_grade_id_grades_id_fkey",
+        "n|con|public.teacher_grades.teacher_grades_grade_id_grades_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_grades",
+        "n|sch|public",
+        "n|tbl|public.grades",
+        "n|sch|public",
+        "n|col|public.teacher_grades.grade_id",
+        "n|col|public.grades.id",
+        "e|uniqueness|public.grades.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "teacher_grades",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "categories",
+        "name": "name_ar",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "''",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "categories",
+        "name": "name_en",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "''",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "grades",
+        "name": "country",
+        "type": "country",
+        "typeSchema": "public",
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'OM'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "grades",
+        "name": "name_ar",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "''",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "grades",
+        "name": "name_en",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "''",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "teacher_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "grade_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "course_focus",
+        "type": "course_type",
+        "typeSchema": "public",
+        "notNull": false,
+        "dimensions": 0,
+        "default": "'ACADEMIC'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "onboarding_completed_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "unique_teacher_grade_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "teacher_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "grade_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "teacher_grades_teacher_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "teacher_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "teacher_grades_teacher_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "teacher_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "teacher_grades_grade_id_grades_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "grade_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "grades",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_grades",
+        "name": "teacher_grades_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

@@ -17,6 +17,7 @@ describe('response serializers', () => {
       phoneNumberVerified: null,
       image: 'avatars/u1/x.png',
       role: 'STUDENT',
+      country: 'OM',
       adminRoleId: 'role-1',
       landingSlug: null,
       landingBio: null,
@@ -24,6 +25,7 @@ describe('response serializers', () => {
       landingTheme: null,
       landingPublished: false,
       isActive: true,
+      monitoringCode: 'ABCDEFGH',
       dateOfBirth: null,
       subjectCategoryId: null,
       gradeId: null,
@@ -33,6 +35,7 @@ describe('response serializers', () => {
     } as any);
 
     expect(user.createdAt).toBe(date.toISOString());
+    expect(user.monitoringCode).toBe('ABCDEFGH');
     expect(user).not.toHaveProperty('adminRoleId');
     expect(user).not.toHaveProperty('image');
     expect(user).not.toHaveProperty('landingBanner');

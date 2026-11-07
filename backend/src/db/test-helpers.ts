@@ -4,6 +4,9 @@ import { createApp } from '../main';
 import request from 'supertest';
 import { Pool } from 'pg';
 import { resetTestDb } from './migrate';
+import { db } from './index';
+import { seedPlans } from './seed-plans';
+import { seedTaxonomy } from './seed-taxonomy';
 
 export const TEACHER = {
   email: 't@teacher.om',
@@ -27,8 +30,21 @@ export const STUDENT2 = {
 
 let app: INestApplication | null = null;
 let server: any = null;
-export const testPool = new Pool({
-  connectionString: process.env.TEST_DATABASE_URL,
+let _testPool: Pool | null = null;
+export function getTestPool(): Pool {
+  if (!_testPool || (_testPool as any).ended) {
+    _testPool = new Pool({
+      connectionString: process.env.TEST_DATABASE_URL,
+    });
+  }
+  return _testPool;
+}
+export const testPool: Pool = new Proxy({} as Pool, {
+  get(_target, prop) {
+    const pool = getTestPool();
+    const val = (pool as any)[prop];
+    return typeof val === 'function' ? val.bind(pool) : val;
+  },
 });
 
 export async function getApp() {
@@ -57,7 +73,7 @@ export async function login(server: any, email: string, password: string) {
 
 export async function getUserByEmail(email: string) {
   const { rows } = await testPool.query(
-    `SELECT id, role FROM "user" WHERE email=$1`,
+    `SELECT id, role, monitoring_code AS "monitoringCode" FROM "user" WHERE email=$1`,
     [email],
   );
   return rows[0];
@@ -74,6 +90,8 @@ export const ADMIN = {
 
 export async function seedWorld() {
   const { server } = await getApp();
+  await seedPlans(db);
+  await seedTaxonomy(db);
   await request(server)
     .post('/api/auth/sign-up/email')
     .send({ ...ADMIN, role: 'ADMIN' });
@@ -84,13 +102,11 @@ export async function seedWorld() {
   await request(server).post('/api/onboarding/student').send(STUDENT2);
 
   const { rows: gradeRows } = await testPool.query(
-    `INSERT INTO grades (name, display_order) VALUES ('Grade 10', 5)
-     ON CONFLICT DO NOTHING
-     RETURNING id`,
+    `SELECT id FROM grades WHERE country='OM' AND name='Grade 10' LIMIT 1`,
   );
   const gradeId = gradeRows[0].id;
   const { rows: categoryRows } = await testPool.query(
-    `INSERT INTO categories (name) VALUES ('English Speaking') RETURNING id`,
+    `SELECT id FROM categories WHERE name='English Speaking' LIMIT 1`,
   );
   const categoryId = categoryRows[0].id;
 

@@ -3,7 +3,9 @@ import {
   pgTable,
   uuid,
   text,
+  varchar,
   integer,
+  bigint,
   boolean,
   timestamp,
   date,
@@ -29,6 +31,8 @@ export const attachmentTypeEnum = pgEnum('attachment_type', [
   'VIDEO', // Reserved for future phase
 ]);
 export const questionTypeEnum = pgEnum('question_type', ['MCQ', 'TRUE_FALSE', 'WRITTEN']);
+export const countryEnum = pgEnum('country', ['OM', 'EG']);
+export type Country = (typeof countryEnum.enumValues)[number];
 
 export type TeacherTheme = {
   layout: 'banner' | 'split';
@@ -44,13 +48,18 @@ export type TeacherTheme = {
 // ==========================================
 export const grades = pgTable('grades', {
   id: uuid('id').defaultRandom().primaryKey(),
+  country: countryEnum('country').notNull().default('OM'),
   name: text('name').notNull(), // e.g., "Grade 10"
+  nameAr: text('name_ar').notNull().default(''),
+  nameEn: text('name_en').notNull().default(''),
   displayOrder: integer('display_order').notNull().default(0),
 });
 
 export const categories = pgTable('categories', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(), // e.g., "English Speaking"
+  nameAr: text('name_ar').notNull().default(''),
+  nameEn: text('name_en').notNull().default(''),
 });
 
 export const semesters = pgTable('semesters', {
@@ -82,18 +91,40 @@ export const users = pgTable('user', {
   adminRoleId: uuid('admin_role_id').references(() => adminRoles.id, { onDelete: 'set null' }),
   landingSlug: text('landing_slug').unique(),
   landingBio: text('landing_bio'),
+  country: countryEnum('country').notNull().default('OM'),
+  courseFocus: courseTypeEnum('course_focus').default('ACADEMIC'),
+  onboardingCompletedAt: timestamp('onboarding_completed_at'),
+  referralCode: text('referral_code').unique(),
   landingBanner: text('landing_banner'),
   landingTheme: jsonb('landing_theme').$type<TeacherTheme>(),
   landingPublished: boolean('landing_published').notNull().default(false),
   isActive: boolean('is_active').notNull().default(true),
   mustChangePassword: boolean('must_change_password').notNull().default(false),
   dateOfBirth: date('date_of_birth'),
+  monitoringCode: varchar('monitoring_code', { length: 8 }).unique(),
   subjectCategoryId: uuid('subject_category_id').references(() => categories.id, { onDelete: 'set null' }),
   gradeId: uuid('grade_id').references(() => grades.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'), // soft delete: keep rows for history/audit
 }, (t) => [index('user_role_idx').on(t.role)]);
+
+export const teacherGrades = pgTable(
+  'teacher_grades',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teacherId: text('teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    gradeId: uuid('grade_id')
+      .notNull()
+      .references(() => grades.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    uniqueIndex('unique_teacher_grade_idx').on(t.teacherId, t.gradeId),
+    index('teacher_grades_teacher_idx').on(t.teacherId),
+  ],
+);
 
 export const sessions = pgTable('session', {
   id: text('id').primaryKey(),
@@ -514,8 +545,166 @@ export const notificationSettings = pgTable('notification_settings', {
   primaryColor: text('primary_color').notNull().default('#0F766E'),
   secondaryColor: text('secondary_color').notNull().default('#EA580C'),
   logoUrl: text('logo_url'),
+  yearlyPlanDiscountEnabled: boolean('yearly_plan_discount_enabled').notNull().default(false),
+  referralPlanSlug: text('referral_plan_slug').notNull().default('early-bird'),
+  referralGiftDays: integer('referral_gift_days').notNull().default(7),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
+
+export const plans = pgTable(
+  'plans',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    slug: text('slug').notNull().unique(),
+    tierRank: integer('tier_rank').notNull().default(0),
+    nameAr: text('name_ar').notNull(),
+    nameEn: text('name_en').notNull(),
+    descriptionAr: text('description_ar'),
+    descriptionEn: text('description_en'),
+    monthlyPriceOmr: integer('monthly_price_omr').notNull().default(0),
+    yearlyMonthlyPriceOmr: integer('yearly_monthly_price_omr').notNull().default(0),
+    monthlyPriceEgp: integer('monthly_price_egp').notNull().default(0),
+    yearlyMonthlyPriceEgp: integer('yearly_monthly_price_egp').notNull().default(0),
+    maxStudents: integer('max_students'),
+    maxStorageBytes: bigint('max_storage_bytes', { mode: 'number' }),
+    maxGroups: integer('max_groups'),
+    trialDays: integer('trial_days').notNull().default(0),
+    isPublic: boolean('is_public').notNull().default(false),
+    isDefault: boolean('is_default').notNull().default(false),
+    displayOrder: integer('display_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('plans_slug_idx').on(t.slug),
+    index('plans_public_order_idx').on(t.isPublic, t.displayOrder),
+  ],
+);
+
+export const teacherSubscriptions = pgTable(
+  'teacher_subscriptions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teacherId: text('teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    planId: uuid('plan_id').references(() => plans.id, { onDelete: 'set null' }),
+    planSlug: text('plan_slug').notNull(),
+    tierRank: integer('tier_rank').notNull().default(0),
+    planNameAr: text('plan_name_ar').notNull(),
+    planNameEn: text('plan_name_en').notNull(),
+    pricePaid: integer('price_paid').notNull().default(0),
+    currency: text('currency').notNull().default('OMR'),
+    billingCycle: text('billing_cycle').notNull().default('MONTHLY'), // MONTHLY | YEARLY | TRIAL | GIFT
+    maxStudents: integer('max_students'),
+    maxStorageBytes: bigint('max_storage_bytes', { mode: 'number' }),
+    maxGroups: integer('max_groups'),
+    startsAt: timestamp('starts_at').notNull().defaultNow(),
+    endsAt: timestamp('ends_at'),
+    source: text('source').notNull().default('ADMIN_PAID'), // ADMIN_PAID | EARLY_BIRD_TRIAL | ADMIN_TRIAL | PROMO | REFERRAL
+    giftsAppliedInCycle: integer('gifts_applied_in_cycle').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('teacher_subs_teacher_ends_idx').on(t.teacherId, t.endsAt),
+  ],
+);
+
+export type TeacherSubscription = typeof teacherSubscriptions.$inferSelect;
+export type NewTeacherSubscription = typeof teacherSubscriptions.$inferInsert;
+
+export const promoCodes = pgTable(
+  'promo_codes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    code: text('code').notNull().unique(),
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => plans.id, { onDelete: 'cascade' }),
+    durationDays: integer('duration_days').notNull(),
+    maxUses: integer('max_uses'),
+    usedCount: integer('used_count').notNull().default(0),
+    expiresAt: timestamp('expires_at'),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('promo_codes_code_idx').on(t.code)],
+);
+
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type NewPromoCode = typeof promoCodes.$inferInsert;
+
+export const teacherGifts = pgTable(
+  'teacher_gifts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teacherId: text('teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => plans.id, { onDelete: 'cascade' }),
+    planSlug: text('plan_slug').notNull(),
+    tierRank: integer('tier_rank').notNull(),
+    planNameAr: text('plan_name_ar').notNull(),
+    planNameEn: text('plan_name_en').notNull(),
+    durationDays: integer('duration_days').notNull(),
+    source: text('source').notNull(), // PROMO | REFERRAL_GIVER | REFERRAL_TAKER | ADMIN_TRIAL
+    sourceRef: text('source_ref'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('teacher_gifts_teacher_idx').on(t.teacherId)],
+);
+
+export type TeacherGift = typeof teacherGifts.$inferSelect;
+export type NewTeacherGift = typeof teacherGifts.$inferInsert;
+
+export const teacherDiscounts = pgTable(
+  'teacher_discounts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teacherId: text('teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    occasion: text('occasion').notNull(), // LIMIT_CROSS_PRO | LIMIT_CROSS_ULTIMATE | LIMIT_CROSS_EARLY_BIRD | EARLY_BIRD_TRIAL | ADMIN_TRIAL | PROMO_CODE | REFERRAL_GIVER | REFERRAL_TAKER
+    planSlug: text('plan_slug').notNull(),
+    referenceId: text('reference_id'),
+    description: text('description'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('teacher_discounts_teacher_idx').on(t.teacherId),
+    index('teacher_discounts_teacher_occasion_idx').on(t.teacherId, t.occasion),
+  ],
+);
+
+export type TeacherDiscount = typeof teacherDiscounts.$inferSelect;
+export type NewTeacherDiscount = typeof teacherDiscounts.$inferInsert;
+
+export const teacherReferrals = pgTable(
+  'teacher_referrals',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    giverTeacherId: text('giver_teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    takerTeacherId: text('taker_teacher_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    referralCode: text('referral_code').notNull(),
+    status: text('status').notNull().default('PENDING_GROUP'), // PENDING_GROUP | REWARDED | DROPPED_FULL_INVENTORY
+    rewardedAt: timestamp('rewarded_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('teacher_referrals_giver_idx').on(t.giverTeacherId),
+    index('teacher_referrals_taker_idx').on(t.takerTeacherId),
+  ],
+);
+
+export type TeacherReferral = typeof teacherReferrals.$inferSelect;
+export type NewTeacherReferral = typeof teacherReferrals.$inferInsert;
 
 export const inboxNotifications = pgTable(
   'inbox_notifications',

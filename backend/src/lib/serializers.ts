@@ -16,7 +16,9 @@ import type {
   AdminTeacherRow,
   AdminUser,
   Attachment,
+  CategoryItem,
   Course,
+  GradeItem,
   Group,
   InboxItem,
   Lesson,
@@ -25,17 +27,21 @@ import type {
   Module,
   PublicCourseCard,
   PublicCoursePage,
+  PublicPlan,
   PublicSupport,
   PublicTeacher,
   Quiz,
   QuizAttempt,
   QuizQuestion,
   StudentAttachment,
+  TaughtGrade,
   TeacherQuizQuestion,
   User,
 } from '../../shared/api';
+import { normalizeDays } from './days';
 import type {
   adminRoles,
+  categories,
   courses,
   grades,
   groups,
@@ -45,6 +51,7 @@ import type {
   manualGradeColumns,
   modules,
   notifications,
+  plans,
   quizAttempts,
   quizQuestions,
   quizzes,
@@ -65,12 +72,14 @@ type InboxRow = typeof inboxNotifications.$inferSelect;
 type NotificationRow = typeof notifications.$inferSelect;
 type AdminRoleRow = typeof adminRoles.$inferSelect;
 type GradeRow = typeof grades.$inferSelect;
+type CategoryRow = typeof categories.$inferSelect;
+type PlanRow = typeof plans.$inferSelect;
 
 const iso = (value: Date) => value.toISOString();
 const isoOrNull = (value: Date | null) => (value ? value.toISOString() : null);
 
 /** The shared User contract. Storage keys and role internals stay out. */
-export function serializeUser(row: UserRow): User {
+export function serializeUser(row: UserRow, taughtGrades?: TaughtGrade[]): User {
   return {
     id: row.id,
     name: row.name,
@@ -79,6 +88,10 @@ export function serializeUser(row: UserRow): User {
     phoneNumber: row.phoneNumber,
     phoneNumberVerified: row.phoneNumberVerified,
     role: row.role,
+    country: row.country,
+    courseFocus: row.courseFocus ?? 'ACADEMIC',
+    onboardingCompletedAt: isoOrNull(row.onboardingCompletedAt ?? null),
+    ...(taughtGrades !== undefined ? { taughtGrades } : {}),
     landingSlug: row.landingSlug,
     landingBio: row.landingBio,
     landingTheme: row.landingTheme,
@@ -86,6 +99,7 @@ export function serializeUser(row: UserRow): User {
     isActive: row.isActive,
     mustChangePassword: row.mustChangePassword,
     dateOfBirth: row.dateOfBirth,
+    monitoringCode: row.monitoringCode ?? null,
     subjectCategoryId: row.subjectCategoryId,
     gradeId: row.gradeId,
     createdAt: iso(row.createdAt),
@@ -93,12 +107,41 @@ export function serializeUser(row: UserRow): User {
   };
 }
 
+export function serializePublicPlan(row: PlanRow): PublicPlan {
+  return {
+    id: row.id,
+    slug: row.slug,
+    tierRank: row.tierRank,
+    nameAr: row.nameAr,
+    nameEn: row.nameEn,
+    descriptionAr: row.descriptionAr,
+    descriptionEn: row.descriptionEn,
+    monthlyPriceOmr: row.monthlyPriceOmr,
+    yearlyMonthlyPriceOmr: row.yearlyMonthlyPriceOmr,
+    monthlyPriceEgp: row.monthlyPriceEgp,
+    yearlyMonthlyPriceEgp: row.yearlyMonthlyPriceEgp,
+    maxStudents: row.maxStudents,
+    maxStorageBytes: row.maxStorageBytes,
+    maxGroups: row.maxGroups,
+    trialDays: row.trialDays,
+    displayOrder: row.displayOrder,
+  };
+}
+
 export function serializeMe(
   row: UserRow,
   avatarUrl: string | null,
   bannerUrl: string | null,
+  taughtGrades: TaughtGrade[] = [],
 ): MeResponse {
-  return { user: serializeUser(row), avatarUrl, bannerUrl };
+  return {
+    user: serializeUser(row, taughtGrades),
+    avatarUrl,
+    bannerUrl,
+    courseFocus: row.courseFocus ?? 'ACADEMIC',
+    onboardingCompletedAt: isoOrNull(row.onboardingCompletedAt ?? null),
+    taughtGrades,
+  };
 }
 
 export function serializeCourse(row: CourseRow): Course {
@@ -124,7 +167,7 @@ export function serializeGroup(row: GroupRow): Group {
     courseId: row.courseId,
     name: row.name,
     joinCode: row.joinCode,
-    days: row.days,
+    days: normalizeDays(row.days),
     time: row.time,
     whatsappMessage: row.whatsappMessage,
     requiresEntryCode: row.requiresEntryCode,
@@ -483,7 +526,7 @@ export function serializeAdminAuditEntry(row: {
 
 export function serializePublicTeacher(row: {
   name: string;
-  email: string;
+  email: string | null;
   phoneNumber: string | null;
   bio: string | null;
   subject: string | null;
@@ -522,6 +565,22 @@ export function serializePublicSupport(row: {
   return row;
 }
 
-export function serializeGrade(row: GradeRow) {
-  return { id: row.id, name: row.name, displayOrder: row.displayOrder };
+export function serializeGrade(row: GradeRow): GradeItem {
+  return {
+    id: row.id,
+    name: row.name,
+    nameAr: row.nameAr || row.name,
+    nameEn: row.nameEn || row.name,
+    country: row.country,
+    displayOrder: row.displayOrder,
+  };
+}
+
+export function serializeCategory(row: CategoryRow): CategoryItem {
+  return {
+    id: row.id,
+    name: row.name,
+    nameAr: row.nameAr || row.name,
+    nameEn: row.nameEn || row.name,
+  };
 }

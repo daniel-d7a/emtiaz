@@ -14,6 +14,7 @@ import {
   parentStudents,
   modules,
   notificationSettings,
+  plans,
   semesters,
   quizQuestions,
   quizzes,
@@ -21,18 +22,28 @@ import {
   users,
 } from './schema';
 import { eq } from 'drizzle-orm';
+import { seedPlans } from './seed-plans';
+import { seedTaxonomy } from './seed-taxonomy';
+import { generateUniqueMonitoringCode } from '../lib/group-join';
 
 const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? 'demo-password';
 
-async function signUp(name: string, email: string, password: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT', extra: { phoneNumber?: string; gradeId?: string } = {}) {
+async function signUp(name: string, email: string, password: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT', extra: { phoneNumber?: string; gradeId?: string; monitoringCode?: string } = {}) {
+  const extraWithCode = { ...extra };
+  if (role === 'STUDENT' && !extraWithCode.monitoringCode) {
+    extraWithCode.monitoringCode = await generateUniqueMonitoringCode();
+  }
   try {
     const { response, error } = (await auth.api.signUpEmail({
-      body: { name, email, password, role, ...extra },
+      body: { name, email, password, role, ...extraWithCode },
       returnHeaders: true,
       asResponse: false,
       headers: new Headers(),
     } as any)) as unknown as { response: { user: { id: string } }; error?: { message?: string } };
     if (error) throw error;
+    if (role === 'STUDENT' && extraWithCode.monitoringCode) {
+      await db.update(users).set({ monitoringCode: extraWithCode.monitoringCode }).where(eq(users.id, response.user.id));
+    }
     return response.user.id;
   } catch (e: any) {
     // rerun tolerance: better-auth throws APIError itself for an existing user.
@@ -50,6 +61,10 @@ async function signUp(name: string, email: string, password: string, role: 'ADMI
       await db.delete(users).where(eq(users.id, existingUser.id));
       return await signUp(name, email, password, role, extra);
     }
+    if (role === 'STUDENT' && !existingUser.monitoringCode) {
+      const code = extraWithCode.monitoringCode ?? (await generateUniqueMonitoringCode());
+      await db.update(users).set({ monitoringCode: code }).where(eq(users.id, existingUser.id));
+    }
     return existingUser.id;
   }
 }
@@ -57,7 +72,7 @@ async function signUp(name: string, email: string, password: string, role: 'ADMI
 async function getOrCreateCategory(name: string) {
   const [existing] = await db.select().from(categories).where(eq(categories.name, name));
   if (existing) return existing;
-  return (await db.insert(categories).values({ name }).returning())[0];
+  return (await db.insert(categories).values({ name, nameAr: name, nameEn: name }).returning())[0];
 }
 
 const joinCode = () => `OM${Math.floor(100000 + Math.random() * 900000)}`;
@@ -75,7 +90,7 @@ async function makeCourse(teacherId: string, dto: {
   if (dto.courseType === 'ACADEMIC') {
     gradeId = (await db.select().from(grades).where(eq(grades.name, dto.gradeName ?? 'Grade 10')))[0]?.id ?? null;
   } else {
-    categoryId = (await db.select().from(categories).where(eq(categories.name, dto.categoryName ?? 'English Speaking')))[0]?.id ?? null;
+    categoryId = (await getOrCreateCategory(dto.categoryName ?? 'English Speaking')).id;
   }
   const [course] = await db
     .insert(courses)
@@ -114,8 +129,10 @@ async function makeCurriculum(courseId: string, title: string, defs: Array<{ tit
 }
 
 async function seed() {
-  const existing = await db.select().from(grades).limit(1);
-  if (existing.length > 0) {
+  await seedPlans(db);
+  const existingSemesters = await db.select().from(semesters).limit(1);
+  await seedTaxonomy(db);
+  if (existingSemesters.length > 0) {
     // self-heal: an admin created before better-auth wiring may lack a password account
     const [admin] = await db.select().from(users).where(eq(users.email, 'admin@emtiaz.om'));
     if (admin) {
@@ -128,19 +145,12 @@ async function seed() {
       await db.delete(sessions).where(eq(sessions.userId, admin.id));
       await db.delete(users).where(eq(users.id, admin.id));
     }
+  } else {
+    await db.insert(semesters).values([
+      { name: 'Semester 1', displayOrder: 1 },
+      { name: 'Semester 2', displayOrder: 2 },
+    ]);
   }
-  const gradeNames = Array.from({ length: 8 }, (_, i) => `Grade ${i + 5}`);
-  await db.insert(grades).values(gradeNames.map((name, i) => ({ name, displayOrder: i })));
-  await db.insert(categories).values([
-    { name: 'English Speaking' },
-    { name: 'Grammar' },
-    { name: 'IELTS' },
-    { name: 'IELTS Preparation' },
-  ]);
-  await db.insert(semesters).values([
-    { name: 'Semester 1', displayOrder: 1 },
-    { name: 'Semester 2', displayOrder: 2 },
-  ]);
   await signUp('Platform Admin', 'admin@emtiaz.om', process.env.SEED_ADMIN_PASSWORD ?? 'admin-password-123', 'ADMIN');
   await db.delete(sessions); // don't seed a live session
   await db

@@ -1,0 +1,90 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "b4ab65dd-294c-4b01-8576-ad4bb758c13f",
+  "prevIds": [
+    "b79a36bb-cfb9-4da0-93c4-4e7bc6eabf19"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "teacher_discounts",
+        "plan_slug"
+      ],
+      "writes": [
+        "s|colprop|public.teacher_discounts.plan_slug.notNull"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_discounts",
+        "n|sch|public",
+        "n|col|public.teacher_discounts.plan_slug"
+      ],
+      "sqlHash": "8228661375ed4a93"
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "teacher_discounts",
+        "teacher_discounts_teacher_occasion_idx"
+      ],
+      "writes": [
+        "s|idx|public.teacher_discounts_teacher_occasion_idx",
+        "n|idx|public.teacher_discounts_teacher_occasion_idx",
+        "e|idx|public.teacher_discounts_teacher_occasion_idx",
+        "n|rel|public.teacher_discounts_teacher_occasion_idx"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_discounts",
+        "n|sch|public",
+        "n|col|public.teacher_discounts.teacher_id",
+        "n|col|public.teacher_discounts.occasion"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "teacher_discounts_teacher_occasion_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "teacher_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "occasion",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"teacher_discounts\",\"plan_slug\"]",
+      "set": {
+        "notNull": true
+      }
+    }
+  ]
+}

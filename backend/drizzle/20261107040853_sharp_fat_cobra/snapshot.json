@@ -1,0 +1,81 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "8912de2a-54d2-4417-8891-fe1239e4681e",
+  "prevIds": [
+    "ae97ed33-fc29-4136-aac8-d3c4aec03010"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "monitoring_code"
+      ],
+      "writes": [
+        "s|col|public.user.monitoring_code",
+        "n|col|public.user.monitoring_code",
+        "e|col|public.user.monitoring_code"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_unique",
+      "statementTarget": [
+        "table",
+        "public",
+        "user"
+      ],
+      "writes": [
+        "s|uq|public.user.user_monitoring_code_key",
+        "n|uq|public.user.user_monitoring_code_key",
+        "e|uq|public.user.user_monitoring_code_key",
+        "n|con|public.user.user_monitoring_code_key",
+        "n|rel|public.user_monitoring_code_key"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.user.monitoring_code"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "monitoring_code",
+        "type": "varchar(8)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "user_monitoring_code_key",
+        "nameExplicit": false,
+        "columns": [
+          "monitoring_code"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    }
+  ]
+}

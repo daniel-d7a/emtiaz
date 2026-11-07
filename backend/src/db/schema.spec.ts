@@ -20,12 +20,14 @@ describe('Phase 1: database schema', () => {
     const names = rows.map((r) => r.table_name);
     for (const t of [
       'user', 'session', 'account', 'verification',
-      'grades', 'categories',
+      'grades', 'categories', 'teacher_grades',
       'courses', 'modules', 'lessons',
       'groups', 'group_students', 'group_lesson_access',
       'lesson_attachments',
       'quizzes', 'quiz_questions', 'quiz_attempts', 'lesson_completions',
       'manual_grade_columns', 'manual_grade_values',
+      'plans', 'teacher_subscriptions', 'teacher_discounts',
+      'promo_codes', 'teacher_gifts', 'teacher_referrals',
     ]) {
       expect(names).toContain(t);
     }
@@ -33,9 +35,9 @@ describe('Phase 1: database schema', () => {
 
   it('created expected enums', async () => {
     const { rows } = await pool.query<{ typname: string }>(
-      `SELECT typname FROM pg_type WHERE typname IN ('role','course_type','attachment_type','question_type')`,
+      `SELECT typname FROM pg_type WHERE typname IN ('role','course_type','attachment_type','question_type','country')`,
     );
-    expect(rows.map((r) => r.typname).sort()).toEqual(['attachment_type', 'course_type', 'question_type', 'role']);
+    expect(rows.map((r) => r.typname).sort()).toEqual(['attachment_type', 'country', 'course_type', 'question_type', 'role']);
   });
 
   it('enforces unique group-student enrollment and lesson access', async () => {

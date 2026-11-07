@@ -1,7 +1,8 @@
 /** ZodValidationPipe + every request-body schema for write endpoints. 400 on first mismatch. */
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import { z } from 'zod';
-import { normalizePhone } from './phone';
+import { normalizeDays } from './days';
+import { normalizePhone, isValidPhoneForCountry } from './phone';
 import { ADMIN_PERMISSIONS } from './admin-permissions';
 
 @Injectable()
@@ -23,7 +24,7 @@ const phoneNumber = z
   .string()
   .trim()
   .min(1)
-  .transform(normalizePhone)
+  .transform((v) => normalizePhone(v))
   .refine((v) => /^\+[1-9]\d{6,14}$/.test(v), {
     message: 'phone must be a valid number (+XXXXXXXXX)',
   });
@@ -41,20 +42,68 @@ const TeacherThemeDto = z.object({
 });
 
 // ---------- onboarding ----------
-export const TeacherSignupDto = z.object({
-  name: safeText(120),
-  email: z.email().optional(),
-  password: z.string().min(8).max(200),
-  phoneNumber,
-  subject: safeText(60),
+export const countrySchema = z.enum(['OM', 'EG']).default('OM');
+
+export const CheckAvailabilityDto = z.object({
+  email: z.string().trim().optional(),
+  phoneNumber: z.string().trim().optional(),
+  country: z.enum(['OM', 'EG']).optional(),
 });
-export const StudentSignupDto = z.object({
-  name: safeText(120),
-  password: z.string().min(8).max(200),
-  phoneNumber,
-  email: z.email().optional(),
-  gradeId: uuid.optional(),
-});
+
+export const TeacherSignupDto = z
+  .object({
+    name: safeText(120),
+    email: z.email().optional(),
+    password: z.string().min(8).max(200),
+    phoneNumber: z.string().trim().min(1),
+    country: countrySchema,
+    courseFocus: z.enum(['ACADEMIC', 'GENERAL']).default('ACADEMIC'),
+    gradeIds: z.array(uuid).max(24).optional(),
+    customGrades: z.array(safeText(80)).max(20).optional(),
+    subject: optText(80),
+  })
+  .transform((dto) => ({
+    ...dto,
+    phoneNumber: normalizePhone(dto.phoneNumber, dto.country),
+  }))
+  .refine((dto) => isValidPhoneForCountry(dto.phoneNumber, dto.country), {
+    message: 'phone must be a valid number for selected country',
+    path: ['phoneNumber'],
+  })
+  .refine(
+    (dto) => {
+      if (dto.courseFocus === 'GENERAL') {
+        return Boolean(dto.subject?.trim());
+      }
+      return (
+        Boolean(dto.subject?.trim()) ||
+        Boolean(dto.gradeIds?.length) ||
+        Boolean(dto.customGrades?.length)
+      );
+    },
+    {
+      message: 'subject or taught grades are required',
+      path: ['subject'],
+    },
+  );
+
+export const StudentSignupDto = z
+  .object({
+    name: safeText(120),
+    password: z.string().min(8).max(200),
+    phoneNumber: z.string().trim().min(1),
+    country: countrySchema,
+    email: z.email().optional(),
+    gradeId: uuid.optional(),
+  })
+  .transform((dto) => ({
+    ...dto,
+    phoneNumber: normalizePhone(dto.phoneNumber, dto.country),
+  }))
+  .refine((dto) => isValidPhoneForCountry(dto.phoneNumber, dto.country), {
+    message: 'phone must be a valid number for selected country',
+    path: ['phoneNumber'],
+  });
 export const JoinCodeDto = z.object({ joinCode: safeText(16) });
 export const ChangePasswordDto = z.object({
   currentPassword: z.string().min(1).max(200),
@@ -63,16 +112,17 @@ export const ChangePasswordDto = z.object({
 export const UpdateMeDto = z
   .object({
     name: safeText(120).optional(),
+    country: z.enum(['OM', 'EG']).optional(),
     phoneNumber: z
       .string()
       .trim()
       .max(20)
-      .refine((v) => v === '' || /^\+?[1-9]\d{6,14}$/.test(v), {
-        message: 'phone must be empty to clear, or a valid number (+XXXXXXXXX)',
-      })
-      .transform(normalizePhone)
       .optional(),
-    subject: optText(60),
+    courseFocus: z.enum(['ACADEMIC', 'GENERAL']).optional(),
+    gradeIds: z.array(uuid).max(24).optional(),
+    customGrades: z.array(safeText(80)).max(20).optional(),
+    subject: optText(80),
+    onboardingCompleted: z.boolean().optional(),
     dateOfBirth: z
       .string()
       .trim()
@@ -93,7 +143,23 @@ export const UpdateMeDto = z
     landingBanner: z.string().trim().max(512).nullable().optional(),
     landingTheme: TeacherThemeDto.optional(),
     landingPublished: z.boolean().optional(),
-  });
+  })
+  .transform((dto) => {
+    if (dto.phoneNumber !== undefined) {
+      const trimmed = dto.phoneNumber.trim();
+      return { ...dto, phoneNumber: normalizePhone(trimmed, dto.country) };
+    }
+    return dto;
+  })
+  .refine(
+    (dto) =>
+      dto.phoneNumber === undefined ||
+      (dto.phoneNumber !== '' && isValidPhoneForCountry(dto.phoneNumber, dto.country)),
+    {
+      message: 'phone must be a valid number (+XXXXXXXXX)',
+      path: ['phoneNumber'],
+    },
+  );
 
 export const CreateTeacherDto = TeacherSignupDto;
 export const UpdateTeacherDto = z
@@ -103,10 +169,10 @@ export const UpdateTeacherDto = z
       .string()
       .trim()
       .max(20)
-      .refine((v) => v === '' || /^\+?[1-9]\d{6,14}$/.test(v), {
-        message: 'phone must be empty to clear, or a valid number (+XXXXXXXXX)',
+      .refine((v) => v !== '' && /^\+?[1-9]\d{6,14}$/.test(v), {
+        message: 'phone must be a valid number (+XXXXXXXXX)',
       })
-      .transform(normalizePhone)
+      .transform((v) => normalizePhone(v))
       .optional(),
     subjectId: uuid.nullable().optional(),
   })
@@ -185,9 +251,13 @@ export const QuizQuestionDto = z
     options: z.array(z.string().trim().min(1).max(100)).min(2).max(4).optional().nullable(),
     correctAnswer: z.string().min(1).max(200),
     explanation: optText(1000).nullable(),
-    points: z.number().int().positive().default(1),
+    points: z.number().int().positive().optional(),
     displayOrder: z.number().int().default(0),
   })
+  .transform((q) => ({
+    ...q,
+    points: q.points ?? (q.questionType === 'WRITTEN' ? 10 : 1),
+  }))
   .refine((q) => q.prompt.length > 0 || !!q.imageKey, {
     message: 'A question needs text or an image',
   })
@@ -204,16 +274,24 @@ export const CreateQuizDto = UpsertQuizDto.extend({
   targetId: uuid,
 });
 export const GradeQuizAttemptDto = z.object({
-  grades: z.record(z.string(), z.number().min(0).max(10)),
+  grades: z.record(z.string(), z.number().min(0).max(1000)),
 });
 export const MoveQuizDto = z.object({
   direction: z.enum(['up', 'down']),
 });
 
 // ---------- groups & roster ----------
+const groupDays = z
+  .string()
+  .trim()
+  .max(200)
+  .nullable()
+  .optional()
+  .transform((value) => (value === undefined ? undefined : normalizeDays(value)));
+
 export const AddGroupDto = z.object({
   name: z.string().trim().max(120).default(''),
-  days: z.string().trim().max(200).nullable().optional(),
+  days: groupDays,
   time: z.string().trim().max(120).nullable().optional(),
   students: z
     .array(
@@ -228,7 +306,7 @@ export const AddGroupDto = z.object({
 });
 export const UpdateGroupDto = z.object({
   name: z.string().trim().max(120).optional(),
-  days: z.string().trim().max(200).nullable().optional(),
+  days: groupDays,
   time: z.string().trim().max(120).nullable().optional(),
   isActive: z.boolean().optional(),
   joinCode: z
@@ -363,14 +441,46 @@ export const QuizSubmitDto = z
   });
 
 // ---------- parent ----------
-export const ParentSignupDto = z.object({
-  name: safeText(120),
-  email: z.string().trim().toLowerCase().email().optional(),
-  password: z.string().min(8).max(128),
-  phoneNumber,
-  studentPhone: phone,
+export const ParentSignupDto = z
+  .object({
+    name: safeText(120),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email()
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
+    password: z.string().min(8).max(128),
+    phoneNumber: z.string().trim().min(1),
+    country: countrySchema,
+    monitoringCode: z
+      .string()
+      .trim()
+      .length(8)
+      .toUpperCase()
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
+    studentPhone: z
+      .string()
+      .trim()
+      .max(30)
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
+  })
+  .transform((dto) => ({
+    ...dto,
+    phoneNumber: normalizePhone(dto.phoneNumber, dto.country),
+    monitoringCode: dto.monitoringCode ? dto.monitoringCode.trim().toUpperCase() : undefined,
+    studentPhone: dto.studentPhone ? dto.studentPhone.trim() : undefined,
+  }))
+  .refine((dto) => isValidPhoneForCountry(dto.phoneNumber, dto.country), {
+    message: 'phone must be a valid number for selected country',
+    path: ['phoneNumber'],
+  });
+export const ParentLinkDto = z.object({
+  monitoringCode: z.string().trim().length(8).toUpperCase(),
 });
-export const ParentLinkDto = z.object({ phoneNumber });
 
 // ---------- admin ----------
 export const SetUserStatusDto = z
@@ -378,6 +488,57 @@ export const SetUserStatusDto = z
 export const TaxonomyCreateDto = z
   .object({ name: safeText(80), displayOrder: z.number().int().min(0).optional() });
 export const TaxonomyUpdateDto = TaxonomyCreateDto.partial();
+
+export const GradeCreateDto = z
+  .object({
+    name: safeText(80).optional(),
+    nameAr: safeText(80).optional(),
+    nameEn: safeText(80).optional(),
+    country: z.enum(['OM', 'EG']).optional(),
+    displayOrder: z.number().int().min(0).optional(),
+  })
+  .refine((v) => Boolean(v.name || v.nameAr || v.nameEn), {
+    message: 'name, nameAr, or nameEn is required',
+  });
+
+export const GradeUpdateDto = z
+  .object({
+    name: safeText(80).optional(),
+    nameAr: safeText(80).optional(),
+    nameEn: safeText(80).optional(),
+    country: z.enum(['OM', 'EG']).optional(),
+    displayOrder: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.nameAr !== undefined ||
+      v.nameEn !== undefined ||
+      v.country !== undefined ||
+      v.displayOrder !== undefined,
+    { message: 'at least one field is required' },
+  );
+
+export const CategoryCreateDto = z
+  .object({
+    name: safeText(80).optional(),
+    nameAr: safeText(80).optional(),
+    nameEn: safeText(80).optional(),
+  })
+  .refine((v) => Boolean(v.name || v.nameAr || v.nameEn), {
+    message: 'name, nameAr, or nameEn is required',
+  });
+
+export const CategoryUpdateDto = z
+  .object({
+    name: safeText(80).optional(),
+    nameAr: safeText(80).optional(),
+    nameEn: safeText(80).optional(),
+  })
+  .refine(
+    (v) => v.name !== undefined || v.nameAr !== undefined || v.nameEn !== undefined,
+    { message: 'at least one field is required' },
+  );
 export const AdminEnrollDto = z.object({ groupId: uuid });
 export const AdminMoveStudentDto = z.object({ targetGroupId: uuid });
 export const AdminParentLinkDto = z.object({
@@ -398,7 +559,13 @@ export const CreateParentDto = z.object({
   email: z.string().trim().toLowerCase().email().optional(),
   password: z.string().min(8).max(128),
   phoneNumber,
-  studentPhone: phone.optional(),
+  monitoringCode: z
+    .string()
+    .trim()
+    .length(8)
+    .toUpperCase()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
 export const UpdateParentDto = z
   .object({
@@ -410,7 +577,7 @@ export const UpdateParentDto = z
       .refine((v) => v !== '' && /^\+?[1-9]\d{6,14}$/.test(v), {
         message: 'phone must be a valid number (+XXXXXXXXX)',
       })
-      .transform(normalizePhone)
+      .transform((v) => normalizePhone(v))
       .optional(),
   })
   .refine((dto) => dto.name !== undefined || dto.phoneNumber !== undefined, {
@@ -427,7 +594,7 @@ export const UpdateStudentDto = z
       .refine((v) => v !== '' && /^\+?[1-9]\d{6,14}$/.test(v), {
         message: 'phone must be a valid number (+XXXXXXXXX)',
       })
-      .transform(normalizePhone)
+      .transform((v) => normalizePhone(v))
       .optional(),
     gradeId: uuid.nullable().optional(),
   })
@@ -454,8 +621,94 @@ export const NotificationSettingsDto = z
     primaryColor: hexColor.optional(),
     secondaryColor: hexColor.optional(),
     logoUrl: z.string().trim().url().max(500).nullable().optional(),
+    yearlyPlanDiscountEnabled: z.boolean().optional(),
+    referralPlanSlug: z.string().trim().min(1).max(50).optional(),
+    referralGiftDays: z.number().int().min(1).max(365).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'at least one setting is required');
+
+export const AdminCreatePlanDto = z.object({
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
+  tierRank: z.number().int().min(0).default(0),
+  nameAr: safeText(100),
+  nameEn: safeText(100),
+  descriptionAr: safeText(500).nullish(),
+  descriptionEn: safeText(500).nullish(),
+  monthlyPriceOmr: z.number().int().min(0).default(0),
+  yearlyMonthlyPriceOmr: z.number().int().min(0).default(0),
+  monthlyPriceEgp: z.number().int().min(0).default(0),
+  yearlyMonthlyPriceEgp: z.number().int().min(0).default(0),
+  maxStudents: z.number().int().positive().nullish(),
+  maxStorageBytes: z.number().int().positive().nullish(),
+  maxGroups: z.number().int().positive().nullish(),
+  trialDays: z.number().int().min(0).default(0),
+  isPublic: z.boolean().default(false),
+  isDefault: z.boolean().default(false),
+  displayOrder: z.number().int().default(0),
+});
+
+export const AdminUpdatePlanDto = z
+  .object({
+    tierRank: z.number().int().min(0).optional(),
+    nameAr: safeText(100).optional(),
+    nameEn: safeText(100).optional(),
+    descriptionAr: safeText(500).nullish(),
+    descriptionEn: safeText(500).nullish(),
+    monthlyPriceOmr: z.number().int().min(0).optional(),
+    yearlyMonthlyPriceOmr: z.number().int().min(0).optional(),
+    monthlyPriceEgp: z.number().int().min(0).optional(),
+    yearlyMonthlyPriceEgp: z.number().int().min(0).optional(),
+    maxStudents: z.number().int().positive().nullish(),
+    maxStorageBytes: z.number().int().positive().nullish(),
+    maxGroups: z.number().int().positive().nullish(),
+    trialDays: z.number().int().min(0).optional(),
+    isPublic: z.boolean().optional(),
+    isDefault: z.boolean().optional(),
+    displayOrder: z.number().int().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'at least one field to update is required');
+
+export const AdminCreatePromoCodeDto = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(3)
+    .max(50)
+    .transform((v) => v.toUpperCase()),
+  planId: z.string().uuid(),
+  durationDays: z.number().int().positive().max(365),
+  maxUses: z.number().int().positive().nullish(),
+  expiresAt: z.string().nullish(),
+});
+
+export const AdminUpdatePromoCodeDto = z
+  .object({
+    isActive: z.boolean().optional(),
+    maxUses: z.number().int().positive().nullish(),
+    expiresAt: z.string().nullish(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'at least one field to update is required');
+
+export const AdminAssignSubscriptionDto = z.object({
+  planId: z.string().uuid(),
+  currency: z.enum(['OMR', 'EGP']),
+  billingCycle: z.enum(['MONTHLY', 'YEARLY']),
+  durationDays: z.number().int().positive().nullish(),
+  pricePaid: z.number().int().min(0).nullish(),
+  recordLimitCrossingDiscount: z.boolean().optional(),
+});
+
+export const AdminGrantGiftDto = z.object({
+  planId: z.string().uuid(),
+  durationDays: z.number().int().positive().max(365),
+  adminOverride: z.boolean().optional(),
+  note: safeText(200).optional(),
+});
 
 // ---------- gradebook ----------
 export const AddColumnDto = z.object({
@@ -468,3 +721,9 @@ export const GradeCellDto = z.object({
   score: z.number().int().min(0).max(1000).nullable(),
   note: optText(500),
 });
+
+// ---------- teacher entitlements & promo codes ----------
+export const RedeemCodeSchema = z.object({
+  code: safeText(50),
+});
+export type RedeemCodeDto = z.infer<typeof RedeemCodeSchema>;

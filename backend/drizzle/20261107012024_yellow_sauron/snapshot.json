@@ -1,0 +1,887 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "b79a36bb-cfb9-4da0-93c4-4e7bc6eabf19",
+  "prevIds": [
+    "a70ba95f-ca15-4c13-b6ef-024f6ff8421c"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "promo_codes"
+      ],
+      "writes": [
+        "s|tbl|public.promo_codes",
+        "n|tbl|public.promo_codes",
+        "e|tbl|public.promo_codes",
+        "n|rel|public.promo_codes",
+        "n|type|public.promo_codes",
+        "n|rel|public.promo_codes_pkey",
+        "n|rel|public.promo_codes_code_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_discounts"
+      ],
+      "writes": [
+        "s|tbl|public.teacher_discounts",
+        "n|tbl|public.teacher_discounts",
+        "e|tbl|public.teacher_discounts",
+        "n|rel|public.teacher_discounts",
+        "n|type|public.teacher_discounts",
+        "n|rel|public.teacher_discounts_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_gifts"
+      ],
+      "writes": [
+        "s|tbl|public.teacher_gifts",
+        "n|tbl|public.teacher_gifts",
+        "e|tbl|public.teacher_gifts",
+        "n|rel|public.teacher_gifts",
+        "n|type|public.teacher_gifts",
+        "n|rel|public.teacher_gifts_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "promo_codes",
+        "promo_codes_code_idx"
+      ],
+      "writes": [
+        "s|idx|public.promo_codes_code_idx",
+        "n|idx|public.promo_codes_code_idx",
+        "e|idx|public.promo_codes_code_idx",
+        "n|rel|public.promo_codes_code_idx"
+      ],
+      "reads": [
+        "n|tbl|public.promo_codes",
+        "n|sch|public",
+        "n|col|public.promo_codes.code"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "teacher_discounts",
+        "teacher_discounts_teacher_idx"
+      ],
+      "writes": [
+        "s|idx|public.teacher_discounts_teacher_idx",
+        "n|idx|public.teacher_discounts_teacher_idx",
+        "e|idx|public.teacher_discounts_teacher_idx",
+        "n|rel|public.teacher_discounts_teacher_idx"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_discounts",
+        "n|sch|public",
+        "n|col|public.teacher_discounts.teacher_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "teacher_gifts",
+        "teacher_gifts_teacher_idx"
+      ],
+      "writes": [
+        "s|idx|public.teacher_gifts_teacher_idx",
+        "n|idx|public.teacher_gifts_teacher_idx",
+        "e|idx|public.teacher_gifts_teacher_idx",
+        "n|rel|public.teacher_gifts_teacher_idx"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_gifts",
+        "n|sch|public",
+        "n|col|public.teacher_gifts.teacher_id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "promo_codes"
+      ],
+      "writes": [
+        "s|fk|public.promo_codes.promo_codes_plan_id_plans_id_fkey",
+        "n|fk|public.promo_codes.promo_codes_plan_id_plans_id_fkey",
+        "e|fk|public.promo_codes.promo_codes_plan_id_plans_id_fkey",
+        "n|con|public.promo_codes.promo_codes_plan_id_plans_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.promo_codes",
+        "n|sch|public",
+        "n|tbl|public.plans",
+        "n|sch|public",
+        "n|col|public.promo_codes.plan_id",
+        "n|col|public.plans.id",
+        "e|uniqueness|public.plans.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_discounts"
+      ],
+      "writes": [
+        "s|fk|public.teacher_discounts.teacher_discounts_teacher_id_user_id_fkey",
+        "n|fk|public.teacher_discounts.teacher_discounts_teacher_id_user_id_fkey",
+        "e|fk|public.teacher_discounts.teacher_discounts_teacher_id_user_id_fkey",
+        "n|con|public.teacher_discounts.teacher_discounts_teacher_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_discounts",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.teacher_discounts.teacher_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_gifts"
+      ],
+      "writes": [
+        "s|fk|public.teacher_gifts.teacher_gifts_teacher_id_user_id_fkey",
+        "n|fk|public.teacher_gifts.teacher_gifts_teacher_id_user_id_fkey",
+        "e|fk|public.teacher_gifts.teacher_gifts_teacher_id_user_id_fkey",
+        "n|con|public.teacher_gifts.teacher_gifts_teacher_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_gifts",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.teacher_gifts.teacher_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "teacher_gifts"
+      ],
+      "writes": [
+        "s|fk|public.teacher_gifts.teacher_gifts_plan_id_plans_id_fkey",
+        "n|fk|public.teacher_gifts.teacher_gifts_plan_id_plans_id_fkey",
+        "e|fk|public.teacher_gifts.teacher_gifts_plan_id_plans_id_fkey",
+        "n|con|public.teacher_gifts.teacher_gifts_plan_id_plans_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.teacher_gifts",
+        "n|sch|public",
+        "n|tbl|public.plans",
+        "n|sch|public",
+        "n|col|public.teacher_gifts.plan_id",
+        "n|col|public.plans.id",
+        "e|uniqueness|public.plans.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "promo_codes",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "teacher_discounts",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "teacher_gifts",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "code",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "plan_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "duration_days",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "max_uses",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "used_count",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "expires_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "is_active",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "true",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "teacher_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "occasion",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "plan_slug",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "reference_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "description",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "teacher_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "plan_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "plan_slug",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "tier_rank",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "plan_name_ar",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "plan_name_en",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "duration_days",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "source",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "source_ref",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "promo_codes_code_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "code",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "teacher_discounts_teacher_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "teacher_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "teacher_gifts_teacher_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "teacher_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "promo_codes_plan_id_plans_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "plan_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "plans",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "teacher_discounts_teacher_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "teacher_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "teacher_gifts_teacher_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "teacher_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "teacher_gifts_plan_id_plans_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "plan_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "plans",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "promo_codes_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_discounts",
+        "name": "teacher_discounts_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "teacher_gifts",
+        "name": "teacher_gifts_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "promo_codes",
+        "name": "promo_codes_code_key",
+        "nameExplicit": false,
+        "columns": [
+          "code"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    }
+  ]
+}

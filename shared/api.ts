@@ -1,4 +1,6 @@
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
+export type Country = 'OM' | 'EG';
+export type Currency = 'OMR' | 'EGP';
 export type CourseType = 'ACADEMIC' | 'GENERAL';
 export type QuestionType = 'MCQ' | 'TRUE_FALSE' | 'WRITTEN';
 export type TeacherTheme = {
@@ -19,6 +21,31 @@ export type AttachmentType =
   | 'LINK'
   | 'VIDEO';
 
+export type TaughtGrade = {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameEn: string;
+  country: Country;
+  displayOrder?: number;
+};
+
+export type GradeItem = {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameEn: string;
+  country: Country;
+  displayOrder: number;
+};
+
+export type CategoryItem = {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameEn: string;
+};
+
 export type User = {
   id: string;
   name: string;
@@ -27,6 +54,11 @@ export type User = {
   phoneNumber: string | null;
   phoneNumberVerified: boolean | null;
   role: Role;
+  country: Country;
+  courseFocus?: CourseType;
+  onboardingCompletedAt?: string | null;
+  taughtGrades?: TaughtGrade[];
+  monitoringCode?: string | null;
   landingSlug: string | null;
   landingBio: string | null;
   landingTheme: TeacherTheme | null;
@@ -55,7 +87,18 @@ export type AdminPermission =
 
 export type SessionUser = Pick<User, 'id' | 'name' | 'email' | 'role'> &
   Partial<
-    Pick<User, 'subjectCategoryId' | 'phoneNumber' | 'gradeId' | 'landingSlug' | 'mustChangePassword'>
+    Pick<
+      User,
+      | 'subjectCategoryId'
+      | 'phoneNumber'
+      | 'gradeId'
+      | 'landingSlug'
+      | 'mustChangePassword'
+      | 'country'
+      | 'courseFocus'
+      | 'onboardingCompletedAt'
+      | 'monitoringCode'
+    >
   > & { image?: string | null; permissions?: AdminPermission[] };
 
 export type Session = { user: SessionUser; session?: unknown } | null;
@@ -220,11 +263,47 @@ export type MeResponse = {
   user: User;
   avatarUrl: string | null;
   bannerUrl: string | null;
+  courseFocus?: CourseType;
+  onboardingCompletedAt?: string | null;
+  taughtGrades?: TaughtGrade[];
+};
+export type GetMeResponse = MeResponse;
+export type StudentProfile = User & { monitoringCode?: string | null };
+
+export type ParentLinkDto = {
+  monitoringCode: string;
+};
+
+export type CheckAvailabilityDto = {
+  email?: string;
+  phoneNumber?: string;
+  country?: Country;
+};
+
+export type CheckAvailabilityResponse = {
+  available: boolean;
+  field?: 'email' | 'phoneNumber';
+  reason?: string;
+};
+
+export type RegisterTeacherDto = {
+  name: string;
+  email?: string;
+  password: string;
+  phoneNumber: string;
+  country?: Country;
+  courseFocus?: CourseType;
+  gradeIds?: string[];
+  customGrades?: string[];
+  subject?: string;
 };
 
 export type TaxonomyItem = {
   id: string;
   name: string;
+  nameAr?: string;
+  nameEn?: string;
+  country?: Country;
   displayOrder?: number;
 };
 
@@ -247,6 +326,7 @@ export type PublicSupport = {
   email: string | null;
   phone: string | null;
   whatsapp: string | null;
+  supportWhatsapp?: string | null;
 };
 
 export type SiteBranding = {
@@ -260,9 +340,282 @@ export type PublicSite = {
   support: PublicSupport;
 };
 
+export type Plan = {
+  id: string;
+  slug: string;
+  tierRank: number;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  monthlyPriceOmr: number;
+  yearlyMonthlyPriceOmr: number;
+  monthlyPriceEgp: number;
+  yearlyMonthlyPriceEgp: number;
+  maxStudents: number | null;
+  maxStorageBytes: number | null;
+  maxGroups: number | null;
+  trialDays: number;
+  isPublic: boolean;
+  isDefault: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PublicPlan = {
+  id: string;
+  slug: string;
+  tierRank: number;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  monthlyPriceOmr: number;
+  yearlyMonthlyPriceOmr: number;
+  monthlyPriceEgp: number;
+  yearlyMonthlyPriceEgp: number;
+  maxStudents: number | null;
+  maxStorageBytes: number | null;
+  maxGroups: number | null;
+  trialDays: number;
+  displayOrder: number;
+};
+
+export type PublicPlansResponse = {
+  plans: PublicPlan[];
+  yearlyPlanDiscountEnabled: boolean;
+  supportWhatsapp: string | null;
+};
+
+export type TeacherEntitlementStatus = 'ACTIVE' | 'TRIAL' | 'FREE' | 'EXPIRED';
+
+export type TeacherActivePlan = {
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  tierRank: number;
+  maxStudents: number | null;
+  maxStorageBytes: number | null;
+  maxGroups: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  source: string;
+  status: TeacherEntitlementStatus;
+  billingCycle?: string | null;
+  pricePaid?: number | null;
+  currency?: string | null;
+};
+
+export type TeacherUsage = {
+  activeStudentCount: number;
+  usedStorageBytes: number;
+  activeGroupCount: number;
+};
+
+export type TeacherUpgradeOption = {
+  id: string;
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  tierRank: number;
+  monthlyPrice: number;
+  yearlyMonthlyPrice: number;
+  currency: Currency;
+  maxStudents: number | null;
+  maxStorageBytes: number | null;
+  firstMonthDiscountPrice: number | null;
+  firstMonthDiscountEligible: boolean;
+};
+
+export type PlanLimitType = 'STUDENTS' | 'STORAGE';
+
+export type PlanLimitReachedResponse = {
+  error: 'PLAN_LIMIT_REACHED';
+  limitType: PlanLimitType;
+  currentUsage: number;
+  limit: number;
+  upgradeOptions: TeacherUpgradeOption[];
+  customPlanPrompt: string | null;
+};
+
+export type UpgradeGateLockedResponse = {
+  error: 'UPGRADE_GATE_LOCKED';
+  message: string;
+};
+
+export type SavedGift = {
+  id: string;
+  planSlug: string;
+  planNameAr: string;
+  planNameEn: string;
+  tierRank: number;
+  durationDays: number;
+  source: string;
+  createdAt: string;
+};
+
+export type ReferralItem = {
+  takerName: string;
+  status: string;
+  createdAt: string;
+};
+
+export type ReferralSummary = {
+  referralCode: string | null;
+  usedCount: number;
+  maxReferrals: number;
+  referrals: ReferralItem[];
+};
+
+export type TeacherEntitlementsResponse = {
+  activePlan: TeacherActivePlan;
+  usage: TeacherUsage;
+  country: Country;
+  currency: Currency;
+  isLockedOut: boolean;
+  supportWhatsapp: string | null;
+  upgradeOptions: TeacherUpgradeOption[];
+  customPlanPrompt: string | null;
+  savedGifts: SavedGift[];
+  referral?: ReferralSummary;
+};
+
+export type RedeemCodeDto = {
+  code: string;
+};
+
+export type RedeemCodeResponse = {
+  success: boolean;
+  message: string;
+  action: 'ACTIVATED' | 'EXTENDED' | 'SAVED';
+  planNameAr: string;
+  planNameEn: string;
+  durationDays: number;
+};
+
+export type ActivateGiftResponse = {
+  success: boolean;
+  message: string;
+  planNameAr: string;
+  planNameEn: string;
+};
+
+export type DeleteGiftResponse = {
+  success: boolean;
+};
+
+export type CreatePlanDto = {
+  slug: string;
+  tierRank?: number;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  monthlyPriceOmr?: number;
+  yearlyMonthlyPriceOmr?: number;
+  monthlyPriceEgp?: number;
+  yearlyMonthlyPriceEgp?: number;
+  maxStudents?: number | null;
+  maxStorageBytes?: number | null;
+  maxGroups?: number | null;
+  trialDays?: number;
+  isPublic?: boolean;
+  isDefault?: boolean;
+  displayOrder?: number;
+};
+
+export type UpdatePlanDto = {
+  tierRank?: number;
+  nameAr?: string;
+  nameEn?: string;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  monthlyPriceOmr?: number;
+  yearlyMonthlyPriceOmr?: number;
+  monthlyPriceEgp?: number;
+  yearlyMonthlyPriceEgp?: number;
+  maxStudents?: number | null;
+  maxStorageBytes?: number | null;
+  maxGroups?: number | null;
+  trialDays?: number;
+  isPublic?: boolean;
+  isDefault?: boolean;
+  displayOrder?: number;
+};
+
+export type AdminPromoCode = {
+  id: string;
+  code: string;
+  planId: string;
+  planSlug: string;
+  planNameAr: string;
+  planNameEn: string;
+  durationDays: number;
+  maxUses: number | null;
+  usedCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type CreatePromoCodeDto = {
+  code: string;
+  planId: string;
+  durationDays: number;
+  maxUses?: number | null;
+  expiresAt?: string | null;
+};
+
+export type UpdatePromoCodeDto = {
+  isActive?: boolean;
+  maxUses?: number | null;
+  expiresAt?: string | null;
+};
+
+export type TeacherDiscountRecord = {
+  id: string;
+  occasion: string;
+  planSlug: string;
+  referenceId: string | null;
+  description: string | null;
+  createdAt: string;
+};
+
+export type AdminTeacherEntitlementsResponse = {
+  teacherId: string;
+  teacherName: string;
+  teacherEmail: string | null;
+  teacherPhone: string | null;
+  country: Country;
+  currency: Currency;
+  activePlan: TeacherActivePlan;
+  usage: TeacherUsage;
+  isLockedOut: boolean;
+  savedGifts: SavedGift[];
+  referral?: ReferralSummary;
+  discounts: TeacherDiscountRecord[];
+};
+
+export type AdminAssignSubscriptionDto = {
+  planId: string;
+  currency: 'OMR' | 'EGP';
+  billingCycle: 'MONTHLY' | 'YEARLY';
+  durationDays?: number;
+  pricePaid?: number;
+  recordLimitCrossingDiscount?: boolean;
+};
+
+export type AdminGrantGiftDto = {
+  planId: string;
+  durationDays: number;
+  adminOverride?: boolean;
+  note?: string;
+};
+
 export type PublicTeacher = {
   name: string;
-  email: string;
+  email: string | null;
   phoneNumber: string | null;
   bio: string | null;
   subject: string | null;
