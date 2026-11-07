@@ -11,8 +11,6 @@ Add new work as a ticket under the matching `.scratch/<feature>/issues/`
 directory. Record a structural decision as an ADR. Do not keep a parallel
 checklist here.
 
-- the landing page needs some looking into
-
 - convert paths to absolute imports using the @ or ~ as root
 - check monorepo config if needed
 
@@ -20,7 +18,7 @@ checklist here.
 - connect an email provider
 - add reset password flow for user + from admin
 - add legal pages
-- add upload size limits per file, limit uploads per lesson
+- limit uploads per lesson
 
 - check event logs, I want every event to be logged (creation, update, delete, enroll, ...etc) (courses, groups, quizes, ...etc)
 
