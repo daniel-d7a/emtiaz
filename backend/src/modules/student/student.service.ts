@@ -11,10 +11,13 @@ import { db } from '../../db';
 import {
   categories,
   courses,
+  groupHomeworkAccess,
   groupLessonAccess,
   groupQuizAccess,
   groupStudents,
   groups,
+  homework,
+  homeworkSubmissions,
   lessonAttachments,
   lessonCompletions,
   lessons,
@@ -33,6 +36,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import {
   serializeCourse,
   serializeGroup,
+  serializeHomework,
+  serializeHomeworkSubmission,
   serializeLesson,
   serializeModule,
   serializeQuiz,
@@ -40,6 +45,11 @@ import {
   serializeQuizQuestion,
   serializeStudentAttachment,
 } from '../../lib/serializers';
+import type {
+  HomeworkSubmissionDto,
+  StudentHomeworkDto,
+  SubmitHomeworkDto,
+} from '../../../shared/api';
 
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -569,6 +579,202 @@ export class StudentService {
         })),
       hasQuiz: !!(await db.select().from(quizzes).where(eq(quizzes.lessonId, lessonId)).limit(1)).length,
     };
+  }
+
+  async getLessonHomework(
+    studentId: string,
+    groupId: string,
+    lessonId: string,
+  ): Promise<StudentHomeworkDto[]> {
+    const { group } = await this.assertEnrolled(studentId, groupId);
+    if (!group.isActive) {
+      throw new BadRequestException('Group is inactive');
+    }
+
+    const { enrollments } = await this.lessonEnrollments(studentId, lessonId);
+    if (!(await this.lessonUnlocked(enrollments, lessonId, groupId))) {
+      throw new ForbiddenException('Lesson is locked for your group');
+    }
+
+    const homeworkList = await db
+      .select()
+      .from(homework)
+      .where(
+        and(
+          eq(homework.lessonId, lessonId),
+          or(isNull(homework.groupId), eq(homework.groupId, groupId)),
+        ),
+      )
+      .orderBy(asc(homework.displayOrder), asc(homework.createdAt));
+
+    if (!homeworkList.length) {
+      return [];
+    }
+
+    const hwIds = homeworkList.map((h) => h.id);
+
+    const [accessRows, submissionRows] = await Promise.all([
+      db
+        .select()
+        .from(groupHomeworkAccess)
+        .where(
+          and(
+            eq(groupHomeworkAccess.groupId, groupId),
+            inArray(groupHomeworkAccess.homeworkId, hwIds),
+          ),
+        ),
+      db
+        .select()
+        .from(homeworkSubmissions)
+        .where(
+          and(
+            eq(homeworkSubmissions.groupId, groupId),
+            eq(homeworkSubmissions.studentId, studentId),
+            inArray(homeworkSubmissions.homeworkId, hwIds),
+          ),
+        ),
+    ]);
+
+    const accessMap = new Map(accessRows.map((a) => [a.homeworkId, a]));
+    const submissionMap = new Map(submissionRows.map((s) => [s.homeworkId, s]));
+
+    const visibleHomework = homeworkList.filter((h) => {
+      const access = accessMap.get(h.id);
+      return !access?.isHidden;
+    });
+
+    return visibleHomework.map((h) => {
+      const access = accessMap.get(h.id);
+      const sub = submissionMap.get(h.id);
+      const serializedHw = serializeHomework(h, {
+        dueDate: access?.dueDate ?? null,
+        isHidden: access?.isHidden ?? false,
+      });
+      return {
+        ...serializedHw,
+        homework: serializedHw,
+        submission: sub ? serializeHomeworkSubmission(sub, { maxScore: h.maxScore }) : null,
+      };
+    });
+  }
+
+  async submitHomework(
+    studentId: string,
+    groupId: string,
+    homeworkId: string,
+    dto: SubmitHomeworkDto,
+  ): Promise<HomeworkSubmissionDto> {
+    if (dto.fileSizeBytes !== undefined && dto.fileSizeBytes !== null) {
+      if (dto.fileSizeBytes > 10 * 1024 * 1024) {
+        throw new BadRequestException('File size exceeds maximum allowed limit of 10MB');
+      }
+    }
+
+    const { group } = await this.assertEnrolled(studentId, groupId);
+    if (!group.isActive) {
+      throw new BadRequestException('Group is inactive');
+    }
+
+    const [hw] = await db
+      .select()
+      .from(homework)
+      .where(eq(homework.id, homeworkId));
+    if (!hw) throw new NotFoundException('Homework not found');
+
+    if (hw.groupId && hw.groupId !== groupId) {
+      throw new ForbiddenException('Homework not available for this group');
+    }
+
+    const { enrollments } = await this.lessonEnrollments(studentId, hw.lessonId);
+    if (!(await this.lessonUnlocked(enrollments, hw.lessonId, groupId))) {
+      throw new ForbiddenException('Lesson is locked for your group');
+    }
+
+    const [access] = await db
+      .select()
+      .from(groupHomeworkAccess)
+      .where(
+        and(
+          eq(groupHomeworkAccess.groupId, groupId),
+          eq(groupHomeworkAccess.homeworkId, homeworkId),
+        ),
+      );
+
+    if (access?.isHidden) {
+      throw new ForbiddenException('Homework is hidden for your group');
+    }
+
+    const now = new Date();
+    const isLate = access?.dueDate ? now.getTime() > new Date(access.dueDate).getTime() : false;
+
+    const [existing] = await db
+      .select()
+      .from(homeworkSubmissions)
+      .where(
+        and(
+          eq(homeworkSubmissions.homeworkId, homeworkId),
+          eq(homeworkSubmissions.groupId, groupId),
+          eq(homeworkSubmissions.studentId, studentId),
+        ),
+      );
+
+    if (existing) {
+      if (existing.status === 'GRADED') {
+        throw new BadRequestException('Cannot resubmit a graded assignment');
+      }
+
+      if (
+        existing.r2ObjectKey &&
+        dto.r2ObjectKey &&
+        existing.r2ObjectKey !== dto.r2ObjectKey
+      ) {
+        try {
+          await this.storage.deleteObject(existing.r2ObjectKey);
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+
+      const [updated] = await db
+        .update(homeworkSubmissions)
+        .set({
+          content: dto.content !== undefined ? (dto.content?.trim() || null) : existing.content,
+          attachmentType: dto.attachmentType ?? existing.attachmentType,
+          r2ObjectKey: dto.r2ObjectKey !== undefined ? (dto.r2ObjectKey?.trim() || null) : existing.r2ObjectKey,
+          url: dto.url !== undefined ? (dto.url?.trim() || null) : existing.url,
+          fileSizeBytes: dto.fileSizeBytes !== undefined ? dto.fileSizeBytes : existing.fileSizeBytes,
+          mimeType: dto.mimeType !== undefined ? (dto.mimeType?.trim() || null) : existing.mimeType,
+          status: 'SUBMITTED',
+          isLate,
+          revisionCount: existing.revisionCount + 1,
+          submittedAt: now,
+        })
+        .where(eq(homeworkSubmissions.id, existing.id))
+        .returning();
+
+      return serializeHomeworkSubmission(updated, { maxScore: hw.maxScore });
+    }
+
+    const [inserted] = await db
+      .insert(homeworkSubmissions)
+      .values({
+        homeworkId,
+        groupId,
+        studentId,
+        content: dto.content?.trim() || null,
+        attachmentType: dto.attachmentType ?? 'NONE',
+        r2ObjectKey: dto.r2ObjectKey?.trim() || null,
+        url: dto.url?.trim() || null,
+        fileSizeBytes: dto.fileSizeBytes ?? null,
+        mimeType: dto.mimeType?.trim() || null,
+        status: 'SUBMITTED',
+        isLate,
+        revisionCount: 0,
+        submittedAt: now,
+      })
+      .returning();
+
+    return serializeHomeworkSubmission(inserted, { maxScore: hw.maxScore });
   }
 
   async getQuizByLesson(studentId: string, lessonId: string, groupId?: string) {

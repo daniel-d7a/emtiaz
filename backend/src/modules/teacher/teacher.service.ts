@@ -19,6 +19,7 @@ import {
   serializeGroup,
   serializeGroupHomeworkAccess,
   serializeHomework,
+  serializeHomeworkSubmission,
   serializeLesson,
   serializeManualGradeColumn,
   serializeModule,
@@ -56,6 +57,9 @@ import type {
   CreateHomeworkDto,
   UpdateHomeworkDto,
   SetGroupHomeworkAccessDto,
+  HomeworkRosterSummaryDto,
+  HomeworkSubmissionDto,
+  GradeHomeworkSubmissionDto,
 } from '../../../shared/api';
 import { ENTRY_ALPHABET, genJoinCode, generateUniqueMonitoringCode } from '../../lib/group-join';
 export { genJoinCode };
@@ -1201,6 +1205,26 @@ export class TeacherService {
       })
       .returning();
 
+    if (dto.groupId && (dto as any).dueDate) {
+      const dueDateVal = new Date((dto as any).dueDate);
+      await db.insert(groupHomeworkAccess).values({
+        groupId: dto.groupId,
+        homeworkId: created.id,
+        dueDate: dueDateVal,
+        isHidden: false,
+      });
+      const enrolled = await db
+        .select({ id: groupStudents.studentId })
+        .from(groupStudents)
+        .innerJoin(users, eq(groupStudents.studentId, users.id))
+        .where(and(eq(groupStudents.groupId, dto.groupId), isNull(users.deletedAt)));
+      const formattedDate = dueDateVal.toISOString().slice(0, 10);
+      const message = `تم نشر واجب جديد «${created.title}» - موعد التسليم: ${formattedDate}`;
+      await Promise.all(
+        enrolled.map((s) => this.notifications.sendInApp(s.id, message, 'TEACHER')),
+      );
+    }
+
     return serializeHomework(created);
   }
 
@@ -1329,7 +1353,220 @@ export class TeacherService {
       })
       .returning();
 
+    if (dueDateVal && !access.isHidden) {
+      const enrolled = await db
+        .select({ id: groupStudents.studentId })
+        .from(groupStudents)
+        .innerJoin(users, eq(groupStudents.studentId, users.id))
+        .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)));
+      const formattedDate = dueDateVal.toISOString().slice(0, 10);
+      const message = `تم نشر واجب جديد «${hw.title}» - موعد التسليم: ${formattedDate}`;
+      await Promise.all(
+        enrolled.map((s) => this.notifications.sendInApp(s.id, message, 'TEACHER')),
+      );
+    }
+
     return serializeGroupHomeworkAccess(access);
+  }
+
+  async getHomeworkSubmissions(
+    user: { id: string; role: string },
+    groupId: string,
+    homeworkId: string,
+  ): Promise<HomeworkRosterSummaryDto> {
+    const { group } = await this.assertOwnsGroup(user, groupId);
+
+    const [hw] = await db.select().from(homework).where(eq(homework.id, homeworkId));
+    if (!hw) throw new NotFoundException('Homework not found');
+
+    const [row] = await db
+      .select({ lesson: lessons, module: modules })
+      .from(lessons)
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .where(eq(lessons.id, hw.lessonId));
+    if (!row || row.module.courseId !== group.courseId) {
+      throw new ForbiddenException('Homework does not belong to group course');
+    }
+
+    const [access] = await db
+      .select()
+      .from(groupHomeworkAccess)
+      .where(
+        and(
+          eq(groupHomeworkAccess.groupId, groupId),
+          eq(groupHomeworkAccess.homeworkId, homeworkId),
+        ),
+      );
+
+    const enrolledStudents = await db
+      .select({
+        id: users.id,
+        name: users.name,
+      })
+      .from(groupStudents)
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)))
+      .orderBy(asc(users.name));
+
+    const subs = await db
+      .select()
+      .from(homeworkSubmissions)
+      .where(
+        and(
+          eq(homeworkSubmissions.homeworkId, homeworkId),
+          eq(homeworkSubmissions.groupId, groupId),
+        ),
+      );
+
+    const subMap = new Map(subs.map((s) => [s.studentId, s]));
+
+    const rosterSubmissions = enrolledStudents.map((st) => {
+      const sub = subMap.get(st.id);
+      return {
+        studentId: st.id,
+        studentName: st.name,
+        submission: sub
+          ? serializeHomeworkSubmission(sub, { studentName: st.name, maxScore: hw.maxScore })
+          : null,
+      };
+    });
+
+    const totalEnrolled = enrolledStudents.length;
+    let graded = 0;
+    let pendingReview = 0;
+    let revisionRequested = 0;
+    let late = 0;
+    let submissionCount = 0;
+
+    for (const item of rosterSubmissions) {
+      if (item.submission) {
+        submissionCount++;
+        if (item.submission.status === 'GRADED') graded++;
+        if (item.submission.status === 'SUBMITTED') pendingReview++;
+        if (item.submission.status === 'REVISION_REQUESTED') revisionRequested++;
+        if (item.submission.isLate) late++;
+      }
+    }
+
+    const submitted = graded + pendingReview;
+    const notSubmitted = Math.max(0, totalEnrolled - submissionCount);
+
+    return {
+      homework: serializeHomework(hw, {
+        dueDate: access?.dueDate ?? null,
+        isHidden: access?.isHidden ?? false,
+      }),
+      stats: {
+        totalEnrolled,
+        submitted,
+        graded,
+        pendingReview,
+        revisionRequested,
+        notSubmitted,
+        late,
+      },
+      submissions: rosterSubmissions,
+    };
+  }
+
+  async gradeHomeworkSubmission(
+    user: { id: string; role: string },
+    groupId: string,
+    homeworkId: string,
+    studentId: string,
+    dto: GradeHomeworkSubmissionDto,
+  ): Promise<HomeworkSubmissionDto> {
+    await this.assertOwnsGroup(user, groupId);
+
+    const [hw] = await db.select().from(homework).where(eq(homework.id, homeworkId));
+    if (!hw) throw new NotFoundException('Homework not found');
+
+    const [sub] = await db
+      .select()
+      .from(homeworkSubmissions)
+      .where(
+        and(
+          eq(homeworkSubmissions.homeworkId, homeworkId),
+          eq(homeworkSubmissions.groupId, groupId),
+          eq(homeworkSubmissions.studentId, studentId),
+        ),
+      );
+    if (!sub) throw new NotFoundException('Submission not found');
+
+    let patch: Partial<typeof homeworkSubmissions.$inferInsert>;
+    let studentMessage: string;
+
+    if (dto.action === 'SAVE_GRADE') {
+      if (
+        dto.score === undefined ||
+        dto.score === null ||
+        typeof dto.score !== 'number' ||
+        !Number.isInteger(dto.score) ||
+        dto.score < 0 ||
+        dto.score > hw.maxScore
+      ) {
+        throw new BadRequestException(
+          `Score is required and must be an integer between 0 and ${hw.maxScore}`,
+        );
+      }
+      patch = {
+        status: 'GRADED',
+        score: dto.score,
+        teacherFeedback: dto.teacherFeedback?.trim() || null,
+        gradedAt: new Date(),
+      };
+      studentMessage = `تم تصحيح واجب «${hw.title}» - الدرجة: ${dto.score}/${hw.maxScore}`;
+    } else if (dto.action === 'REQUEST_REVISION') {
+      const feedback = dto.teacherFeedback?.trim();
+      if (!feedback) {
+        throw new BadRequestException('Teacher feedback is required to request revision');
+      }
+      patch = {
+        status: 'REVISION_REQUESTED',
+        score: null,
+        teacherFeedback: feedback,
+        gradedAt: null,
+      };
+      studentMessage = `طلب المعلم تعديل واجب «${hw.title}»: ${feedback}`;
+    } else {
+      throw new BadRequestException('Invalid action');
+    }
+
+    const [updated] = await db
+      .update(homeworkSubmissions)
+      .set(patch)
+      .where(eq(homeworkSubmissions.id, sub.id))
+      .returning();
+
+    // Send In-App notification to student
+    await this.notifications.sendInApp(studentId, studentMessage, 'TEACHER');
+
+    // Notify linked parents
+    const linkedParents = await db
+      .select({ parentId: parentStudents.parentId })
+      .from(parentStudents)
+      .where(
+        and(
+          eq(parentStudents.studentId, studentId),
+          isNull(parentStudents.deletedAt),
+        ),
+      );
+
+    await Promise.all(
+      linkedParents.map((p) =>
+        this.notifications.sendInApp(p.parentId, studentMessage, 'PARENT'),
+      ),
+    );
+
+    const [studentUser] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, studentId));
+
+    return serializeHomeworkSubmission(updated, {
+      studentName: studentUser?.name,
+      maxScore: hw.maxScore,
+    });
   }
 
   // ---------- Groups ----------

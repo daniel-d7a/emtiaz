@@ -26,6 +26,7 @@ import {
   CreateEntryCodeDto,
   CreateHomeworkDto,
   CreateQuizDto,
+  GradeHomeworkSubmissionDto,
   GradeQuizAttemptDto,
   GradeCellDto,
   MoveQuizDto,
@@ -259,6 +260,35 @@ export class TeacherController {
     dto: z.infer<typeof SetGroupHomeworkAccessDto>,
   ) {
     return this.teachers.setGroupHomeworkAccess(req.user!, groupId, homeworkId, dto);
+  }
+
+  @Get('api/teacher/groups/:groupId/homework/:homeworkId/submissions')
+  @Roles('TEACHER')
+  getHomeworkSubmissions(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('homeworkId') homeworkId: string,
+  ) {
+    return this.teachers.getHomeworkSubmissions(req.user!, groupId, homeworkId);
+  }
+
+  @Post('api/teacher/groups/:groupId/homework/:homeworkId/submissions/:studentId/grade')
+  @Roles('TEACHER')
+  gradeHomeworkSubmission(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('homeworkId') homeworkId: string,
+    @Param('studentId') studentId: string,
+    @Body(new ZodBodyPipe(GradeHomeworkSubmissionDto))
+    dto: z.infer<typeof GradeHomeworkSubmissionDto>,
+  ) {
+    return this.teachers.gradeHomeworkSubmission(
+      req.user!,
+      groupId,
+      homeworkId,
+      studentId,
+      dto,
+    );
   }
 
   @Post('api/teacher/lessons/:lessonId/quiz')

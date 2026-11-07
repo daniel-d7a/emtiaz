@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
-import { ZodBodyPipe, QuizSubmitDto, JoinGroupDto } from '../../lib/schemas';
+import { ZodBodyPipe, QuizSubmitDto, JoinGroupDto, SubmitHomeworkDto } from '../../lib/schemas';
 import { z } from 'zod';
 import { StudentService } from './student.service';
 
@@ -74,6 +74,27 @@ export class StudentController {
     @Query('groupId') groupId?: string,
   ) {
     return this.students.getLesson(req.user!.id, lessonId, groupId);
+  }
+
+  @Get('api/student/groups/:groupId/lessons/:lessonId/homework')
+  @Roles('STUDENT')
+  lessonHomework(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('lessonId') lessonId: string,
+  ) {
+    return this.students.getLessonHomework(req.user!.id, groupId, lessonId);
+  }
+
+  @Post('api/student/groups/:groupId/homework/:homeworkId/submit')
+  @Roles('STUDENT')
+  submitHomework(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Param('homeworkId') homeworkId: string,
+    @Body(new ZodBodyPipe(SubmitHomeworkDto)) dto: z.infer<typeof SubmitHomeworkDto>,
+  ) {
+    return this.students.submitHomework(req.user!.id, groupId, homeworkId, dto);
   }
 
   @Get('api/student/quizzes/:quizId')

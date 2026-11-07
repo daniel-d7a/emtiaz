@@ -268,6 +268,7 @@ export const CreateHomeworkDto = z.object({
   maxScore: z.number().int().min(1).max(1000).optional().default(10),
   displayOrder: z.number().int().min(0).optional().default(0),
   groupId: uuid.optional().nullable(),
+  dueDate: z.string().optional().nullable(),
 });
 
 export const UpdateHomeworkDto = z.object({
@@ -285,6 +286,21 @@ export const UpdateHomeworkDto = z.object({
 export const SetGroupHomeworkAccessDto = z.object({
   dueDate: z.string().optional().nullable(),
   isHidden: z.boolean().optional(),
+});
+
+export const SubmitHomeworkDto = z.object({
+  content: optText(50000).nullable(),
+  attachmentType: HomeworkAttachmentTypeEnum.optional().default('NONE'),
+  r2ObjectKey: z.string().trim().max(1000).optional().nullable(),
+  url: z.string().trim().max(2000).optional().nullable(),
+  fileSizeBytes: z.number().int().nonnegative().optional().nullable(),
+  mimeType: z.string().trim().max(200).optional().nullable(),
+});
+
+export const GradeHomeworkSubmissionDto = z.object({
+  score: z.number().int().min(0).max(10000).optional().nullable(),
+  teacherFeedback: z.string().trim().max(10000).optional().nullable(),
+  action: z.enum(['SAVE_GRADE', 'REQUEST_REVISION']),
 });
 
 // ---------- quizzes ----------

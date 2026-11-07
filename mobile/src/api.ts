@@ -55,6 +55,9 @@ import type {
   UpdateHomeworkDto,
   SetGroupHomeworkAccessDto,
   GroupHomeworkAccessDto,
+  StudentHomeworkDto,
+  SubmitHomeworkDto,
+  GradeHomeworkSubmissionDto,
 } from '../../shared/api';
 
 export type {
@@ -101,6 +104,18 @@ export type {
   AdminTeacherEntitlementsResponse,
   AdminAssignSubscriptionDto,
   AdminGrantGiftDto,
+  HomeworkAttachmentType,
+  HomeworkSubmissionStatus,
+  HomeworkDto,
+  HomeworkSubmissionDto,
+  HomeworkRosterSummaryDto,
+  CreateHomeworkDto,
+  UpdateHomeworkDto,
+  SetGroupHomeworkAccessDto,
+  GroupHomeworkAccessDto,
+  StudentHomeworkDto,
+  SubmitHomeworkDto,
+  GradeHomeworkSubmissionDto,
 } from '../../shared/api';
 
 /** API base: set EXPO_PUBLIC_API_URL to override (required with `expo start --tunnel`,
@@ -261,6 +276,17 @@ export const teacherApi = {
     api<{ success: boolean }>(`/api/teacher/homework/${id}`, { method: 'DELETE' }),
   setGroupHomeworkAccess: (groupId: string, homeworkId: string, dto: SetGroupHomeworkAccessDto) =>
     api<GroupHomeworkAccessDto>(`/api/teacher/groups/${groupId}/homework/${homeworkId}/access`, { method: 'PUT', body: dto }),
+  getHomeworkSubmissions: (groupId: string, homeworkId: string) =>
+    api<HomeworkRosterSummaryDto>(`/api/teacher/groups/${groupId}/homework/${homeworkId}/submissions`),
+  gradeHomeworkSubmission: (groupId: string, homeworkId: string, studentId: string, dto: GradeHomeworkSubmissionDto) =>
+    api<HomeworkSubmissionDto>(`/api/teacher/groups/${groupId}/homework/${homeworkId}/submissions/${studentId}/grade`, { method: 'POST', body: dto }),
+};
+
+export const studentApi = {
+  getLessonHomework: (groupId: string, lessonId: string) =>
+    api<StudentHomeworkDto[]>(`/api/student/groups/${groupId}/lessons/${lessonId}/homework`),
+  submitHomework: (groupId: string, homeworkId: string, dto: SubmitHomeworkDto) =>
+    api<HomeworkSubmissionDto>(`/api/student/groups/${groupId}/homework/${homeworkId}/submit`, { method: 'POST', body: dto }),
 };
 
 export function normalizePhone(input: string, country?: Country): string {

@@ -23,6 +23,8 @@ import type {
   GroupHomeworkAccessDto,
   HomeworkAttachmentType,
   HomeworkDto,
+  HomeworkSubmissionDto,
+  HomeworkSubmissionStatus,
   InboxItem,
   Lesson,
   ManualGradeColumn,
@@ -73,6 +75,7 @@ type LessonRow = typeof lessons.$inferSelect;
 type AttachmentRow = typeof lessonAttachments.$inferSelect;
 type HomeworkRow = typeof homework.$inferSelect;
 type GroupHomeworkAccessRow = typeof groupHomeworkAccess.$inferSelect;
+type HomeworkSubmissionRow = typeof homeworkSubmissions.$inferSelect;
 type QuizRow = typeof quizzes.$inferSelect;
 type QuizQuestionRow = typeof quizQuestions.$inferSelect;
 type QuizAttemptRow = typeof quizAttempts.$inferSelect;
@@ -270,6 +273,33 @@ export function serializeGroupHomeworkAccess(
     dueDate: row.dueDate ? iso(row.dueDate) : null,
     isHidden: row.isHidden,
     createdAt: iso(row.createdAt),
+  };
+}
+
+export function serializeHomeworkSubmission(
+  row: HomeworkSubmissionRow,
+  extra?: { studentName?: string; maxScore?: number },
+): HomeworkSubmissionDto {
+  return {
+    id: row.id,
+    homeworkId: row.homeworkId,
+    groupId: row.groupId,
+    studentId: row.studentId,
+    ...(extra?.studentName !== undefined ? { studentName: extra.studentName } : {}),
+    content: row.content,
+    attachmentType: row.attachmentType as HomeworkAttachmentType,
+    r2ObjectKey: row.r2ObjectKey,
+    url: row.url,
+    fileSizeBytes: row.fileSizeBytes,
+    mimeType: row.mimeType,
+    status: row.status as HomeworkSubmissionStatus,
+    isLate: row.isLate,
+    revisionCount: row.revisionCount,
+    score: row.score,
+    ...(extra?.maxScore !== undefined ? { maxScore: extra.maxScore } : {}),
+    teacherFeedback: row.teacherFeedback,
+    submittedAt: iso(row.submittedAt),
+    gradedAt: isoOrNull(row.gradedAt),
   };
 }
 

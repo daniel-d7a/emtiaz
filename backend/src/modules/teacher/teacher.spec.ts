@@ -1510,6 +1510,13 @@ describe('Phase 4: teacher endpoints', () => {
       expect(res.body.dueDate).toBeTruthy();
       expect(res.body.isHidden).toBe(false);
 
+      // Verify in-app notification sent to enrolled students
+      const notifs = await testPool.query(
+        `SELECT * FROM inbox_notifications WHERE user_id = $1 AND message LIKE '%تم نشر واجب جديد%'`,
+        [world.s1.id],
+      );
+      expect(notifs.rows.length).toBeGreaterThanOrEqual(1);
+
       // Verify toggle isHidden
       const hideRes = await t
         .put(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/access`)
@@ -1518,7 +1525,132 @@ describe('Phase 4: teacher endpoints', () => {
         });
       expect(hideRes.status).toBe(200);
       expect(hideRes.body.isHidden).toBe(true);
+
+      // Unhide for subsequent tests
+      await t
+        .put(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/access`)
+        .send({ isHidden: false });
     });
+
+    it('fetches roster submissions and computes aggregate statistics', async () => {
+      // Clean any existing submissions for this homework
+      await testPool.query(`DELETE FROM homework_submissions WHERE homework_id = $1`, [homeworkId]);
+
+      // Insert submission for s1 (SUBMITTED)
+      await testPool.query(
+        `INSERT INTO homework_submissions (homework_id, group_id, student_id, content, status, is_late)
+         VALUES ($1, $2, $3, 'Student 1 submission', 'SUBMITTED', false)`,
+        [homeworkId, world.group1, world.s1.id],
+      );
+
+      const res = await t.get(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/submissions`);
+      expect(res.status).toBe(200);
+      expect(res.body.homework.id).toBe(homeworkId);
+      expect(res.body.stats.totalEnrolled).toBe(2);
+      expect(res.body.stats.submitted).toBe(1);
+      expect(res.body.stats.pendingReview).toBe(1);
+      expect(res.body.stats.graded).toBe(0);
+      expect(res.body.stats.revisionRequested).toBe(0);
+      expect(res.body.stats.notSubmitted).toBe(1);
+      expect(res.body.stats.late).toBe(0);
+      expect(res.body.submissions).toHaveLength(2);
+      const s1Sub = res.body.submissions.find((s: any) => s.studentId === world.s1.id);
+      expect(s1Sub?.submission?.status).toBe('SUBMITTED');
+      expect(s1Sub?.submission?.content).toBe('Student 1 submission');
+    });
+
+    it('grades a student submission and validates score <= maxScore', async () => {
+      // Reject score > maxScore (maxScore is 20)
+      const overScoreRes = await t
+        .post(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/submissions/${world.s1.id}/grade`)
+        .send({
+          action: 'SAVE_GRADE',
+          score: 25,
+          teacherFeedback: 'Too high score test',
+        });
+      expect(overScoreRes.status).toBe(400);
+
+      // Set up parent linked to student 1 to verify notification dispatch
+      const { rows: [pRow] } = await testPool.query(
+        `INSERT INTO "user" (id, name, email, role, phone_number)
+         VALUES ('hw-parent-test', 'Parent of S1', 'parent-hw@test.om', 'PARENT', '+96899998888')
+         ON CONFLICT (id) DO UPDATE SET deleted_at = NULL
+         RETURNING id`,
+      );
+      const parentId = pRow.id;
+      await testPool.query(
+        `INSERT INTO parent_students (parent_id, student_id)
+         VALUES ($1, $2)
+         ON CONFLICT (parent_id, student_id) DO UPDATE SET deleted_at = NULL`,
+        [parentId, world.s1.id],
+      );
+
+      // Valid grade
+      const gradeRes = await t
+        .post(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/submissions/${world.s1.id}/grade`)
+        .send({
+          action: 'SAVE_GRADE',
+          score: 18,
+          teacherFeedback: 'Great effort on this!',
+        });
+      expect(gradeRes.status).toBe(201);
+      expect(gradeRes.body.status).toBe('GRADED');
+      expect(gradeRes.body.score).toBe(18);
+      expect(gradeRes.body.teacherFeedback).toBe('Great effort on this!');
+      expect(gradeRes.body.gradedAt).toBeTruthy();
+
+      // Verify student in-app notification
+      const studentNotif = await testPool.query(
+        `SELECT * FROM inbox_notifications WHERE user_id = $1 AND message LIKE '%18/20%'`,
+        [world.s1.id],
+      );
+      expect(studentNotif.rows.length).toBeGreaterThanOrEqual(1);
+
+      // Verify parent in-app notification
+      const parentNotif = await testPool.query(
+        `SELECT * FROM inbox_notifications WHERE user_id = $1 AND message LIKE '%18/20%'`,
+        [parentId],
+      );
+      expect(parentNotif.rows.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('requests revision with required feedback and updates status', async () => {
+      // Rejects without feedback
+      const noFeedbackRes = await t
+        .post(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/submissions/${world.s1.id}/grade`)
+        .send({
+          action: 'REQUEST_REVISION',
+          teacherFeedback: '   ',
+        });
+      expect(noFeedbackRes.status).toBe(400);
+
+      // Valid revision request
+      const revRes = await t
+        .post(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/submissions/${world.s1.id}/grade`)
+        .send({
+          action: 'REQUEST_REVISION',
+          teacherFeedback: 'Please rework problem 3 and show formulas',
+        });
+      expect(revRes.status).toBe(201);
+      expect(revRes.body.status).toBe('REVISION_REQUESTED');
+      expect(revRes.body.score).toBeNull();
+      expect(revRes.body.teacherFeedback).toBe('Please rework problem 3 and show formulas');
+
+      // Verify student notification for revision request
+      const revNotif = await testPool.query(
+        `SELECT * FROM inbox_notifications WHERE user_id = $1 AND message LIKE '%طلب المعلم تعديل واجب%'`,
+        [world.s1.id],
+      );
+      expect(revNotif.rows.length).toBeGreaterThanOrEqual(1);
+
+      // Verify aggregate metrics reflect REVISION_REQUESTED
+      const rosterRes = await t.get(`/api/teacher/groups/${world.group1}/homework/${homeworkId}/submissions`);
+      expect(rosterRes.body.stats.revisionRequested).toBe(1);
+      expect(rosterRes.body.stats.graded).toBe(0);
+      expect(rosterRes.body.stats.pendingReview).toBe(0);
+      expect(rosterRes.body.stats.submitted).toBe(0);
+    });
+
 
     it('enforces storage quota on homework file attachment upload', async () => {
       const excessiveBytes = 100 * 1024 * 1024 * 1024;

@@ -1223,3 +1223,23 @@ export interface GroupHomeworkAccessDto {
   isHidden: boolean;
   createdAt: string;
 }
+
+export interface StudentHomeworkDto extends HomeworkDto {
+  homework?: HomeworkDto;
+  submission: HomeworkSubmissionDto | null;
+}
+
+export interface SubmitHomeworkDto {
+  content?: string | null;
+  attachmentType?: HomeworkAttachmentType;
+  r2ObjectKey?: string | null;
+  url?: string | null;
+  fileSizeBytes?: number | null;
+  mimeType?: string | null;
+}
+
+export interface GradeHomeworkSubmissionDto {
+  score?: number | null;
+  teacherFeedback?: string | null;
+  action: 'SAVE_GRADE' | 'REQUEST_REVISION';
+}

@@ -481,4 +481,151 @@ describe('Phase 3: student endpoints', () => {
     await testPool.query(`DELETE FROM courses WHERE id = $1`, [cRow.id]);
     await testPool.query(`DELETE FROM "user" WHERE id = $1`, [tUser.id]);
   });
+
+  describe('student homework submissions & revision lifecycle', () => {
+    let hw1Id: string;
+    let hw2Id: string;
+
+    beforeAll(async () => {
+      // Insert master homework on lesson1
+      const { rows: [hw1] } = await testPool.query(
+        `INSERT INTO homework (lesson_id, title, instructions, max_score, display_order)
+         VALUES ($1, 'Physics Problem Set 1', 'Solve all motion equations', 10, 0)
+         RETURNING id`,
+        [world.lesson1],
+      );
+      hw1Id = hw1.id;
+
+      // Insert another homework (for hidden test)
+      const { rows: [hw2] } = await testPool.query(
+        `INSERT INTO homework (lesson_id, title, instructions, max_score, display_order)
+         VALUES ($1, 'Hidden Homework', 'Should not be seen', 10, 1)
+         RETURNING id`,
+        [world.lesson1],
+      );
+      hw2Id = hw2.id;
+
+      // Set group access: hw1 has dueDate in the future, hw2 is hidden
+      const futureDue = new Date(Date.now() + 86400000 * 2).toISOString();
+      await testPool.query(
+        `INSERT INTO group_homework_access (group_id, homework_id, due_date, is_hidden)
+         VALUES ($1, $2, $3, false), ($1, $4, NULL, true)`,
+        [world.group1, hw1Id, futureDue, hw2Id],
+      );
+    });
+
+    afterAll(async () => {
+      await testPool.query(`DELETE FROM homework_submissions WHERE homework_id IN ($1, $2)`, [hw1Id, hw2Id]);
+      await testPool.query(`DELETE FROM group_homework_access WHERE homework_id IN ($1, $2)`, [hw1Id, hw2Id]);
+      await testPool.query(`DELETE FROM homework WHERE id IN ($1, $2)`, [hw1Id, hw2Id]);
+    });
+
+    it('fetches homework for unlocked lesson and filters out hidden assignments', async () => {
+      const res = await s1.get(`/api/student/groups/${world.group1}/lessons/${world.lesson1}/homework`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBe(1);
+      expect(res.body[0].id).toBe(hw1Id);
+      expect(res.body[0].title).toBe('Physics Problem Set 1');
+      expect(res.body[0].dueDate).toBeTruthy();
+      expect(res.body[0].submission).toBeNull();
+    });
+
+    it('submits text answer to homework', async () => {
+      const res = await s1
+        .post(`/api/student/groups/${world.group1}/homework/${hw1Id}/submit`)
+        .send({
+          content: 'My answers to the motion problems: v = u + at',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.homeworkId).toBe(hw1Id);
+      expect(res.body.groupId).toBe(world.group1);
+      expect(res.body.studentId).toBe(world.s1.id);
+      expect(res.body.status).toBe('SUBMITTED');
+      expect(res.body.revisionCount).toBe(0);
+      expect(res.body.isLate).toBe(false);
+      expect(res.body.content).toContain('v = u + at');
+    });
+
+    it('submits link or file attachment under 10MB', async () => {
+      const res = await s1
+        .post(`/api/student/groups/${world.group1}/homework/${hw1Id}/submit`)
+        .send({
+          attachmentType: 'LINK',
+          url: 'https://docs.google.com/document/d/12345',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.attachmentType).toBe('LINK');
+      expect(res.body.url).toBe('https://docs.google.com/document/d/12345');
+      expect(res.body.revisionCount).toBe(1);
+    });
+
+    it('rejects file submission exceeding 10MB', async () => {
+      const excessiveBytes = 11 * 1024 * 1024;
+      const res = await s1
+        .post(`/api/student/groups/${world.group1}/homework/${hw1Id}/submit`)
+        .send({
+          attachmentType: 'PDF',
+          r2ObjectKey: 'homework/large.pdf',
+          fileSizeBytes: excessiveBytes,
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('10MB');
+    });
+
+    it('detects late submission when submitted past dueDate', async () => {
+      // Update due date to the past
+      const pastDue = new Date(Date.now() - 86400000).toISOString();
+      await testPool.query(
+        `UPDATE group_homework_access SET due_date = $1 WHERE group_id = $2 AND homework_id = $3`,
+        [pastDue, world.group1, hw1Id],
+      );
+
+      const res = await s1
+        .post(`/api/student/groups/${world.group1}/homework/${hw1Id}/submit`)
+        .send({
+          content: 'Late submission text',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.isLate).toBe(true);
+    });
+
+    it('resubmitting after REVISION_REQUESTED increments revisionCount and reverts status to SUBMITTED', async () => {
+      // Simulate teacher requesting revision
+      await testPool.query(
+        `UPDATE homework_submissions
+         SET status = 'REVISION_REQUESTED', teacher_feedback = 'Please show your work for step 2', revision_count = 1
+         WHERE homework_id = $1 AND group_id = $2 AND student_id = $3`,
+        [hw1Id, world.group1, world.s1.id],
+      );
+
+      const res = await s1
+        .post(`/api/student/groups/${world.group1}/homework/${hw1Id}/submit`)
+        .send({
+          content: 'Updated work with step 2 detailed',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe('SUBMITTED');
+      expect(res.body.revisionCount).toBe(2);
+      expect(res.body.content).toContain('Updated work');
+    });
+
+    it('disallows resubmission when assignment is GRADED', async () => {
+      // Simulate teacher grading
+      await testPool.query(
+        `UPDATE homework_submissions
+         SET status = 'GRADED', score = 9, graded_at = now()
+         WHERE homework_id = $1 AND group_id = $2 AND student_id = $3`,
+        [hw1Id, world.group1, world.s1.id],
+      );
+
+      const res = await s1
+        .post(`/api/student/groups/${world.group1}/homework/${hw1Id}/submit`)
+        .send({
+          content: 'Trying to sneak another submission',
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Cannot resubmit a graded assignment');
+    });
+  });
 });
