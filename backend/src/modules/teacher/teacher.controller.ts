@@ -226,8 +226,9 @@ export class TeacherController {
   getLessonHomework(
     @Req() req: Request,
     @Param('lessonId') lessonId: string,
+    @Query('groupId') groupId?: string,
   ) {
-    return this.teachers.getLessonHomework(req.user!, lessonId);
+    return this.teachers.getLessonHomework(req.user!, lessonId, groupId);
   }
 
   @Patch('api/teacher/homework/:id')

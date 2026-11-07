@@ -1231,16 +1231,44 @@ export class TeacherService {
   async getLessonHomework(
     user: { id: string; role: string },
     lessonId: string,
+    groupId?: string,
   ) {
     await this.assertOwnsLesson(user, lessonId);
 
     const rows = await db
       .select()
       .from(homework)
-      .where(eq(homework.lessonId, lessonId))
+      .where(
+        and(
+          eq(homework.lessonId, lessonId),
+          groupId ? or(isNull(homework.groupId), eq(homework.groupId, groupId)) : sql`true`,
+        ),
+      )
       .orderBy(asc(homework.displayOrder), asc(homework.createdAt));
 
-    return rows.map((r) => serializeHomework(r));
+    if (!groupId) {
+      return rows.map((r) => serializeHomework(r));
+    }
+
+    const accessRows = rows.length
+      ? await db
+          .select()
+          .from(groupHomeworkAccess)
+          .where(
+            and(
+              eq(groupHomeworkAccess.groupId, groupId),
+              inArray(groupHomeworkAccess.homeworkId, rows.map((h) => h.id)),
+            ),
+          )
+      : [];
+    const accessMap = new Map(accessRows.map((a) => [a.homeworkId, a]));
+    return rows.map((r) => {
+      const access = accessMap.get(r.id);
+      return serializeHomework(r, {
+        dueDate: access?.dueDate ?? null,
+        isHidden: access?.isHidden ?? false,
+      });
+    });
   }
 
   async updateHomework(

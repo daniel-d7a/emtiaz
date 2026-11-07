@@ -225,8 +225,8 @@ export const teacherApi = {
     api<DeleteGiftResponse>(`/api/teacher/entitlements/gifts/${giftId}`, { method: 'DELETE' }),
   createHomework: (lessonId: string, dto: CreateHomeworkDto) =>
     api<HomeworkDto>(`/api/teacher/lessons/${lessonId}/homework`, { body: dto }),
-  getLessonHomework: (lessonId: string) =>
-    api<HomeworkDto[]>(`/api/teacher/lessons/${lessonId}/homework`),
+  getLessonHomework: (lessonId: string, groupId?: string) =>
+    api<HomeworkDto[]>(`/api/teacher/lessons/${lessonId}/homework${groupId ? `?groupId=${groupId}` : ''}`),
   updateHomework: (id: string, dto: UpdateHomeworkDto) =>
     api<HomeworkDto>(`/api/teacher/homework/${id}`, { method: 'PATCH', body: dto }),
   deleteHomework: (id: string) =>

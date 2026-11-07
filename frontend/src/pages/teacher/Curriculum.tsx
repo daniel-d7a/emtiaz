@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createRoute, useLocation, useParams } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, FileUp, ImagePlus, NotebookPen, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, FileUp, ImagePlus, NotebookPen, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../../lib/api';
-import { attachmentIcon, attachmentUrl } from '../../lib/attachment';
+import { api, teacherApi } from '../../lib/api';
+import { attachmentIcon, attachmentUrl, homeworkFileUrl } from '../../lib/attachment';
 import { useLang } from '../../lib/i18n';
 import { Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select, StatCard } from '../../components/ui';
 import type {
   Attachment,
+  HomeworkAttachmentType,
+  HomeworkDto,
   TeacherCurriculum as Curriculum,
   TeacherQuiz,
   TeacherQuizQuestion as QuizQuestionData,
@@ -383,6 +385,7 @@ function LessonEditor({ lesson, courseId, autoFocus, canUp, canDown, moving, onM
           </div>
           {save.error && <ErrorBox error={save.error} />}
           <LessonMaterials lesson={lesson} courseId={courseId} />
+          <LessonHomework lessonId={lesson.id} courseId={courseId} />
           <div className="flex flex-col gap-2 rounded-xl border border-line bg-white px-3 py-2">
             <p className="text-sm font-bold">{t('quiz')}</p>
             {lesson.quizzes.length === 0 && (
@@ -602,6 +605,337 @@ function LessonMaterials({ lesson, courseId }: { lesson: Curriculum['modules'][0
         cancelLabel={t('cancel')}
         destructive
         onConfirm={() => removing && remove.mutate(removing.id)}
+      />
+    </div>
+  );
+}
+
+function LessonHomework({ lessonId, courseId }: { lessonId: string; courseId: string }) {
+  const { t } = useLang();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<HomeworkDto | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<HomeworkDto | null>(null);
+
+  const [title, setTitle] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [maxScore, setMaxScore] = useState(10);
+  const [attachmentType, setAttachmentType] = useState<HomeworkAttachmentType>('NONE');
+  const [url, setUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<Error | null>(null);
+
+  const { data: homeworkList = [], isLoading } = useQuery({
+    queryKey: ['lesson-homework', lessonId],
+    queryFn: () => teacherApi.getLessonHomework(lessonId),
+  });
+
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['lesson-homework', lessonId] });
+    void qc.invalidateQueries({ queryKey: ['teacher-curriculum', courseId] });
+  };
+
+  const reset = () => {
+    setEditing(null);
+    setTitle('');
+    setInstructions('');
+    setMaxScore(10);
+    setAttachmentType('NONE');
+    setUrl('');
+    setFile(null);
+    setErr(null);
+  };
+
+  const openAdd = () => {
+    reset();
+    setOpen(true);
+  };
+
+  const openEdit = (hw: HomeworkDto) => {
+    setEditing(hw);
+    setTitle(hw.title);
+    setInstructions(hw.instructions ?? '');
+    setMaxScore(hw.maxScore);
+    setAttachmentType(hw.attachmentType);
+    setUrl(hw.url ?? '');
+    setFile(null);
+    setErr(null);
+    setOpen(true);
+  };
+
+  const remove = useMutation({
+    mutationFn: (id: string) => teacherApi.deleteHomework(id),
+    onSuccess: () => {
+      toast.success(t('deleted'));
+      invalidate();
+      setConfirmDelete(null);
+    },
+    onError: (e) => toast.error((e as Error).message || t('errorOccurred')),
+  });
+
+  const save = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      if (!title.trim()) throw new Error(t('requiredField'));
+      if (maxScore < 1) throw new Error(t('scoreInvalid'));
+      if (attachmentType === 'LINK' && !/^https?:\/\//i.test(url.trim())) {
+        throw new Error(t('invalidUrl'));
+      }
+
+      let r2ObjectKey = editing?.r2ObjectKey ?? null;
+      let fileSizeBytes = editing?.fileSizeBytes ?? null;
+      let mimeType = editing?.mimeType ?? null;
+
+      if (['PDF', 'DOC', 'IMAGE'].includes(attachmentType)) {
+        if (file) {
+          const up = await api<{ objectKey: string; uploadUrl: string }>('/api/storage/presigned-upload', {
+            body: {
+              courseId,
+              lessonId,
+              fileName: file.name,
+              mimeType: file.type || undefined,
+              fileSizeBytes: file.size,
+            },
+          });
+          const resp = await fetch(up.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type || 'application/octet-stream' },
+            body: file,
+          });
+          if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+          r2ObjectKey = up.objectKey;
+          fileSizeBytes = file.size;
+          mimeType = file.type || null;
+        }
+      } else if (attachmentType === 'LINK') {
+        r2ObjectKey = null;
+        fileSizeBytes = null;
+        mimeType = null;
+      } else {
+        r2ObjectKey = null;
+        fileSizeBytes = null;
+        mimeType = null;
+      }
+
+      if (editing) {
+        await teacherApi.updateHomework(editing.id, {
+          title: title.trim(),
+          instructions: instructions.trim() || null,
+          maxScore,
+          attachmentType,
+          r2ObjectKey,
+          url: attachmentType === 'LINK' ? url.trim() : null,
+          fileSizeBytes,
+          mimeType,
+        });
+      } else {
+        await teacherApi.createHomework(lessonId, {
+          title: title.trim(),
+          instructions: instructions.trim() || null,
+          maxScore,
+          attachmentType,
+          r2ObjectKey,
+          url: attachmentType === 'LINK' ? url.trim() : null,
+          fileSizeBytes,
+          mimeType,
+        });
+      }
+
+      toast.success(t('saved'));
+      invalidate();
+      setOpen(false);
+      reset();
+    } catch (e) {
+      setErr(e as Error);
+      toast.error((e as Error).message || t('errorOccurred'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-bold">{t('homework')}</span>
+        <Button variant="ghost" className="!min-h-9 !px-3" onClick={openAdd}>
+          <Plus className="inline" size={15} /> {t('addHomework')}
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <p className="mt-2 text-xs text-ink-soft">{t('loading')}</p>
+      ) : homeworkList.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-soft">{t('noHomework')}</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-1.5">
+          {homeworkList.map((hw) => {
+            const Icon = attachmentIcon(hw.attachmentType);
+            return (
+              <li
+                key={hw.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <Icon size={17} className="shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-ink">{hw.title}</span>
+                      <span className="rounded bg-primary-light px-1.5 py-0.5 text-xs font-bold text-primary-dark">
+                        {hw.maxScore} {t('points')}
+                      </span>
+                    </div>
+                    {hw.instructions && (
+                      <p className="line-clamp-1 text-xs text-ink-soft">{hw.instructions}</p>
+                    )}
+                    {(hw.url || hw.r2ObjectKey) && (
+                      <a
+                        href={homeworkFileUrl(hw)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        {t('referenceAttachment')} ({hw.attachmentType})
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={t('edit')}
+                    title={t('edit')}
+                    onClick={() => openEdit(hw)}
+                    className="p-1 text-ink-soft hover:text-primary"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('delete')}
+                    title={t('delete')}
+                    onClick={() => setConfirmDelete(hw)}
+                    className="p-1 text-ink-soft hover:text-danger"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title={editing ? t('editHomework') : t('addHomework')}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Button>
+            <Button onClick={save} disabled={busy || !title.trim()}>
+              {busy ? '…' : t('save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Input
+            label={t('homeworkTitle')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('homeworkTitle')}
+            autoFocus
+          />
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('homeworkInstructions')}</span>
+            <textarea
+              className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+              rows={3}
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder={t('homeworkInstructionsPlaceholder')}
+            />
+          </label>
+
+          <Input
+            label={t('maxScore')}
+            type="number"
+            min={1}
+            max={1000}
+            value={maxScore}
+            onChange={(e) => setMaxScore(Math.max(1, parseInt(e.target.value) || 10))}
+          />
+
+          <Select
+            label={t('attachmentType')}
+            value={attachmentType}
+            onChange={(e) => setAttachmentType(e.target.value as HomeworkAttachmentType)}
+          >
+            <option value="NONE">{t('noAttachment')}</option>
+            <option value="PDF">{t('pdfFile')}</option>
+            <option value="DOC">{t('docFile')}</option>
+            <option value="IMAGE">{t('imageFile')}</option>
+            <option value="LINK">{t('link')}</option>
+          </Select>
+
+          {['PDF', 'DOC', 'IMAGE'].includes(attachmentType) && (
+            <div className="flex flex-col gap-1.5">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line bg-white px-4 py-3 text-sm font-semibold text-ink-soft hover:border-primary">
+                <FileUp size={16} className="shrink-0" />
+                <span className="min-w-0 truncate">
+                  {file?.name ?? (editing?.r2ObjectKey ? t('uploadFile') : t('uploadFile'))}
+                </span>
+                <input
+                  type="file"
+                  accept={
+                    attachmentType === 'PDF'
+                      ? 'application/pdf'
+                      : attachmentType === 'IMAGE'
+                        ? 'image/*'
+                        : '.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                  }
+                  className="hidden"
+                  onChange={(e) => {
+                    const picked = e.target.files?.[0] ?? null;
+                    setFile(picked);
+                  }}
+                />
+              </label>
+              {editing?.r2ObjectKey && !file && (
+                <span className="text-xs text-ink-soft">
+                  {t('referenceAttachment')}: {editing.mimeType ?? editing.attachmentType}
+                </span>
+              )}
+            </div>
+          )}
+
+          {attachmentType === 'LINK' && (
+            <Input
+              label={t('materialUrl')}
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://"
+              dir="ltr"
+            />
+          )}
+
+          {err && <ErrorBox error={err} />}
+        </div>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(next) => !next && setConfirmDelete(null)}
+        title={`${t('delete')} ${confirmDelete?.title ?? ''}?`}
+        description={t('confirmDeleteHomework')}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => confirmDelete && remove.mutate(confirmDelete.id)}
       />
     </div>
   );

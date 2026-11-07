@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, KeyRound, Link2, Lock, MessageCircle, NotebookPen, Plus, Printer, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, BookOpen, Copy, Download, Eye, EyeOff, KeyRound, Link2, Lock, MessageCircle, NotebookPen, Plus, Printer, Trash2, Unlock, Users } from 'lucide-react';
 import QRCode from 'qrcode';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
@@ -12,6 +12,7 @@ import { api } from '../../lib/api';
 import { formatDateTime, getWeekdayOptions, parseDays, serializeDays, useLang, type WeekdayKey } from '../../lib/i18n';
 import { Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, InfoHint, Input, Loading, Page, Progress, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
+import { HomeworkPacingSection, HomeworkSubmissionsDialog } from './HomeworkGrading';
 import type {
   Group,
   GroupEntryCode,
@@ -214,6 +215,7 @@ export function AttendanceTab({ groupId }: { groupId: string }) {
 export function PacingTab({ groupId }: { groupId: string }) {
   const { t } = useLang();
   const qc = useQueryClient();
+  const [selectedHomework, setSelectedHomework] = useState<{ id: string; title: string; maxScore: number } | null>(null);
   const { data, isLoading, error } = useQuery(pacingQuery(groupId));
   const invalidate = () => void qc.invalidateQueries({ queryKey: ['pacing', groupId] });
   const setAccess = useMutation({
@@ -375,6 +377,22 @@ export function PacingTab({ groupId }: { groupId: string }) {
           </ul>
         )}
       </Card>
+
+      <HomeworkPacingSection
+        groupId={groupId}
+        lessons={data.lessons}
+        onOpenSubmissions={setSelectedHomework}
+      />
+
+      {selectedHomework && (
+        <HomeworkSubmissionsDialog
+          groupId={groupId}
+          homeworkId={selectedHomework.id}
+          title={selectedHomework.title}
+          maxScore={selectedHomework.maxScore}
+          onClose={() => setSelectedHomework(null)}
+        />
+      )}
     </div>
   );
 }
@@ -393,17 +411,26 @@ export function GradebookTab({ groupId }: { groupId: string }) {
       quiz
         ? data.quizCells[`${studentId}:${columnId}`] ?? ''
         : data.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? '';
+    const homeworkCell = (studentId: string, homeworkId: string) => {
+      const c = data.homeworkCells?.[`${studentId}:${homeworkId}`];
+      if (!c) return '';
+      if (c.status === 'GRADED' && c.score !== null) return `${c.score}${c.isLate ? ' (Late)' : ''}`;
+      return `${c.status}${c.isLate ? ' (Late)' : ''}`;
+    };
+    const hwCols = data.homeworkColumns ?? [];
     const rows: unknown[][] = [
       [
         t('roster'),
         t('attendance'),
         ...data.quizColumns.map((c) => `${c.lessonTitle} (/${c.maxScore})`),
+        ...hwCols.map((c) => `${c.title} (/${c.maxScore})`),
         ...data.manualColumns.map((c) => `${c.title}${c.maxScore ? ` (/${c.maxScore})` : ''}`),
       ],
       ...data.students.map((s) => [
         s.name,
         `${data.attendance[s.id] ?? 0}%`,
         ...data.quizColumns.map((c) => cell(s.id, c.quizId, true)),
+        ...hwCols.map((c) => homeworkCell(s.id, c.id)),
         ...data.manualColumns.map((c) => cell(s.id, c.id, false)),
       ]),
     ];
@@ -424,6 +451,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 12 });
   const [submissionsFor, setSubmissionsFor] = useState<{ quizId: string; title: string } | null>(null);
+  const [selectedHomework, setSelectedHomework] = useState<{ id: string; title: string; maxScore: number } | null>(null);
   const manualScore = (studentId: string, columnId: string) =>
     data?.manualCells.find((c) => c.studentId === studentId && c.columnId === columnId)?.score ?? null;
   const columns = useMemo<ColumnDef<Gradebook['students'][number]>[]>(() => {
@@ -457,6 +485,54 @@ export function GradebookTab({ groupId }: { groupId: string }) {
             {(getValue() as number | null) ?? '—'}
           </button>
         ),
+      });
+    }
+    for (const hw of data.homeworkColumns ?? []) {
+      cols.push({
+        id: `homework-${hw.id}`,
+        header: () => (
+          <button
+            type="button"
+            title={t('submissions')}
+            onClick={() => setSelectedHomework({ id: hw.id, title: hw.title, maxScore: hw.maxScore })}
+            className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
+          >
+            <BookOpen size={13} className="shrink-0" />
+            <span>{hw.title} (/{hw.maxScore})</span>
+          </button>
+        ),
+        accessorFn: (s) => data.homeworkCells?.[`${s.id}:${hw.id}`]?.score ?? null,
+        cell: ({ row }) => {
+          const cell = data.homeworkCells?.[`${row.original.id}:${hw.id}`];
+          if (!cell || cell.status === 'NOT_SUBMITTED') {
+            return <span className="text-ink-soft">—</span>;
+          }
+          return (
+            <button
+              type="button"
+              title={t('submissions')}
+              onClick={() => setSelectedHomework({ id: hw.id, title: hw.title, maxScore: hw.maxScore })}
+              className="inline-flex items-center gap-1 font-bold tabular-nums text-primary hover:underline"
+            >
+              {cell.status === 'GRADED' && cell.score !== null ? (
+                <span>
+                  {cell.score} <span className="text-xs text-ink-soft">/{hw.maxScore}</span>
+                </span>
+              ) : cell.status === 'REVISION_REQUESTED' ? (
+                <span className="rounded bg-secondary-light px-1.5 py-0.5 text-xs font-semibold text-secondary">
+                  {t('revisionRequested')}
+                </span>
+              ) : (
+                <span className="rounded bg-primary-light px-1.5 py-0.5 text-xs font-semibold text-primary-dark">
+                  {t('submitted')}
+                </span>
+              )}
+              {cell.isLate && (
+                <span className="text-xs text-rose-500 font-normal">({t('late')})</span>
+              )}
+            </button>
+          );
+        },
       });
     }
     for (const c of data.manualColumns) {
@@ -618,6 +694,15 @@ export function GradebookTab({ groupId }: { groupId: string }) {
           quizId={submissionsFor.quizId}
           title={submissionsFor.title}
           onClose={() => setSubmissionsFor(null)}
+        />
+      )}
+      {selectedHomework && (
+        <HomeworkSubmissionsDialog
+          groupId={groupId}
+          homeworkId={selectedHomework.id}
+          title={selectedHomework.title}
+          maxScore={selectedHomework.maxScore}
+          onClose={() => setSelectedHomework(null)}
         />
       )}
     </div>

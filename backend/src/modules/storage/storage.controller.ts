@@ -9,6 +9,8 @@ import {
   groupLessonAccess,
   groupStudents,
   groups,
+  homework,
+  homeworkSubmissions,
   lessonAttachments,
   lessons,
   modules,
@@ -207,6 +209,32 @@ export class StorageController {
     const row = await this.readableAttachment(req.user!, id);
     if (!row.r2ObjectKey) throw new NotFoundException('Attachment has no file');
     res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey, download ? row.title : undefined));
+  }
+
+  @Roles('STUDENT', 'TEACHER', 'ADMIN', 'PARENT')
+  @Get('api/storage/homework/:id/file')
+  async homeworkFile(
+    @Param('id') id: string,
+    @Query('download') download: string | undefined,
+    @Res() res: Response,
+  ) {
+    const [row] = await db.select().from(homework).where(eq(homework.id, id));
+    if (!row) throw new NotFoundException('Homework not found');
+    if (!row.r2ObjectKey) throw new NotFoundException('Homework has no file');
+    res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey, download ? row.title : undefined));
+  }
+
+  @Roles('STUDENT', 'TEACHER', 'ADMIN', 'PARENT')
+  @Get('api/storage/homework-submissions/:id/file')
+  async submissionFile(
+    @Param('id') id: string,
+    @Query('download') download: string | undefined,
+    @Res() res: Response,
+  ) {
+    const [row] = await db.select().from(homeworkSubmissions).where(eq(homeworkSubmissions.id, id));
+    if (!row) throw new NotFoundException('Submission not found');
+    if (!row.r2ObjectKey) throw new NotFoundException('Submission has no file');
+    res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey, download ? 'submission' : undefined));
   }
 
   private async readableAttachment(user: { id: string; role: string }, id: string) {
