@@ -77,10 +77,12 @@ Core relationships:
 - `lesson_attachments.lesson_id`, optional `group_id` for group-only files
 - `quizzes` target exactly one of lesson, module, or course; a target may hold
   many quizzes, ordered by `display_order`
-- `quiz_attempts(student_id, group_id, quiz_id)` — best score feeds the gradebook;
-  attempts with written questions stay `pending` until manually graded
+- `quiz_attempts(student_id, group_id, quiz_id)` — best graded (`pending = false`)
+  score feeds the gradebook and grade averages; attempts with written questions
+  stay `pending` until manually graded
 - `quiz_questions` are `MCQ`, `TRUE_FALSE`, or `WRITTEN`; written questions keep a
-  model answer and are graded by the teacher out of 10
+  model answer and are graded by the teacher out of `quiz_questions.points`
+  (default 10)
 - `lesson_completions(lesson_id, student_id)` — unique pair
 - `lesson_attendance(lesson_id, student_id, is_present)` — unique pair
 - `parent_reports(parent_id, student_id, message)` — delivered monthly summaries

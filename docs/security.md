@@ -18,16 +18,25 @@ the checklist to keep in mind when adding endpoints or screens.
   guarded request and ignores Better Auth's 5-minute cookie cache, so a
   suspended or deleted user cannot keep using a cached session.
 - Suspended users (`is_active = false`) get `403`. Deleting a user is a soft
-  delete that also sets `is_active = false`, revokes sessions, and removes group
-  memberships. Courses, groups, and parent-child links are soft-deleted too:
-  every non-deleted admin, teacher, student, parent, and public query filters
-  `deleted_at`. Admins can restore any soft-deleted row from the matching
-  directory; restored users are active again, and restored courses/groups return
-  to their owner's lists. Restores are audited.
-- Sign-in lockout: after `LOGIN_LOCKOUT_MAX` failures (default 5) for one email
-  inside `LOGIN_LOCKOUT_WINDOW_MS` (default 15 min), sign-in returns `429` with
-  `Retry-After` for `LOGIN_LOCKOUT_MS` (default 15 min). A successful sign-in
-  clears the counter.
+  delete that also sets `is_active = false` and revokes sessions while keeping
+  `group_students` rows intact (roster, gradebook, attendance, count, and
+  notification queries filter `users.deleted_at IS NULL` so restoring a student
+  restores their group memberships and grades). Temporarily suspended students
+  remain visible in teacher rosters and gradebooks; soft-deleted or suspended
+  teachers have their courses and groups hidden from public, student, and parent
+  views and blocked from new joins. Courses, groups, and parent-child links are
+  soft-deleted too: every non-deleted admin, teacher, student, parent, and
+  public query filters `deleted_at`. Admins can restore any soft-deleted row
+  from the matching directory; restored users are active again, and restored
+  courses/groups return to their owner's lists. Restores are audited.
+- Inactive groups (`groups.is_active = false`) are read-only for already-enrolled
+  students and linked parents, and reject student writes (`submitQuiz`,
+  `markComplete`, `unmarkComplete`) as well as new enrollments (`joinGroupByCode`,
+  `bulkAddStudents`, `moveStudent`, `adminEnroll`) until reactivated.
+- Sign-in lockout: after `LOGIN_LOCKOUT_MAX` failures (default 5) for the same
+  email or phone number within `LOGIN_LOCKOUT_WINDOW_MS` (default 15 min), sign-in
+  returns `429` with `Retry-After` for `LOGIN_LOCKOUT_MS` (default 15 min). A
+  successful sign-in clears the counter.
 - IP limits: 300 requests/min globally per IP; Better Auth adds 100/min overall
   and 10/min on sign-in/sign-up email and phone sign-in.
 - With `REDIS_URL` set, throttle counters and lockout state are shared across
@@ -66,7 +75,7 @@ or parent ownership rights.
 | Grade written quiz answers | no | owner | no | no |
 | Read own grades | no | no | enrolled | no |
 | Read a linked child's progress, attendance, grades, reports | no | no | no | linked |
-| Link/unlink a child by registered phone | no | no | no | yes |
+| Link/unlink a child by student monitoring code or QR | no | no | no | yes |
 | Download lesson attachment | yes | owner | enrolled + unlocked | no |
 | Upload/manage attachments | no | owner | no | no |
 | Upload own avatar | yes | yes | yes | yes |
@@ -79,16 +88,17 @@ restore); editing course content still belongs to the owning teacher. Admin can
 download any attachment and manually enroll a student. Teacher course creation may resolve a missing shared grade or skill
 name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
 
-### Billing (planned, behind `BILLING_ENABLED`)
+### Teacher Plans & Entitlements
 
-- `POST /api/billing/checkout`, `GET /api/billing/subscription`, and
-  `POST /api/billing/cancel` are teacher-only and scoped to the caller's own
-  subscription.
-- `POST /api/billing/webhook` is `@Public()` at the guard layer, but rejects
-  requests without a valid Thawani HMAC signature and never trusts
-  client-supplied amounts or plan ids.
-- Billing state never grants access to another user's courses, groups, or
-  students. See [ADR-0020](./adr/0020-billing-provider.md).
+- Students and parents are permanently free; only teachers hold subscription
+  entitlements ([ADR-0020](./adr/0020-teacher-plans-and-entitlements.md)).
+- Plan upgrades are fulfilled by Administration via WhatsApp (`supportWhatsapp`),
+  promo codes, or referral codes — there is no automated payment gateway or
+  public billing webhook.
+- Expired teachers whose active student count or lesson storage exceeds `Free`
+  plan limits enter the Upgrade Gate (blocking teacher workspace mutations except
+  viewing plans, redeeming codes, or contacting Administration), while enrolled
+  students and linked parents keep normal access.
 
 ## Content access rules
 
@@ -98,12 +108,16 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
   at least one of the student's groups. `group_lesson_access` overrides the
   group's `unlock_all_by_default`.
 - A hidden lesson is absent from curriculum, lesson views, completion writes,
-  and progress totals. A hidden quiz is absent from curriculum and rejected by
-  direct reads and submissions for that group; `group_quiz_access` stores only
-  per-group visibility, never quiz content.
+  progress totals, group stats, and gradebook attendance calculations. A hidden
+  quiz is absent from curriculum, group stats, and gradebook columns, and is
+  rejected by direct reads and submissions for that group; `group_quiz_access`
+  stores only per-group visibility, never quiz content.
 - Attendance is owner-only for the group's course. Marks are upserted per
   `(lesson, student)` and only for students enrolled in that group; the lesson
-  must belong to the group's course. Group stats read the same rows.
+  must belong to the group's course. Student attendance percentage across
+  Parent, Admin, and Teacher views divides `is_present = true` marks by total
+  marked (`is_present` recorded) visible lessons for that student (`0%` when no
+  lessons have been marked yet).
 - Lesson completion is an upsert only after the enrollment + unlock check.
   Uncompleting is allowed for the student's own completion row.
 - Direct quiz reads resolve the quiz's course (lesson, module, or course quiz),
@@ -114,10 +128,13 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
   stays pending until the course-owning teacher grades every written question;
   grading is owner-only, validates the attempt belongs to that teacher's
   course, and recomputes the score from objective answers plus written grades
-  (0–10 each).
+  (`0..question.points` each, default 10).
 - Attachment download checks the attachment's course and optional group. Master
   files (no group) are visible to any enrolled group in the course; group files
-  only to that group; both still require the lesson to be unlocked. External
+  only to that group; both still require the lesson to be unlocked and visible
+  in that group (`StudentService.getLesson` only returns group-scoped attachments
+  for the requested `groupId`, or for enrolled groups where that lesson is
+  currently visible and unlocked). External
   link materials live on the attachment row and are only returned to readers
   who can see the lesson; deleting a material is owner-only and also deletes
   the stored object when one exists.
@@ -179,5 +196,5 @@ Teacher CSV exports go through `frontend/src/lib/csv.ts`:
   served through presigned URLs.
 - Redis is optional. Without it, lockout and throttle counters are per replica;
   losing Redis resets counters and the monthly-summary lock.
-- Parent linking trusts knowledge of the student's registered phone number.
-  Add an OTP challenge if abuse appears.
+- Parent linking uses the student's unique `monitoring_code` or QR code;
+  knowledge of phone number alone does not grant access to student records.

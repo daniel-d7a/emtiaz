@@ -19,5 +19,4 @@ routes resolve sessions through `auth.api.getSession` in a global `AuthGuard`.
   (transformIgnorePatterns: [] + isolatedModules).
 - Decorator metadata is dropped by tsx (esbuild), so `AuthGuard`/`RolesGuard`
   instantiate `Reflector` directly instead of constructor DI.
-- Suspending a user must delete `session` rows; the guard also disables
-  better-auth's 5-minute cookie cache to avoid staleness.
+- Suspending a user must delete `session` rows; `AuthGuard` passes `disableCookieCache: true` on every session lookup so Better Auth's 5-minute cookie cache cannot keep a suspended or deleted user signed in.

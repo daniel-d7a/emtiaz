@@ -43,12 +43,9 @@ The combination a neighboring generic LMS could not truthfully copy:
 ## Capabilities and Constraints
 
 - Roles: ADMIN, TEACHER, STUDENT, PARENT, with hard role separation in navigation and pages.
-- Courses, modules/units, lessons, polymorphic materials (files, links, embeds), quizzes with MCQ/true-false, manual grade columns, attendance, group pacing and visibility, announcements, in-app notifications, monthly parent summaries.
+- Courses, modules/units, lessons, polymorphic materials (files, links, embeds), quizzes with MCQ/true-false/written questions, manual grade columns, attendance, group pacing and visibility, announcements, in-app notifications, monthly parent summaries.
 - Soft deletes and account suspension exist; deleted data should be inspectable and restorable.
-- Billing/checkout is **not built**. Plans are shown on the landing page only.
-  Thawani hosted checkout is the chosen provider; prices are monthly OMR and
-  remain aspirational until a merchant account and `BILLING_ENABLED` exist
-  ([ADR-0020](docs/adr/0020-billing-provider.md)).
+- Students and parents are 100% free. Teacher subscription plans (`Free`, `Early Bird`, `Pro`, `Ultimate`) are priced in `OMR` or `EGP` based on the teacher's country and fulfilled directly by Administration via WhatsApp, promo codes, and referral codes ([ADR-0020](docs/adr/0020-teacher-plans-and-entitlements.md)).
 - Video hosting is out of scope for now; the attachment model stays polymorphic so it can arrive later.
 - Mobile and web are separate renderings of one product; the web is the canonical platform record.
 - Deployment is self-hosted via Docker Compose (Caddy, NestJS, PostgreSQL, Redis, S3-compatible storage).

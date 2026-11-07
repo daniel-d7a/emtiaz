@@ -5,7 +5,7 @@ Date: 2026-10-26
 ## Context
 Admins, teachers, students, and parents share the same login, session, profile,
 notification, and audit surfaces. Role-specific data is currently small:
-teacher landing fields and subject category, student grade and parent invite
+teacher landing fields and subject category, student grade and monitoring
 code. Domain tables already reference `user.id` from many directions.
 
 ## Decision

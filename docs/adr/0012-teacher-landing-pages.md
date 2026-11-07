@@ -6,9 +6,11 @@ Updated: 2026-10-26
 ## Decision
 - Teachers set `landingSlug`, `landingBio`, and `landingPublished` on
   `PATCH /api/me`; the slug is unique, lowercase, and 3-40 chars.
-- `GET /api/public/teachers/:slug` (no auth) returns only the teacher's public
-  name, bio, subject, avatar key, and published courses. It never returns email,
-  phone, join codes, or groups.
+- `GET /api/public/teachers/:slug` (no auth) returns the teacher's public name,
+  bio, subject, contact details (`phoneNumber` and real `email`, returning
+  `email: null` for synthetic `@phone.emtiaz.om` accounts), avatar/banner URLs,
+  theme, and published courses. It never returns join codes, entry codes, or
+  groups.
 - Web route `/t/$slug` renders that page with a signup CTA.
 
 ## Rationale
@@ -27,4 +29,4 @@ Updated: 2026-10-26
   the web app's `/api/me/avatar` remains session-scoped.
 - `sitemap.xml` lists the app root plus every published teacher slug;
   `robots.txt` disallows `/api/`.
-- No per-teacher theming or custom domains yet.
+- Per-teacher theming is stored in `user.landing_theme` (see [ADR-0017](./0017-teacher-theme.md)); custom domains are not supported yet.

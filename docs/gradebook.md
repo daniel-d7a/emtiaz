@@ -6,14 +6,19 @@ differently on purpose.
 
 ## Quiz columns (derived)
 
-- Source: `quizzes` attached to lessons of the group's course.
-- Column header: the lesson title; `maxScore` is the sum of that quiz's
-  `quiz_questions.points`.
-- Cell value: the **best** `quiz_attempts.score` for that student and quiz in
-  this group (not the latest). Attempts are written by the quiz flow, never by
-  the gradebook.
+- Source: visible (non-hidden) `quizzes` attached to the course, modules, or
+  lessons of the group's course.
+- Column header: the context/quiz title; `maxScore` is the sum of that quiz's
+  `quiz_questions.points` (including `WRITTEN` questions, which default to `10`
+  points).
+- Cell value: the **best graded** (`pending = false`) `quiz_attempts.score` for
+  that student and quiz in this group (falling back to the latest `pending = true`
+  attempt only when no graded attempt exists). Attempts are written by the quiz
+  flow, never by the gradebook. Editing an existing quiz warns the teacher and
+  clears prior `quiz_attempts`.
 - No row is created until the student attempts the quiz; an empty cell means
-  "not attempted", not zero.
+  "not attempted", not zero. Pending attempts are excluded from numeric grade
+  averages across Student, Parent, and Teacher views until graded.
 - Shape returned by the API: `quizColumns[]` + `quizCells["<studentId>:<quizId>"]`.
 
 ## Manual columns (teacher-entered)
@@ -59,5 +64,6 @@ attempts plus every manual column for the group, with `score: null` and
 
 ## Known gaps
 
-- Quiz columns show every quiz in the course, even if the group has not unlocked
-  the lesson yet; the attempt is what decides whether a cell has a value.
+- Quiz columns show every visible (non-hidden) quiz in the course, even if the
+  group has not unlocked the lesson yet; a graded attempt is what decides whether
+  a cell has a numeric value.

@@ -10,8 +10,9 @@ Updated: 2026-10-28
   `drizzle-kit up`.
 - `drizzle-kit` is the only migrator. The custom count-based migrator is
   removed; `__drizzle_migrations` is owned by the drizzle-kit journal alone.
-- `SHORT_ANSWER` is removed from the `question_type` enum. Quizzes support MCQ
-  and true/false only.
+- `SHORT_ANSWER` (auto-graded text matching) is removed from the `question_type`
+  enum; open-ended questions use teacher-graded `WRITTEN` questions instead
+  (see [ADR-0021](./0021-exclusive-arc-quizzes-and-written-grading.md)).
 - The legacy free-text `user.specialization` column is removed; teacher subject
   is `user.subject_category_id`.
 
