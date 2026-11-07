@@ -21,9 +21,16 @@ Produce `.scratch/homework/spec.md` (and any required architecture updates) cove
 - [02: Define Teacher Grading Workflow, Revision Requests & Gradebook Integration](grilling/02-grading-workflow-revisions-and-gradebook.md): Teacher grading view and student drawer with score, feedback, `GRADED` / `REVISION_REQUESTED` actions; single submission record with `revisionCount` incrementing on student resubmission; dynamic gradebook integration calculating homework score into student grade percentage.
 - [03: Define Student Submission UX, Parent Visibility & Notifications](grilling/03-student-submission-parent-visibility-and-notifications.md): Student lesson view card with countdown and 3-way submission; parent portal read-only list with urgency alerts; in-app notification triggers on assignment, grading/revision, and 24h due date reminder.
 
-## Next Step
+## Implementation Tickets (Completed)
 
-Synthesize all decisions into `.scratch/homework/spec.md` (`to-spec`), then slice into vertical implementation tickets (`to-tickets`).
+- [x] [01: Homework Schema, Migrations, Shared Contracts & Teacher Homework CRUD](issues/01-homework-schema-shared-contracts-and-teacher-crud.md)
+- [x] [02: Student Submission Lifecycle, Revision Requests & Teacher Grading Engine](issues/02-student-submission-revisions-and-grading-engine.md)
+- [x] [03: Gradebook Integration & Parent Portal Homework Backend](issues/03-gradebook-and-parent-portal-homework-backend.md)
+- [x] [04: Frontend Teacher Homework Management, Due Dates & Grading Drawer UI](issues/04-frontend-teacher-homework-curriculum-due-dates-and-grading-ui.md)
+- [x] [05: Frontend Student Lesson Homework Card & Parent Portal UI](issues/05-frontend-student-lesson-homework-and-parent-portal-ui.md)
+- [x] [06: Mobile Student Lesson Homework & Parent Portal Support](issues/06-mobile-student-lesson-homework-and-parent-screen.md)
+
+## Status: Complete
 
 ## Out of scope
 
