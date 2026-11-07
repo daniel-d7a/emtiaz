@@ -3,10 +3,42 @@ import { Image, ScrollView, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import QRCode from 'qrcode';
 import { api, authApi, deleteUploadedObject, uploadFile } from '../api';
 import { Btn, Card, ErrorBox, Loading, Text, c, f, s } from '../ui';
 import TeacherLandingFields from './TeacherLandingFields';
+import TeacherEntitlementsCard from './TeacherEntitlementsCard';
+import { ReportProblemMobileBtn } from './Login';
 import type { MeResponse as Me, PresignedUpload } from '../../../shared/api';
+
+function MonitoringCodeQr({ value }: { value: string }) {
+  const [src, setSrc] = useState('');
+  useEffect(() => {
+    let active = true;
+    QRCode.toDataURL(value, { width: 180, margin: 1 })
+      .then((url) => active && setSrc(url))
+      .catch(() => active && setSrc(''));
+    return () => {
+      active = false;
+    };
+  }, [value]);
+  if (!src) return null;
+  return (
+    <Image
+      source={{ uri: src }}
+      style={{
+        width: 180,
+        height: 180,
+        borderRadius: 16,
+        backgroundColor: '#fff',
+        alignSelf: 'center',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: c.line,
+      }}
+    />
+  );
+}
 
 export default function Profile({ onBack, onLogout }: { onBack?: () => void; onLogout: () => void }) {
   const qc = useQueryClient();
@@ -187,6 +219,7 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
           disabled={busy || !name.trim()}
         />
         {onBack && <Btn label="رجوع" onPress={onBack} variant="ghost" />}
+        <ReportProblemMobileBtn context="Profile" user={data.user} />
         <Btn
           label="تسجيل الخروج"
           onPress={async () => {
@@ -203,6 +236,21 @@ export default function Profile({ onBack, onLogout }: { onBack?: () => void; onL
           variant="ghost"
         />
       </Card>
+      {data.user.role === 'STUDENT' && data.user.monitoringCode ? (
+        <Card>
+          <Text style={s.h2}>رمز المتابعة</Text>
+          <Text style={{ color: c.inkSoft, fontSize: 13, marginBottom: 12 }}>
+            شارك هذا الرمز أو رمز QR مع ولي أمرك ليتمكن من متابعة درجاتك وتقدمك الدراسي.
+          </Text>
+          <MonitoringCodeQr value={data.user.monitoringCode} />
+          <View style={{ alignItems: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: 26, fontWeight: '700', fontFamily: f.latin, color: c.primary, letterSpacing: 4 }}>
+              {data.user.monitoringCode}
+            </Text>
+          </View>
+        </Card>
+      ) : null}
+      {data.user.role === 'TEACHER' ? <TeacherEntitlementsCard me={data} /> : null}
       {data.user.role === 'TEACHER' ? <TeacherLandingFields me={data} /> : null}
     </ScrollView>
   );

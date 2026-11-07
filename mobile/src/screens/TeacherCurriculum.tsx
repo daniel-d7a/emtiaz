@@ -691,7 +691,7 @@ function QuizBuilder({
               : question.questionType === 'WRITTEN'
                 ? question.modelAnswer.trim()
                 : question.correctBool,
-          points: 1,
+          points: question.questionType === 'WRITTEN' ? 10 : 1,
         })),
       };
       return existing
@@ -746,7 +746,22 @@ function QuizBuilder({
       return;
     }
     setFormError(null);
-    upsert.mutate();
+    if (existing) {
+      Alert.alert(
+        'تأكيد تعديل الاختبار',
+        'تعديل هذا الاختبار سيؤدي إلى مسح جميع محاولات الطلاب السابقة. هل أنت متأكد من المتابعة؟',
+        [
+          { text: 'إلغاء', style: 'cancel' },
+          {
+            text: 'متابعة',
+            style: 'destructive',
+            onPress: () => upsert.mutate(),
+          },
+        ],
+      );
+    } else {
+      upsert.mutate();
+    }
   };
 
   return (

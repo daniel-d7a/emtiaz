@@ -80,7 +80,7 @@ export default function Quiz({ lessonId, quizId, groupId, onBack }: { lessonId?:
           <Text style={s.h1}>{quizData.title}</Text>
           {data.questions.map((q, i) => (
             <Card key={q.id}>
-              <Text style={{ fontWeight: '700', marginBottom: 8 }}>{i + 1}. {q.prompt} ({q.questionType === 'WRITTEN' ? 10 : q.points})</Text>
+              <Text style={{ fontWeight: '700', marginBottom: 8 }}>{i + 1}. {q.prompt} ({q.points})</Text>
               {q.options ? (
                 <View style={{ gap: 8 }}>
                   {q.options.map((opt) => (

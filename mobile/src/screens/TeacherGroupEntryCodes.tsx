@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
 import type { TeacherEntryCodes } from '../../../shared/api';
 
 export default function TeacherGroupEntryCodes({ groupId }: { groupId: string }) {
@@ -28,7 +29,26 @@ export default function TeacherGroupEntryCodes({ groupId }: { groupId: string })
   return (
     <View>
       <Card>
-        <Text style={s.h2}>رموز الدخول</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Text style={[s.h2, { marginBottom: 0 }]}>رموز الدخول</Text>
+          <InfoHint
+            title="رمز المجموعة ورموز الدخول"
+            steps={[
+              {
+                title: '١. رمز المجموعة العام',
+                body: 'لكل مجموعة رمز انضمام ثابت يحدد المجموعة التي يريد الطالب التسجيل فيها.',
+              },
+              {
+                title: '٢. اشتراط رمز الدخول',
+                body: 'عند تفعيل هذا الخيار، لن يتمكن أي طالب جديد من الانضمام إلا إذا أدخل رمز دخول صالحاً بالإضافة لرمز المجموعة.',
+              },
+              {
+                title: '٣. رموز الدخول محدودة الاستخدام',
+                body: 'يمكنك توليد رموز دخول بعدد استخدامات محدد ومتابعة من استخدم كل رمز.',
+              },
+            ]}
+          />
+        </View>
         <Text style={{ color: c.inkSoft, marginBottom: 8 }}>
           يُستهلك الرمز عند انضمام طالب جديد فقط.
         </Text>

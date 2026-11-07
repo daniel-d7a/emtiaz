@@ -2,6 +2,8 @@ import { Image, Pressable, ScrollView, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
+import { OnboardingGuide } from '../components/OnboardingGuide';
 import type { MeResponse, TeacherCourse, TeacherStats } from '../../../shared/api';
 
 export default function TeacherHome({
@@ -56,6 +58,15 @@ export default function TeacherHome({
         />
       ) : null}
       <Text style={s.h1}>مساحتي</Text>
+      <OnboardingGuide
+        role="TEACHER"
+        completedSteps={[
+          (stats.data?.curricula ?? 0) > 0,
+          (stats.data?.groups ?? 0) > 0,
+          (stats.data?.uniqueStudents ?? 0) > 0,
+        ]}
+        onPrimaryAction={onNewCourse}
+      />
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
         {[
           { label: 'المناهج', value: stats.data?.curricula ?? 0 },
@@ -70,7 +81,26 @@ export default function TeacherHome({
       </View>
 
       <View style={[s.row, { marginBottom: 12 }]}>
-        <Text style={s.h2}>المقررات</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={[s.h2, { marginBottom: 0 }]}>المقررات</Text>
+          <InfoHint
+            title="المقررات مقابل المجموعات"
+            steps={[
+              {
+                title: '١. المقرر الرئيسي',
+                body: 'المقرر يحتوي على المنهج الكامل من وحدات ودروس ومواد واختبارات، وتبنيه مرة واحدة فقط.',
+              },
+              {
+                title: '٢. المجموعات (دفعات الطلاب)',
+                body: 'داخل كل مقرر يمكنك إنشاء عدة مجموعات بمواعيد ورموز انضمام مستقلة لكل شعبة أو دفعة.',
+              },
+              {
+                title: '٣. تحكم مستقل لكل مجموعة',
+                body: 'كل مجموعة لها جدولة محتوى وسجل حضور ودرجات خاص بها دون تكرار رفع الدروس.',
+              },
+            ]}
+          />
+        </View>
         <Btn label="مقرر جديد" onPress={onNewCourse} />
       </View>
 

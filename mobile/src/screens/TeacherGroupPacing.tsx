@@ -2,6 +2,7 @@ import { Share, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, MiniBtn, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
 import type { TeacherPacing } from '../../../shared/api';
 
 function scopeLabel(scope: 'course' | 'module' | 'lesson') {
@@ -86,7 +87,13 @@ export default function TeacherGroupPacing({ groupId }: { groupId: string }) {
 
       <Card>
         <View style={[s.row, { marginBottom: 8 }]}>
-          <Text style={s.h2}>الدروس</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[s.h2, { marginBottom: 0 }]}>الدروس</Text>
+            <InfoHint
+              title="جدولة المحتوى وفتح الدروس"
+              hint="تحكم في الدروس والاختبارات المتاحة لطلاب هذه المجموعة: يمكنك فتح الكل دفعة واحدة أو فتح كل درس تدريجياً بعد شرحه."
+            />
+          </View>
           <View style={{ flexDirection: 'row', gap: 4 }}>
             <MiniBtn label="فتح الكل" onPress={() => flipAll.mutate(true)} disabled={flipAll.isPending} />
             <MiniBtn label="قفل الكل" onPress={() => flipAll.mutate(false)} disabled={flipAll.isPending} />

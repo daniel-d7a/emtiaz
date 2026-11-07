@@ -1,7 +1,96 @@
 import Constants from 'expo-constants';
 import { fetch as expoFetch } from 'expo/fetch';
 import { File } from 'expo-file-system';
-import type { Session } from '../../shared/api';
+import type {
+  Session,
+  Country,
+  Currency,
+  Plan,
+  PublicPlan,
+  PublicPlansResponse,
+  TeacherEntitlementsResponse,
+  TeacherActivePlan,
+  TeacherUsage,
+  TeacherEntitlementStatus,
+  SavedGift,
+  TeacherUpgradeOption,
+  PlanLimitType,
+  PlanLimitReachedResponse,
+  UpgradeGateLockedResponse,
+  RedeemCodeDto,
+  RedeemCodeResponse,
+  ActivateGiftResponse,
+  DeleteGiftResponse,
+  ReferralItem,
+  ReferralSummary,
+  CreatePlanDto,
+  UpdatePlanDto,
+  AdminPromoCode,
+  CreatePromoCodeDto,
+  UpdatePromoCodeDto,
+  TeacherDiscountRecord,
+  AdminTeacherEntitlementsResponse,
+  AdminAssignSubscriptionDto,
+  AdminGrantGiftDto,
+  User,
+  GetMeResponse,
+  StudentProfile,
+  ParentLinkDto,
+  TaughtGrade,
+  GradeItem,
+  CategoryItem,
+  TaxonomyItem,
+  RegisterTeacherDto,
+  CheckAvailabilityDto,
+  CheckAvailabilityResponse,
+  PublicSupport,
+  CourseType,
+} from '../../shared/api';
+
+export type {
+  User,
+  GetMeResponse,
+  StudentProfile,
+  ParentLinkDto,
+  TaughtGrade,
+  GradeItem,
+  CategoryItem,
+  TaxonomyItem,
+  RegisterTeacherDto,
+  CheckAvailabilityDto,
+  CheckAvailabilityResponse,
+  PublicSupport,
+  CourseType,
+  Country,
+  Currency,
+  Plan,
+  PublicPlan,
+  PublicPlansResponse,
+  TeacherEntitlementsResponse,
+  TeacherActivePlan,
+  TeacherUsage,
+  TeacherEntitlementStatus,
+  SavedGift,
+  TeacherUpgradeOption,
+  PlanLimitType,
+  PlanLimitReachedResponse,
+  UpgradeGateLockedResponse,
+  RedeemCodeDto,
+  RedeemCodeResponse,
+  ActivateGiftResponse,
+  DeleteGiftResponse,
+  ReferralItem,
+  ReferralSummary,
+  CreatePlanDto,
+  UpdatePlanDto,
+  AdminPromoCode,
+  CreatePromoCodeDto,
+  UpdatePromoCodeDto,
+  TeacherDiscountRecord,
+  AdminTeacherEntitlementsResponse,
+  AdminAssignSubscriptionDto,
+  AdminGrantGiftDto,
+} from '../../shared/api';
 
 /** API base: set EXPO_PUBLIC_API_URL to override (required with `expo start --tunnel`,
  *  where hostUri is the ngrok host and cannot reach the API). Otherwise derive the
@@ -16,10 +105,28 @@ export const API = apiBase();
 
 export class ApiError extends Error {
   status: number;
+  data: any;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, data?: any) {
     super(message);
     this.status = status;
+    this.data = data;
+  }
+}
+
+type LimitReachedListener = (data: PlanLimitReachedResponse) => void;
+const limitListeners = new Set<LimitReachedListener>();
+
+export function onPlanLimitReached(listener: LimitReachedListener): () => void {
+  limitListeners.add(listener);
+  return () => {
+    limitListeners.delete(listener);
+  };
+}
+
+export function triggerPlanLimitReached(data: PlanLimitReachedResponse) {
+  for (const listener of limitListeners) {
+    listener(data);
   }
 }
 
@@ -35,8 +142,16 @@ export async function api<T = any>(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message = (data as any)?.message || res.statusText;
-    throw new ApiError(typeof message === 'string' ? message : JSON.stringify(message), res.status);
+    const message = (data as any)?.message || (data as any)?.error || res.statusText;
+    const error = new ApiError(
+      typeof message === 'string' ? message : JSON.stringify(message),
+      res.status,
+      data,
+    );
+    if (res.status === 402 && (data as any)?.error === 'PLAN_LIMIT_REACHED') {
+      triggerPlanLimitReached(data as PlanLimitReachedResponse);
+    }
+    throw error;
   }
   return data as T;
 }
@@ -78,22 +193,72 @@ export const authApi = {
       credentials: 'include',
       signal: AbortSignal.timeout(8000),
     }).then((r) => (r.ok ? r.json() : null)),
-  login: (identifier: string, password: string) =>
+  login: (identifier: string, password: string, country?: Country) =>
     identifier.includes('@')
       ? api('/api/auth/sign-in/email', { body: { email: identifier.trim(), password } })
       : api('/api/auth/sign-in/phone-number', {
-          body: { phoneNumber: normalizePhone(identifier), password },
+          body: { phoneNumber: normalizePhone(identifier, country), password },
         }),
   logout: () => api('/api/auth/sign-out', { body: {} }),
   changePassword: (currentPassword: string, newPassword: string) =>
     api('/api/me/change-password', { body: { currentPassword, newPassword } }),
 };
 
-function normalizePhone(input: string): string {
+export const publicApi = {
+  plans: () => api<PublicPlansResponse>('/api/public/plans'),
+  support: () => api<PublicSupport>('/api/public/support'),
+  grades: (country?: Country) =>
+    api<GradeItem[]>(`/api/onboarding/grades${country ? `?country=${country}` : ''}`),
+  categories: () => api<CategoryItem[]>('/api/onboarding/categories'),
+};
+
+export const onboardingApi = {
+  checkAvailability: (dto: CheckAvailabilityDto) =>
+    api<CheckAvailabilityResponse>('/api/onboarding/check-availability', { body: dto }),
+  listCategories: () => api<CategoryItem[]>('/api/onboarding/categories'),
+  listGrades: (country?: Country) =>
+    api<GradeItem[]>(`/api/onboarding/grades${country ? `?country=${country}` : ''}`),
+  registerTeacher: (dto: RegisterTeacherDto) => api('/api/onboarding/teacher', { body: dto }),
+  registerStudent: (dto: {
+    name: string; password: string; phoneNumber: string; email?: string; gradeId?: string; country?: Country;
+  }) => api('/api/onboarding/student', { body: dto }),
+  registerParent: (dto: {
+    name: string; email?: string; password: string; phoneNumber: string; monitoringCode?: string; studentPhone?: string; country?: Country;
+  }) => api('/api/onboarding/parent', { body: dto }),
+  joinByCode: (joinCode: string, entryCode?: string) =>
+    api(`/api/onboarding/join/${encodeURIComponent(joinCode.trim().toUpperCase())}`, {
+      body: { entryCode: entryCode?.trim().toUpperCase() || undefined },
+    }),
+};
+
+export const teacherApi = {
+  getEntitlements: () => api<TeacherEntitlementsResponse>('/api/teacher/entitlements'),
+  redeemCode: (code: string) =>
+    api<RedeemCodeResponse>('/api/teacher/entitlements/redeem-code', { body: { code } }),
+  activateSavedGift: (giftId: string) =>
+    api<ActivateGiftResponse>(`/api/teacher/entitlements/gifts/${giftId}/activate`, { method: 'POST' }),
+  deleteSavedGift: (giftId: string) =>
+    api<DeleteGiftResponse>(`/api/teacher/entitlements/gifts/${giftId}`, { method: 'DELETE' }),
+};
+
+export function normalizePhone(input: string, country?: Country): string {
   const digits = input.replace(/\D/g, '');
   if (!digits) return '';
   if (digits.startsWith('00')) return `+${digits.slice(2)}`;
   if (digits.startsWith('968') && digits.length === 11) return `+${digits}`;
-  if (digits.length === 8) return `+968${digits.startsWith('0') ? digits.slice(1) : digits}`;
+  if (digits.startsWith('20') && (digits.length === 12 || digits.length === 13)) return `+${digits}`;
+  if (country === 'EG' || (!country && digits.startsWith('01') && digits.length === 11)) {
+    if (digits.startsWith('01') && digits.length === 11) {
+      return `+20${digits.slice(1)}`;
+    }
+    if (digits.startsWith('1') && digits.length === 10) {
+      return `+20${digits}`;
+    }
+  }
+  if (country === 'OM' || !country) {
+    if (digits.length === 8) {
+      return `+968${digits.startsWith('0') ? digits.slice(1) : digits}`;
+    }
+  }
   return `+${digits}`;
 }

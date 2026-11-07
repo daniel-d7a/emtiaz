@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
 import type { TeacherGradebook, TeacherQuizSubmissions } from '../../../shared/api';
 
 function ManualScore({
@@ -154,7 +155,7 @@ function QuizSubmissions({
                         }))
                       }
                       keyboardType="number-pad"
-                      placeholder="الدرجة من 10"
+                      placeholder={`الدرجة من ${question.points ?? 10}`}
                       placeholderTextColor={c.inkSoft}
                       style={s.input}
                     />
@@ -211,10 +212,16 @@ export default function TeacherGroupGradebook({ groupId }: { groupId: string }) 
           placeholderTextColor={c.inkSoft}
           style={s.input}
         />
-        <Text style={{ color: c.inkSoft, fontSize: 13 }}>
-          {students.length} طالب · {data.quizColumns.length} اختبار ·{' '}
-          {data.manualColumns.length} عمود يدوي
-        </Text>
+        <View style={s.row}>
+          <Text style={{ color: c.inkSoft, fontSize: 13 }}>
+            {students.length} طالب · {data.quizColumns.length} اختبار ·{' '}
+            {data.manualColumns.length} عمود يدوي
+          </Text>
+          <InfoHint
+            title="سجل الدرجات والتصحيح"
+            hint="يعرض السجل أعلى درجة لكل طالب في الاختبارات تلقائياً، ويمكنك الضغط على درجة الاختبار لتصحيح الأسئلة المقالية أو إضافة أعمدة درجات يدوية."
+          />
+        </View>
       </Card>
 
       {data.students.length === 0 && <Empty text="لا يوجد طلاب في المجموعة" />}

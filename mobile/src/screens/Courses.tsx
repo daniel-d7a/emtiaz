@@ -3,6 +3,8 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Loading, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
+import { OnboardingGuide } from '../components/OnboardingGuide';
 import type { StudentGroup as Group, StudentHome } from '../../../shared/api';
 
 export default function Courses({
@@ -50,6 +52,14 @@ export default function Courses({
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pageContent} keyboardShouldPersistTaps="handled">
       <Text style={s.h1}>الرئيسية</Text>
+      <OnboardingGuide
+        role="STUDENT"
+        completedSteps={[
+          stats.activeGroups > 0,
+          stats.activeGroups > 0,
+          stats.lessonsDone > 0,
+        ]}
+      />
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
         {[
           { label: 'المجموعات', value: stats.activeGroups },
@@ -85,7 +95,26 @@ export default function Courses({
       ))}
 
       <Card>
-        <Text style={s.h2}>رمز مجموعة</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Text style={[s.h2, { marginBottom: 0 }]}>رمز مجموعة</Text>
+          <InfoHint
+            title="كيف تنضم إلى مجموعة معلمك؟"
+            steps={[
+              {
+                title: '١. اطلب رمز المجموعة من معلمك',
+                body: 'يرسل لك المعلم رمز المجموعة (مثل OM123456) أو رابط انضمام مباشر عبر واتساب.',
+              },
+              {
+                title: '٢. أدخل رمز الدخول الإضافي (إن طُلب)',
+                body: 'إذا كانت المجموعة مقفلة برمز دخول، سيُزودك المعلم برمز دخول مكون من ٨ خانات لإدخاله في الحقل الثاني.',
+              },
+              {
+                title: '٣. ابدأ الدراسة وحل الاختبارات',
+                body: 'بمجرد الانضمام ستظهر المجموعة في لوحتك لفتح الدروس، تحميل المرفقات، وحل الاختبارات القصيرة.',
+              },
+            ]}
+          />
+        </View>
         <Text style={{ color: c.inkSoft, marginBottom: 8 }}>مثال OM123456</Text>
         <TextInput
           style={s.input}

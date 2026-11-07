@@ -3,6 +3,7 @@ import { Alert, Share, Switch, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, MiniBtn, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
 import type { Group, TeacherGradebook, TeacherPacing } from '../../../shared/api';
 
 export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
@@ -96,7 +97,26 @@ export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
           />
         </View>
         <View style={[s.row, { paddingVertical: 6, marginBottom: 8 }]}>
-          <Text style={{ fontWeight: '600' }}>يتطلب رمز دخول</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontWeight: '600' }}>يتطلب رمز دخول</Text>
+            <InfoHint
+              title="رمز المجموعة ورموز الدخول"
+              steps={[
+                {
+                  title: '١. رمز المجموعة العام',
+                  body: 'لكل مجموعة رمز انضمام ثابت يحدد المجموعة التي يريد الطالب التسجيل فيها.',
+                },
+                {
+                  title: '٢. اشتراط رمز الدخول',
+                  body: 'عند تفعيل هذا الخيار، لن يتمكن أي طالب جديد من الانضمام إلا إذا أدخل رمز دخول صالحاً بالإضافة لرمز المجموعة.',
+                },
+                {
+                  title: '٣. رموز الدخول محدودة الاستخدام',
+                  body: 'يمكنك توليد رموز دخول بعدد استخدامات محدد ومتابعة من استخدم كل رمز.',
+                },
+              ]}
+            />
+          </View>
           <Switch
             value={requiresEntryCode}
             onValueChange={setRequiresEntryCode}

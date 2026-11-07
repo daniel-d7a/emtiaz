@@ -26,10 +26,14 @@ import TeacherCourse from './src/screens/TeacherCourse';
 import TeacherCurriculum from './src/screens/TeacherCurriculum';
 import TeacherGroup from './src/screens/TeacherGroup';
 import TeacherNewCourse from './src/screens/TeacherNewCourse';
+import TeacherUpgradeGateScreen from './src/screens/TeacherUpgradeGateScreen';
+import UpgradeModal from './src/screens/UpgradeModal';
 import Quiz from './src/screens/Quiz';
 import ScanJoin from './src/screens/ScanJoin';
 import { Loading, Text, c, f, s } from './src/ui';
 import { queryClient } from './src/query';
+import { useQuery } from '@tanstack/react-query';
+import { teacherApi } from './src/api';
 import type { Session } from '../shared/api';
 
 I18nManager.allowRTL(true);
@@ -188,6 +192,15 @@ function StudentTabs({ onLogout }: { onLogout: () => void }) {
 }
 
 function TeacherStack({ onLogout }: { onLogout: () => void }) {
+  const { data: entitlements } = useQuery({
+    queryKey: ['teacher-entitlements'],
+    queryFn: () => teacherApi.getEntitlements(),
+  });
+
+  if (entitlements?.isLockedOut) {
+    return <TeacherUpgradeGateScreen onLogout={onLogout} />;
+  }
+
   return (
     <Stack.Navigator initialRouteName="Main" screenOptions={screenOptions}>
       <Stack.Screen name="Main">
@@ -316,6 +329,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
           <Root />
+          <UpgradeModal />
         </SafeAreaView>
       </QueryClientProvider>
     </SafeAreaProvider>

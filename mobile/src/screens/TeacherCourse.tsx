@@ -5,6 +5,7 @@ import { File } from 'expo-file-system';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, deleteUploadedObject, uploadFile } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
 import type { PresignedUpload, TeacherCourse } from '../../../shared/api';
 
 export default function TeacherCourse({
@@ -228,7 +229,26 @@ export default function TeacherCourse({
       </Card>
 
       <View style={[s.row, { marginBottom: 8 }]}>
-        <Text style={s.h2}>المجموعات</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={[s.h2, { marginBottom: 0 }]}>المجموعات</Text>
+          <InfoHint
+            title="المقررات مقابل المجموعات"
+            steps={[
+              {
+                title: '١. المقرر الرئيسي',
+                body: 'المقرر يحتوي على المنهج الكامل من وحدات ودروس ومواد واختبارات، وتبنيه مرة واحدة فقط.',
+              },
+              {
+                title: '٢. المجموعات (دفعات الطلاب)',
+                body: 'داخل كل مقرر يمكنك إنشاء عدة مجموعات بمواعيد ورموز انضمام مستقلة لكل شعبة أو دفعة.',
+              },
+              {
+                title: '٣. تحكم مستقل لكل مجموعة',
+                body: 'كل مجموعة لها جدولة محتوى وسجل حضور ودرجات خاص بها دون تكرار رفع الدروس.',
+              },
+            ]}
+          />
+        </View>
         <Btn
           label={showGroupForm ? 'إلغاء' : 'مجموعة جديدة'}
           variant="ghost"

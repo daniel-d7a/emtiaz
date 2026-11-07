@@ -1,22 +1,31 @@
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Btn, Card, Empty, ErrorBox, Field, Loading, Text, c, s } from '../ui';
+import { InfoHint } from '../components/InfoHint';
+import { OnboardingGuide } from '../components/OnboardingGuide';
 import type { ParentChild as Child, StudentGrades as Grades } from '../../../shared/api';
 
 export default function ParentHome() {
   const qc = useQueryClient();
-  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
   const [open, setOpen] = useState<string | null>(null);
   const children = useQuery({
     queryKey: ['parent-students'],
     queryFn: () => api<Child[]>('/api/parent/students'),
   });
   const link = useMutation({
-    mutationFn: () => api('/api/parent/link', { body: { phoneNumber: phone.trim() } }),
+    mutationFn: (overrideCode?: string) => {
+      const target = (typeof overrideCode === 'string' ? overrideCode : code).trim().toUpperCase();
+      return api('/api/parent/link', { body: { monitoringCode: target } });
+    },
     onSuccess: () => {
-      setPhone('');
+      setCode('');
+      setScanning(false);
       void qc.invalidateQueries({ queryKey: ['parent-students'] });
     },
   });
@@ -26,19 +35,92 @@ export default function ParentHome() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['parent-students'] }),
   });
 
+  const onBarcodeScanned = ({ data }: { data: string }) => {
+    if (link.isPending) return;
+    const raw = data.trim().toUpperCase();
+    const match = raw.match(/[A-Z0-9]{8}/);
+    const resolvedCode = match ? match[0] : raw;
+    if (resolvedCode.length === 8) {
+      setCode(resolvedCode);
+      setScanning(false);
+      link.mutate(resolvedCode);
+    }
+  };
+
   return (
     <ScrollView style={s.page} keyboardShouldPersistTaps="handled">
       <Text style={s.h1}>أبنائي</Text>
-      <Card>
-        <Field label="رقم هاتف الطالب" value={phone} onChange={setPhone} keyboardType="phone-pad" />
-        <Btn
-          label="ربط الطالب"
-          onPress={() => link.mutate()}
-          disabled={phone.trim().length < 8}
-          loading={link.isPending}
-        />
-        {link.error && <ErrorBox error={link.error} />}
-      </Card>
+      <OnboardingGuide
+        role="PARENT"
+        completedSteps={[
+          (children.data?.length ?? 0) > 0,
+          Boolean(children.data?.some((child) => child.groups.length > 0 || child.reports.length > 0)),
+        ]}
+      />
+      {scanning ? (
+        <Card>
+          <Text style={s.h2}>مسح رمز QR للطالب</Text>
+          <Text style={{ color: c.inkSoft, marginBottom: 12 }}>
+            وجّه الكاميرا نحو رمز QR الظاهر في ملف الطالب الشخصي.
+          </Text>
+          {!permission?.granted ? (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ marginBottom: 8 }}>نحتاج إذن الكاميرا لمسح الرمز.</Text>
+              <Btn
+                label={permission?.canAskAgain ? 'السماح بالكاميرا' : 'فعّل الكاميرا من إعدادات الهاتف'}
+                onPress={() => void requestPermission()}
+                disabled={!permission?.canAskAgain}
+              />
+            </View>
+          ) : (
+            <View style={{ height: 280, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
+              <CameraView
+                style={{ flex: 1 }}
+                facing="back"
+                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                onBarcodeScanned={onBarcodeScanned}
+              />
+            </View>
+          )}
+          <Btn label="إلغاء المسح" variant="ghost" onPress={() => setScanning(false)} />
+        </Card>
+      ) : (
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Text style={[s.h2, { marginBottom: 0 }]}>ربط حساب الطالب</Text>
+            <InfoHint
+              title="ربط حساب الابن برمز المتابعة"
+              hint="افتح الملف الشخصي في حساب ابنك (الطالب) لنسخ رمز المتابعة المكون من ٨ خانات أو مسح رمز QR، ثم أدخله هنا لمتابعة حضوره ودرجاته."
+            />
+          </View>
+          <Field
+            label="رمز متابعة الطالب"
+            value={code}
+            onChange={(v) => setCode(v.toUpperCase())}
+            dir="ltr"
+            placeholder="مثال: ABCD2345"
+            maxLength={8}
+          />
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Btn
+                label="ربط الطالب"
+                onPress={() => link.mutate()}
+                disabled={code.trim().length !== 8}
+                loading={link.isPending}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Btn
+                label="مسح QR"
+                variant="ghost"
+                onPress={() => setScanning(true)}
+              />
+            </View>
+          </View>
+          {link.error && <ErrorBox error={link.error} />}
+        </Card>
+      )}
       {unlink.error && <ErrorBox error={unlink.error} />}
       {children.isLoading ? <Loading /> : children.error ? <ErrorBox error={children.error} /> : (
         <>
