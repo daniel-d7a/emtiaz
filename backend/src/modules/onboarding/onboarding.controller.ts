@@ -1,11 +1,11 @@
-import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Req, Res, ServiceUnavailableException } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Query, Req, Res, ServiceUnavailableException } from '@nestjs/common';
 import type { Response } from 'express';
 import type { Request } from 'express';
 import { auth } from '../../auth/auth';
 import { Public } from '../../auth/public.decorator';
 import { Roles } from '../../auth/roles.decorator';
 import { OnboardingService } from './onboarding.service';
-import { ZodBodyPipe, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto, ChangePasswordDto, JoinEntryDto } from '../../lib/schemas';
+import { ZodBodyPipe, CheckAvailabilityDto, TeacherSignupDto, StudentSignupDto, ParentSignupDto, UpdateMeDto, ChangePasswordDto, JoinEntryDto } from '../../lib/schemas';
 import { toWebHeaders } from '../../auth/web-headers';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -30,6 +30,15 @@ export class OnboardingController {
     // @ts-expect-error user attached by guard
     return this.onboarding.joinByCode(req.user.id, joinCode, dto.entryCode);
   }
+  @Public()
+  @Post('api/onboarding/check-availability')
+  async checkAvailability(
+    @Body(new ZodBodyPipe(CheckAvailabilityDto))
+    dto: z.infer<typeof CheckAvailabilityDto>,
+  ) {
+    return this.onboarding.checkAvailability(dto);
+  }
+
   @Public()
   @Post('api/onboarding/teacher')
   async registerTeacher(
@@ -98,6 +107,24 @@ export class OnboardingController {
   @Get('api/categories')
   listCategories() {
     return this.onboarding.listCategories();
+  }
+
+  @Public()
+  @Get('api/onboarding/categories')
+  listOnboardingCategories() {
+    return this.onboarding.listCategories();
+  }
+
+  @Public()
+  @Get('api/onboarding/grades')
+  listOnboardingGrades(@Query('country') country?: string) {
+    return this.onboarding.listGrades(country);
+  }
+
+  @Public()
+  @Get('api/public/grades')
+  listPublicGrades(@Query('country') country?: string) {
+    return this.onboarding.listGrades(country);
   }
 
   @Public()

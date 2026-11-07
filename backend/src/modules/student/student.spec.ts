@@ -325,9 +325,160 @@ describe('Phase 3: student endpoints', () => {
     ).toBe(403);
   });
 
+  it('scopes lesson attachments strictly to group context and avoids leaks', async () => {
+    const studentUser = await getUserByEmail(STUDENT1.email);
+    // Un-hide lesson1 in group1 from previous test
+    await testPool.query(
+      `DELETE FROM group_lesson_access WHERE group_id = $1 AND lesson_id = $2`,
+      [world.group1, world.lesson1],
+    );
+    await testPool.query(
+      `INSERT INTO group_students (group_id, student_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+      [world.group2, studentUser.id],
+    );
+
+    const { rows: atts } = await testPool.query(
+      `INSERT INTO lesson_attachments (lesson_id, title, file_type, url, group_id)
+       VALUES
+         ($1, 'Global Doc', 'PDF', 'https://example.com/global', NULL),
+         ($1, 'Group 1 Doc', 'PDF', 'https://example.com/g1', $2),
+         ($1, 'Group 2 Doc', 'PDF', 'https://example.com/g2', $3)
+       RETURNING id, title`,
+      [world.lesson1, world.group1, world.group2],
+    );
+
+    try {
+      // 1. When querying for Group 1:
+      const g1View = await s1.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group1}`);
+      expect(g1View.status).toBe(200);
+      const g1Titles = g1View.body.attachments.map((a: any) => a.title);
+      expect(g1Titles).toContain('Global Doc');
+      expect(g1Titles).toContain('Group 1 Doc');
+      expect(g1Titles).not.toContain('Group 2 Doc');
+
+      // 2. When querying for Group 2:
+      const g2View = await s1.get(`/api/student/lessons/${world.lesson1}/view?groupId=${world.group2}`);
+      expect(g2View.status).toBe(200);
+      const g2Titles = g2View.body.attachments.map((a: any) => a.title);
+      expect(g2Titles).toContain('Global Doc');
+      expect(g2Titles).toContain('Group 2 Doc');
+      expect(g2Titles).not.toContain('Group 1 Doc');
+
+      // 3. When groupId query param is omitted:
+      await testPool.query(
+        `INSERT INTO group_lesson_access (group_id, lesson_id, is_unlocked, is_hidden)
+         VALUES ($1,$2,false,false)
+         ON CONFLICT (group_id, lesson_id) DO UPDATE SET is_unlocked = false, is_hidden = false`,
+        [world.group2, world.lesson1],
+      );
+      const noGroupView = await s1.get(`/api/student/lessons/${world.lesson1}/view`);
+      expect(noGroupView.status).toBe(200);
+      const noGroupTitles = noGroupView.body.attachments.map((a: any) => a.title);
+      expect(noGroupTitles).toContain('Global Doc');
+      expect(noGroupTitles).toContain('Group 1 Doc');
+      expect(noGroupTitles).not.toContain('Group 2 Doc');
+    } finally {
+      await testPool.query(`DELETE FROM lesson_attachments WHERE id = ANY($1)`, [atts.map((a: any) => a.id)]);
+      await testPool.query(`DELETE FROM group_students WHERE group_id=$1 AND student_id=$2`, [world.group2, studentUser.id]);
+      await testPool.query(`DELETE FROM group_lesson_access WHERE group_id=$1 AND lesson_id=$2`, [world.group2, world.lesson1]);
+    }
+  });
+
   it('teachers cannot access student endpoints', async () => {
     const t = (await login(server, TEACHER.email, TEACHER.password)).session;
     const res = await t.get('/api/student/groups');
     expect(res.status).toBe(403);
+  });
+
+  it('inactive group blocks submitQuiz, markComplete, and unmarkComplete with 400 while keeping curriculum and grades readable', async () => {
+    const { rows: [inactiveGroup] } = await testPool.query(
+      `INSERT INTO groups (course_id, name, join_code, is_active) VALUES ($1, 'Student Inactive Group', 'OM9991', false) RETURNING id`,
+      [world.courseId],
+    );
+    await testPool.query(
+      `INSERT INTO group_students (group_id, student_id) VALUES ($1, $2)`,
+      [inactiveGroup.id, world.s1.id],
+    );
+
+    // Read-only curriculum works
+    const currRes = await s1.get(`/api/student/groups/${inactiveGroup.id}/curriculum`);
+    expect(currRes.status).toBe(200);
+
+    // Read-only grades work
+    const gradesRes = await s1.get(`/api/student/groups/${inactiveGroup.id}/grades`);
+    expect(gradesRes.status).toBe(200);
+
+    // Submit quiz rejected with 400
+    const quizRes = await s1
+      .post(`/api/student/quizzes/${world.quiz}/submit`)
+      .send({ groupId: inactiveGroup.id, answers: { [world.questionIds[0]]: 'm/s' } });
+    expect(quizRes.status).toBe(400);
+    expect(quizRes.body.message).toContain('Group is inactive');
+
+    // Mark complete rejected with 400
+    const markRes = await s1
+      .post(`/api/student/lessons/${world.lesson1}/complete?groupId=${inactiveGroup.id}`);
+    expect(markRes.status).toBe(400);
+    expect(markRes.body.message).toContain('Group is inactive');
+
+    // Unmark complete rejected with 400
+    const unmarkRes = await s1
+      .post(`/api/student/lessons/${world.lesson1}/incomplete?groupId=${inactiveGroup.id}`);
+    expect(unmarkRes.status).toBe(400);
+    expect(unmarkRes.body.message).toContain('Group is inactive');
+
+    // Clean up
+    await testPool.query(`DELETE FROM group_students WHERE group_id = $1`, [inactiveGroup.id]);
+    await testPool.query(`DELETE FROM groups WHERE id = $1`, [inactiveGroup.id]);
+  });
+
+  it('cohorts of suspended or soft-deleted teachers reject joinGroupByCode and are omitted from student group lists', async () => {
+    // Create teacher
+    const { rows: [tUser] } = await testPool.query(
+      `INSERT INTO "user" (id, name, email, role, is_active) VALUES ('teacher-susp-test', 'Suspended Teacher', 'susp-t@test.om', 'TEACHER', false) RETURNING id`,
+    );
+    const { rows: [cRow] } = await testPool.query(
+      `INSERT INTO courses (title, teacher_id) VALUES ('Suspended Course', $1) RETURNING id`,
+      [tUser.id],
+    );
+    const { rows: [gRow] } = await testPool.query(
+      `INSERT INTO groups (course_id, name, join_code, is_active) VALUES ($1, 'Suspended Teacher Group', 'OM7771', true) RETURNING id`,
+      [cRow.id],
+    );
+    await testPool.query(
+      `INSERT INTO group_students (group_id, student_id) VALUES ($1, $2)`,
+      [gRow.id, world.s1.id],
+    );
+
+    // Joining suspended teacher group -> 404 Course or teacher not available
+    const joinRes = await s1.post('/api/student/groups/join').send({ joinCode: 'OM7771' });
+    expect(joinRes.status).toBe(404);
+    expect(joinRes.body.message).toContain('Course or teacher not available');
+
+    // Student's myGroups omits this group because teacher is suspended
+    const myGroupsRes = await s1.get('/api/student/groups');
+    expect(myGroupsRes.body.some((g: any) => g.group.id === gRow.id)).toBe(false);
+
+    // Soft-deleted teacher also rejected
+    await testPool.query(`UPDATE "user" SET is_active = true, deleted_at = now() WHERE id = $1`, [tUser.id]);
+    const joinDeleted = await s1.post('/api/student/groups/join').send({ joinCode: 'OM7771' });
+    expect(joinDeleted.status).toBe(404);
+    expect(joinDeleted.body.message).toContain('Course or teacher not available');
+
+    const myGroupsDeleted = await s1.get('/api/student/groups');
+    expect(myGroupsDeleted.body.some((g: any) => g.group.id === gRow.id)).toBe(false);
+
+    // Inactive group join code rejected with 400 Group is inactive
+    await testPool.query(`UPDATE "user" SET is_active = true, deleted_at = NULL WHERE id = $1`, [tUser.id]);
+    await testPool.query(`UPDATE groups SET is_active = false WHERE id = $1`, [gRow.id]);
+    const joinInactive = await s1.post('/api/student/groups/join').send({ joinCode: 'OM7771' });
+    expect(joinInactive.status).toBe(400);
+    expect(joinInactive.body.message).toContain('Group is inactive');
+
+    // Clean up
+    await testPool.query(`DELETE FROM group_students WHERE group_id = $1`, [gRow.id]);
+    await testPool.query(`DELETE FROM groups WHERE id = $1`, [gRow.id]);
+    await testPool.query(`DELETE FROM courses WHERE id = $1`, [cRow.id]);
+    await testPool.query(`DELETE FROM "user" WHERE id = $1`, [tUser.id]);
   });
 });

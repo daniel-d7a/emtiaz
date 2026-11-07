@@ -378,6 +378,124 @@ describe('Phase 4: teacher endpoints', () => {
       expect(after.body.attempt).toMatchObject({ score: 9, maxScore: 11, pending: false });
     });
 
+    it('supports WRITTEN questions with custom points and rejects out-of-range teacher grades', async () => {
+      const created = await t.post(`/api/teacher/courses/${world.courseId}/quizzes`).send({
+        targetType: 'lesson',
+        targetId: world.lesson1,
+        title: 'Custom Points Test',
+        questions: [
+          { questionType: 'WRITTEN', prompt: 'Explain relativity', correctAnswer: 'Spacetime curvature', points: 20 },
+        ],
+      });
+      expect(created.status).toBe(201);
+      const [written] = created.body.questions;
+      expect(written.points).toBe(20);
+
+      const student = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+      const submitted = await student
+        .post(`/api/student/quizzes/${created.body.id}/submit`)
+        .send({
+          groupId: world.group1,
+          answers: { [written.id]: 'Matter bends spacetime' },
+        });
+      expect(submitted.status).toBe(201);
+      expect(submitted.body.pending).toBe(true);
+      expect(submitted.body.maxScore).toBe(20);
+
+      const list = await t.get(
+        `/api/teacher/groups/${world.group1}/quizzes/${created.body.id}/submissions`,
+      );
+      const attempt = list.body.submissions.find(
+        (row: any) => row.student.id === world.s1.id,
+      );
+
+      // Above question.points (20) -> 400
+      const tooHigh = await t
+        .put(`/api/teacher/quiz-attempts/${attempt.id}/grade`)
+        .send({ grades: { [written.id]: 25 } });
+      expect(tooHigh.status).toBe(400);
+
+      // Negative grade -> 400
+      const negative = await t
+        .put(`/api/teacher/quiz-attempts/${attempt.id}/grade`)
+        .send({ grades: { [written.id]: -1 } });
+      expect(negative.status).toBe(400);
+
+      // Valid grade 15/20 -> 200
+      const graded = await t
+        .put(`/api/teacher/quiz-attempts/${attempt.id}/grade`)
+        .send({ grades: { [written.id]: 15 } });
+      expect(graded.status).toBe(200);
+      expect(graded.body).toMatchObject({ score: 15, maxScore: 20, pending: false });
+
+      // Clean up so subsequent tests on world.group1 are not polluted
+      await testPool.query('DELETE FROM quizzes WHERE id = $1', [created.body.id]);
+    });
+
+    it('excludes pending attempts from averages and aligns stats, home, and parent averageGrade', async () => {
+      const course = (await t.post('/api/teacher/courses').send({ title: 'Canonical Average Course', courseType: 'ACADEMIC', gradeId: world.gradeId })).body;
+      const groupRes = await t.post(`/api/teacher/courses/${course.id}/groups`).send({
+        name: 'Canonical Group',
+      });
+      expect(groupRes.status).toBe(201);
+      const group = groupRes.body;
+      const studentUser = await getUserByEmail(STUDENT1.email);
+      await testPool.query('INSERT INTO group_students (group_id, student_id) VALUES ($1, $2)', [group.id, studentUser.id]);
+
+      const quiz1 = (await t.post(`/api/teacher/courses/${course.id}/quizzes`).send({
+        targetType: 'course',
+        targetId: course.id,
+        title: 'Quiz 1 Graded',
+        questions: [{ questionType: 'TRUE_FALSE', prompt: 'Sky is blue', correctAnswer: 'true', points: 10 }],
+      })).body;
+
+      const quiz2 = (await t.post(`/api/teacher/courses/${course.id}/quizzes`).send({
+        targetType: 'course',
+        targetId: course.id,
+        title: 'Quiz 2 Written',
+        questions: [{ questionType: 'WRITTEN', prompt: 'Describe photosynthesis', correctAnswer: 'Plants make food', points: 20 }],
+      })).body;
+
+      const manualCol = (await t.post(`/api/teacher/groups/${group.id}/gradebook/columns`).send({
+        title: 'Participation',
+        maxScore: 10,
+      })).body;
+
+      const student = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+
+      await student.post(`/api/student/quizzes/${quiz1.id}/submit`).send({
+        groupId: group.id,
+        answers: { [quiz1.questions[0].id]: 'true' },
+      });
+
+      await t.put(`/api/teacher/groups/${group.id}/gradebook/cell`).send({
+        columnId: manualCol.id,
+        studentId: studentUser.id,
+        score: 8,
+      });
+
+      // Submit Quiz 2 (written) -> pending: true
+      await student.post(`/api/student/quizzes/${quiz2.id}/submit`).send({
+        groupId: group.id,
+        answers: { [quiz2.questions[0].id]: 'Plants convert sunlight' },
+      });
+
+      // Teacher groupStats excludes pending quiz2 and uses 10/10 + 8/10 = 18/20 = 90%
+      const stats = (await t.get(`/api/teacher/groups/${group.id}/stats`)).body;
+      const statStudent = stats.students.find((s: any) => s.id === studentUser.id);
+      expect(statStudent.gradePercent).toBe(90);
+
+      // Student grades show pending for quiz 2
+      const grades = (await student.get(`/api/student/groups/${group.id}/grades`)).body;
+      const q2 = grades.quizzes.find((q: any) => q.quizId === quiz2.id);
+      expect(q2.pending).toBe(true);
+
+      // Student home stats also does not crash or drop to 0%
+      const home = (await student.get('/api/student/home')).body;
+      expect(typeof home.stats.averageGrade).toBe('number');
+      expect(home.stats.averageGrade).toBeGreaterThan(0);
+    });
+
     it('supports multiple quizzes on one lesson and deletes by id', async () => {
       const created = await t.post(`/api/teacher/courses/${courseId}/quizzes`).send({
         targetType: 'lesson',
@@ -436,7 +554,7 @@ describe('Phase 4: teacher endpoints', () => {
         .post(`/api/teacher/courses/${world.courseId}/groups`)
         .send({ name: 'Evening batch' });
       expect(res.status).toBe(201);
-      expect(res.body.joinCode).toMatch(/^OM\d{6}$/);
+      expect(res.body.joinCode).toMatch(/^OM\d{4}$/);
       newGroupId = res.body.id;
     });
 
@@ -836,6 +954,61 @@ describe('Phase 4: teacher endpoints', () => {
         [world.group1, s2.id],
       );
     });
+
+    it('inactive group rejects bulkAddStudents and moveStudent with 400', async () => {
+      const { rows: [inactiveGroup] } = await testPool.query(
+        `INSERT INTO groups (course_id, name, join_code, is_active) VALUES ($1, 'Inactive Group T', 'OM6661', false) RETURNING id`,
+        [world.courseId],
+      );
+
+      // bulkAddStudents rejects with 400
+      const bulkRes = await t
+        .post(`/api/teacher/groups/${inactiveGroup.id}/roster/bulk`)
+        .send({ students: [{ name: 'Test Bulk', phoneNumber: '+96879998888' }] });
+      expect(bulkRes.status).toBe(400);
+      expect(bulkRes.body.message).toContain('Group is inactive');
+
+      // moveStudent rejects moving into inactive group with 400
+      const moveRes = await t
+        .post(`/api/teacher/groups/${world.group1}/students/${world.s1.id}/move`)
+        .send({ toGroupId: inactiveGroup.id });
+      expect(moveRes.status).toBe(400);
+      expect(moveRes.body.message).toContain('Target group is inactive');
+
+      await testPool.query(`DELETE FROM groups WHERE id = $1`, [inactiveGroup.id]);
+    });
+
+    it('soft-deleted student is omitted from teacher roster and gradebook, but suspended student remains visible', async () => {
+      const id = 'student-susp-vs-softdel';
+      await testPool.query(
+        `INSERT INTO "user" (id, name, email, phone_number, role, is_active) VALUES ($1, 'Suspended Student', 'susp-stud@test.om', '+96891112233', 'STUDENT', false)`,
+        [id],
+      );
+      await testPool.query(
+        `INSERT INTO group_students (group_id, student_id) VALUES ($1, $2)`,
+        [world.group1, id],
+      );
+
+      // Temporarily suspended student (is_active = false, deleted_at = NULL) remains visible in roster & gradebook
+      const rosterSusp = await t.get(`/api/teacher/groups/${world.group1}/roster`);
+      expect(rosterSusp.body.students.some((s: any) => s.studentId === id)).toBe(true);
+
+      const gbSusp = await t.get(`/api/teacher/groups/${world.group1}/gradebook`);
+      expect(gbSusp.body.students.some((s: any) => s.id === id)).toBe(true);
+
+      // Soft-deleted student (deleted_at IS NOT NULL) is omitted from roster & gradebook
+      await testPool.query(`UPDATE "user" SET deleted_at = now() WHERE id = $1`, [id]);
+
+      const rosterDel = await t.get(`/api/teacher/groups/${world.group1}/roster`);
+      expect(rosterDel.body.students.some((s: any) => s.studentId === id)).toBe(false);
+
+      const gbDel = await t.get(`/api/teacher/groups/${world.group1}/gradebook`);
+      expect(gbDel.body.students.some((s: any) => s.id === id)).toBe(false);
+
+      // Clean up
+      await testPool.query(`DELETE FROM group_students WHERE student_id = $1`, [id]);
+      await testPool.query(`DELETE FROM "user" WHERE id = $1`, [id]);
+    });
   });
 
   describe('gradebook matrix', () => {
@@ -951,9 +1124,9 @@ describe('Phase 4: teacher endpoints', () => {
         (row: any) => row.id === s1.id,
       );
       expect(student).toMatchObject({
-        gradePercent: 100,
+        gradePercent: 85,
         attendancePercent: 50,
-        combined: 75,
+        combined: 68,
       });
     });
 
@@ -989,6 +1162,59 @@ describe('Phase 4: teacher endpoints', () => {
       const ot = (await login(server, 'other@teacher.om', TEACHER.password)).session;
       const res = await ot.get(`/api/teacher/groups/${world.group1}/gradebook`);
       expect(res.status).toBe(403);
+    });
+
+    it('excludes hidden lessons and hidden quizzes from gradebook columns, stats, and listCourses progress', async () => {
+      const s1 = await getUserByEmail(STUDENT1.email);
+
+      // Hide world.lesson2 and world.quiz in world.group1
+      await testPool.query(
+        `INSERT INTO group_lesson_access (group_id, lesson_id, is_hidden)
+         VALUES ($1,$2,true)
+         ON CONFLICT (group_id, lesson_id) DO UPDATE SET is_hidden = true`,
+        [world.group1, world.lesson2],
+      );
+      await testPool.query(
+        `INSERT INTO group_quiz_access (group_id, quiz_id, is_hidden)
+         VALUES ($1,$2,true)
+         ON CONFLICT (group_id, quiz_id) DO UPDATE SET is_hidden = true`,
+        [world.group1, world.quiz],
+      );
+
+      try {
+        // Gradebook check: hidden quiz excluded from columns, attendance uses visible marked lessons
+        const gb = await t.get(`/api/teacher/groups/${world.group1}/gradebook`);
+        expect(gb.status).toBe(200);
+        expect(gb.body.quizColumns.some((col: any) => col.quizId === world.quiz)).toBe(false);
+        // lesson1 marked present, lesson2 hidden -> 1/1 = 100%
+        expect(gb.body.attendance[s1.id]).toBe(100);
+
+        // Group stats check: hidden items excluded from lessons total, attendance rows, and quiz averages
+        const stats = await t.get(`/api/teacher/groups/${world.group1}/stats`);
+        expect(stats.status).toBe(200);
+        expect(stats.body.lessons.total).toBe(1);
+        expect(stats.body.attendance).toHaveLength(1);
+        expect(stats.body.attendance[0].lessonId).toBe(world.lesson1);
+        expect(stats.body.quizAverages.some((q: any) => q.quizId === world.quiz)).toBe(false);
+        const st = stats.body.students.find((s: any) => s.id === s1.id);
+        expect(st.attendancePercent).toBe(100);
+
+        // listCourses check: group progress denominator excludes hidden lessons
+        const coursesRes = await t.get('/api/teacher/courses');
+        expect(coursesRes.status).toBe(200);
+        const course = coursesRes.body.find((c: any) => c.id === world.courseId);
+        const group = course.groups.find((g: any) => g.id === world.group1);
+        expect(group.progress).toBeGreaterThan(0);
+      } finally {
+        await testPool.query(
+          `DELETE FROM group_lesson_access WHERE group_id = $1 AND lesson_id = $2`,
+          [world.group1, world.lesson2],
+        );
+        await testPool.query(
+          `DELETE FROM group_quiz_access WHERE group_id = $1 AND quiz_id = $2`,
+          [world.group1, world.quiz],
+        );
+      }
     });
   });
 

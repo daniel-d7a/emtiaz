@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import request from 'supertest';
-import { STUDENT1, TEACHER, closeApp, getApp, login, seedWorld, testPool } from '../../db/test-helpers';
+import { STUDENT1, TEACHER, closeApp, getApp, getUserByEmail, login, seedWorld, testPool } from '../../db/test-helpers';
 
 jest.setTimeout(120000);
 
@@ -122,5 +122,53 @@ describe('public teacher landing', () => {
 
     const student = (await login(server, STUDENT1.email, STUDENT1.password)).session;
     expect((await student.patch('/api/me').send({ landingSlug: 'aisha' })).status).toBe(400);
+  });
+
+  it('masks synthetic @phone.emtiaz.om emails as null on public teacher storefront', async () => {
+    const teacherUser = await getUserByEmail(TEACHER.email);
+    const originalEmail = TEACHER.email;
+    try {
+      await testPool.query(
+        `UPDATE "user" SET email = '96890000001@phone.emtiaz.om', landing_published = true WHERE id = $1`,
+        [teacherUser.id],
+      );
+      const res = await request(server).get('/api/public/teachers/salim-physics');
+      expect(res.status).toBe(200);
+      expect(res.body.teacher.email).toBeNull();
+    } finally {
+      await testPool.query(
+        `UPDATE "user" SET email = $1, landing_published = false WHERE id = $2`,
+        [originalEmail, teacherUser.id],
+      );
+    }
+  });
+
+  describe('GET /api/public/plans', () => {
+    it('returns only public plans ordered by displayOrder with settings', async () => {
+      const res = await request(server).get('/api/public/plans');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('plans');
+      expect(res.body.yearlyPlanDiscountEnabled).toBe(false);
+      expect(res.body.supportWhatsapp).toBe('+96890000000');
+
+      const slugs = res.body.plans.map((p: any) => p.slug);
+      expect(slugs).toEqual(['free', 'early-bird']);
+      expect(slugs).not.toContain('pro');
+      expect(slugs).not.toContain('ultimate');
+
+      const free = res.body.plans.find((p: any) => p.slug === 'free');
+      expect(free.monthlyPriceOmr).toBe(0);
+      expect(free.monthlyPriceEgp).toBe(0);
+      expect(free.maxStudents).toBe(10);
+      expect(free.maxStorageBytes).toBe(1073741824);
+      expect(free.trialDays).toBe(0);
+
+      const earlyBird = res.body.plans.find((p: any) => p.slug === 'early-bird');
+      expect(earlyBird.monthlyPriceOmr).toBe(5);
+      expect(earlyBird.monthlyPriceEgp).toBe(300);
+      expect(earlyBird.maxStudents).toBe(500);
+      expect(earlyBird.maxStorageBytes).toBe(107374182400);
+      expect(earlyBird.trialDays).toBe(30);
+    });
   });
 });

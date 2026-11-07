@@ -77,6 +77,48 @@ describe('loginLockoutMiddleware', () => {
     ok.finish();
     expect(other.check('a@example.com').locked).toBe(false);
   });
+
+  it('locks out phone sign-in attempts on /sign-in/phone-number', async () => {
+    const lock = new LoginLockout({ max: 2, lockMs: 10_000 });
+    const listeners: Record<string, () => void> = {};
+    const req = {
+      method: 'POST',
+      path: '/sign-in/phone-number',
+      body: { phoneNumber: '+96891234567' },
+    } as any;
+    const res = {
+      statusCode: 401,
+      setHeader: jest.fn(),
+      status(code: number) { this.statusCode = code; return this; },
+      json: jest.fn(),
+      on(event: string, cb: () => void) { listeners[event] = cb; },
+    } as any;
+    const next = jest.fn();
+
+    // 1st failure
+    await loginLockoutMiddleware(lock)(req, res, next);
+    listeners.finish?.();
+    expect(lock.check('+96891234567').locked).toBe(false);
+
+    // 2nd failure
+    await loginLockoutMiddleware(lock)(req, res, next);
+    listeners.finish?.();
+    expect(lock.check('+96891234567').locked).toBe(true);
+
+    // 3rd attempt should be blocked with 429
+    const blockedRes = {
+      statusCode: 200,
+      setHeader: jest.fn(),
+      status(code: number) { this.statusCode = code; return this; },
+      json: jest.fn(),
+      on(event: string, cb: () => void) { listeners[event] = cb; },
+    } as any;
+    const blockedNext = jest.fn();
+    await loginLockoutMiddleware(lock)(req, blockedRes, blockedNext);
+    expect(blockedNext).not.toHaveBeenCalled();
+    expect(blockedRes.statusCode).toBe(429);
+    expect(blockedRes.setHeader).toHaveBeenCalledWith('Retry-After', '10');
+  });
 });
 
 describe('RedisLoginLockout', () => {

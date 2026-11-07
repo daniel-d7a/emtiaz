@@ -13,7 +13,37 @@ import {
 import type { Request } from 'express';
 import { Roles } from '../../auth/roles.decorator';
 import { RequirePermission } from '../../lib/admin-permissions';
-import { ZodBodyPipe, SetUserStatusDto, AdminEnrollDto, TaxonomyCreateDto, TaxonomyUpdateDto, NotificationSettingsDto, CreateTeacherDto, UpdateTeacherDto, CreateStudentDto, UpdateStudentDto, AdminMoveStudentDto, CreateParentDto, UpdateParentDto, AdminParentLinkDto, AdminCreateCourseDto, AdminUpdateCourseDto, AdminRoleDto, AdminRoleUpdateDto, AdminRoleAssignDto } from '../../lib/schemas';
+import {
+  AdminAssignSubscriptionDto,
+  AdminCreateCourseDto,
+  AdminCreatePlanDto,
+  AdminCreatePromoCodeDto,
+  AdminEnrollDto,
+  AdminGrantGiftDto,
+  AdminMoveStudentDto,
+  AdminParentLinkDto,
+  AdminRoleAssignDto,
+  AdminRoleDto,
+  AdminRoleUpdateDto,
+  AdminUpdateCourseDto,
+  AdminUpdatePlanDto,
+  AdminUpdatePromoCodeDto,
+  CategoryCreateDto,
+  CategoryUpdateDto,
+  CreateParentDto,
+  CreateStudentDto,
+  CreateTeacherDto,
+  GradeCreateDto,
+  GradeUpdateDto,
+  NotificationSettingsDto,
+  SetUserStatusDto,
+  TaxonomyCreateDto,
+  TaxonomyUpdateDto,
+  UpdateParentDto,
+  UpdateStudentDto,
+  UpdateTeacherDto,
+  ZodBodyPipe,
+} from '../../lib/schemas';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
@@ -512,31 +542,42 @@ export class AdminController {
 
   // ---------- Taxonomy ----------
 
-  @Get('api/admin/taxonomy/grades')
+  @Get(['api/admin/taxonomy/grades', 'api/admin/grades'])
   @Roles('ADMIN', 'TEACHER', 'STUDENT')
-  grades() {
-    return this.admin.listGrades();
+  grades(@Query('country') country?: string) {
+    return this.admin.listGrades(country);
   }
 
-  @Post('api/admin/taxonomy/grades')
+  @Post(['api/admin/taxonomy/grades', 'api/admin/grades'])
   @Roles('ADMIN')
   @RequirePermission('taxonomy')
-  createGrade(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
-    return this.admin.createGrade(dto.name, dto.displayOrder);
+  createGrade(@Body(new ZodBodyPipe(GradeCreateDto)) dto: z.infer<typeof GradeCreateDto>) {
+    return this.admin.createGrade(dto);
   }
 
-  @Put('api/admin/taxonomy/grades/:id')
+  @Put(['api/admin/taxonomy/grades/:id', 'api/admin/grades/:id'])
   @Roles('ADMIN')
   @RequirePermission('taxonomy')
   updateGrade(
     @Param('id') id: string,
-    @Body(new ZodBodyPipe(TaxonomyUpdateDto))
-    dto: z.infer<typeof TaxonomyUpdateDto>,
+    @Body(new ZodBodyPipe(GradeUpdateDto))
+    dto: z.infer<typeof GradeUpdateDto>,
   ) {
     return this.admin.updateGrade(id, dto);
   }
 
-  @Delete('api/admin/taxonomy/grades/:id')
+  @Patch(['api/admin/taxonomy/grades/:id', 'api/admin/grades/:id'])
+  @Roles('ADMIN')
+  @RequirePermission('taxonomy')
+  patchGrade(
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(GradeUpdateDto))
+    dto: z.infer<typeof GradeUpdateDto>,
+  ) {
+    return this.admin.updateGrade(id, dto);
+  }
+
+  @Delete(['api/admin/taxonomy/grades/:id', 'api/admin/grades/:id'])
   @Roles('ADMIN')
   @RequirePermission('taxonomy')
   deleteGrade(@Param('id') id: string) {
@@ -574,34 +615,148 @@ export class AdminController {
     return this.admin.deleteSemester(id);
   }
 
-  @Get('api/admin/taxonomy/categories')
+  @Get(['api/admin/taxonomy/categories', 'api/admin/categories'])
   @Roles('ADMIN', 'TEACHER', 'STUDENT')
   categories() {
     return this.admin.listCategories();
   }
 
-  @Post('api/admin/taxonomy/categories')
+  @Post(['api/admin/taxonomy/categories', 'api/admin/categories'])
   @Roles('ADMIN')
   @RequirePermission('taxonomy')
-  createCategory(@Body(new ZodBodyPipe(TaxonomyCreateDto)) dto: z.infer<typeof TaxonomyCreateDto>) {
-    return this.admin.createCategory(dto.name);
+  createCategory(@Body(new ZodBodyPipe(CategoryCreateDto)) dto: z.infer<typeof CategoryCreateDto>) {
+    return this.admin.createCategory(dto);
   }
 
-  @Put('api/admin/taxonomy/categories/:id')
+  @Put(['api/admin/taxonomy/categories/:id', 'api/admin/categories/:id'])
   @Roles('ADMIN')
   @RequirePermission('taxonomy')
   updateCategory(
     @Param('id') id: string,
-    @Body(new ZodBodyPipe(z.object({ name: z.string().trim().min(1).max(80) })))
-    dto: { name: string },
+    @Body(new ZodBodyPipe(CategoryUpdateDto))
+    dto: z.infer<typeof CategoryUpdateDto>,
   ) {
-    return this.admin.updateCategory(id, dto.name);
+    return this.admin.updateCategory(id, dto);
   }
 
-  @Delete('api/admin/taxonomy/categories/:id')
+  @Patch(['api/admin/taxonomy/categories/:id', 'api/admin/categories/:id'])
+  @Roles('ADMIN')
+  @RequirePermission('taxonomy')
+  patchCategory(
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(CategoryUpdateDto))
+    dto: z.infer<typeof CategoryUpdateDto>,
+  ) {
+    return this.admin.updateCategory(id, dto);
+  }
+
+  @Delete(['api/admin/taxonomy/categories/:id', 'api/admin/categories/:id'])
   @Roles('ADMIN')
   @RequirePermission('taxonomy')
   deleteCategory(@Param('id') id: string) {
     return this.admin.deleteCategory(id);
+  }
+
+  // ---------- Plans ----------
+
+  @Get('api/admin/plans')
+  @Roles('ADMIN')
+  @RequirePermission('settings')
+  listPlans() {
+    return this.admin.listPlans();
+  }
+
+  @Post('api/admin/plans')
+  @Roles('ADMIN')
+  @RequirePermission('settings')
+  async createPlan(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(AdminCreatePlanDto)) dto: z.infer<typeof AdminCreatePlanDto>,
+  ) {
+    const plan = await this.admin.createPlan(dto);
+    await this.admin.audit(req.user!.id, 'plan.create', 'plan', plan.id, dto);
+    return plan;
+  }
+
+  @Patch('api/admin/plans/:id')
+  @Roles('ADMIN')
+  @RequirePermission('settings')
+  async updatePlan(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(AdminUpdatePlanDto)) dto: z.infer<typeof AdminUpdatePlanDto>,
+  ) {
+    const plan = await this.admin.updatePlan(id, dto);
+    await this.admin.audit(req.user!.id, 'plan.update', 'plan', plan.id, dto);
+    return plan;
+  }
+
+  // ---------- Promo Codes ----------
+
+  @Get('api/admin/promo-codes')
+  @Roles('ADMIN')
+  @RequirePermission('settings')
+  listPromoCodes() {
+    return this.admin.listPromoCodes();
+  }
+
+  @Post('api/admin/promo-codes')
+  @Roles('ADMIN')
+  @RequirePermission('settings')
+  async createPromoCode(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(AdminCreatePromoCodeDto))
+    dto: z.infer<typeof AdminCreatePromoCodeDto>,
+  ) {
+    const promo = await this.admin.createPromoCode(dto);
+    await this.admin.audit(req.user!.id, 'promo_code.create', 'promo_code', promo.id, dto);
+    return promo;
+  }
+
+  @Patch('api/admin/promo-codes/:id')
+  @Roles('ADMIN')
+  @RequirePermission('settings')
+  async updatePromoCode(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(AdminUpdatePromoCodeDto))
+    dto: z.infer<typeof AdminUpdatePromoCodeDto>,
+  ) {
+    const promo = await this.admin.updatePromoCode(id, dto);
+    await this.admin.audit(req.user!.id, 'promo_code.update', 'promo_code', promo.id, dto);
+    return promo;
+  }
+
+  // ---------- Teacher Entitlements & Drawer ----------
+
+  @Get('api/admin/teachers/:id/entitlements')
+  @Roles('ADMIN')
+  @RequirePermission('teachers')
+  getTeacherEntitlements(@Param('id') id: string) {
+    return this.admin.getTeacherEntitlements(id);
+  }
+
+  @Post('api/admin/teachers/:id/subscription')
+  @Roles('ADMIN')
+  @RequirePermission('teachers')
+  assignTeacherSubscription(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(AdminAssignSubscriptionDto))
+    dto: z.infer<typeof AdminAssignSubscriptionDto>,
+  ) {
+    return this.admin.assignTeacherSubscription(id, dto, req.user!.id);
+  }
+
+  @Post('api/admin/teachers/:id/gift')
+  @Roles('ADMIN')
+  @RequirePermission('teachers')
+  grantTeacherGift(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body(new ZodBodyPipe(AdminGrantGiftDto))
+    dto: z.infer<typeof AdminGrantGiftDto>,
+  ) {
+    return this.admin.grantTeacherGift(id, dto, req.user!.id);
   }
 }

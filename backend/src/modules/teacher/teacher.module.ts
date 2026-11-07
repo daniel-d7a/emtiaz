@@ -1,12 +1,13 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TeacherController } from './teacher.controller';
 import { TeacherService } from './teacher.service';
+import { TeacherEntitlementsService } from './teacher-entitlements.service';
 import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [StorageModule],
+  imports: [forwardRef(() => StorageModule)],
   controllers: [TeacherController],
-  providers: [TeacherService],
-  exports: [TeacherService],
+  providers: [TeacherService, TeacherEntitlementsService],
+  exports: [TeacherService, TeacherEntitlementsService],
 })
 export class TeacherModule {}

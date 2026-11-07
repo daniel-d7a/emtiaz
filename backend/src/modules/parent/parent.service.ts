@@ -1,7 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '../../db';
 import {
+  groupLessonAccess,
   lessonAttendance,
   lessons,
   modules,
@@ -9,7 +10,6 @@ import {
   parentStudents,
   users,
 } from '../../db/schema';
-import { normalizePhone } from '../../lib/phone';
 import { StudentService } from '../student/student.service';
 
 @Injectable()
@@ -17,29 +17,29 @@ export class ParentService {
   constructor(private readonly students: StudentService) {}
 
   /**
-   * Resolves an active student by phone number. Phone possession is the only
-   * proof here, by product decision; add an OTP/challenge if abuse appears.
+   * Resolves an active student by monitoring code.
    */
-  async resolveStudent(phoneNumber: string) {
+  async resolveStudentByCode(monitoringCode: string) {
+    const code = monitoringCode.trim().toUpperCase();
     const [student] = await db
       .select({ id: users.id, name: users.name })
       .from(users)
       .where(
         and(
-          eq(users.phoneNumber, normalizePhone(phoneNumber)),
+          eq(users.monitoringCode, code),
           eq(users.role, 'STUDENT'),
           eq(users.isActive, true),
           isNull(users.deletedAt),
         ),
       )
       .limit(1);
-    if (!student) throw new NotFoundException('No active student with this phone number');
+    if (!student) throw new NotFoundException('No active student with this code');
     return student;
   }
 
-  /** Links a parent to a student using the student's registered phone number. */
-  async linkByPhone(parentId: string, phoneNumber: string) {
-    const student = await this.resolveStudent(phoneNumber);
+  /** Links a parent to a student using the student's monitoring code. */
+  async linkByCode(parentId: string, monitoringCode: string) {
+    const student = await this.resolveStudentByCode(monitoringCode);
     await db
       .insert(parentStudents)
       .values({ parentId, studentId: student.id })
@@ -91,7 +91,11 @@ export class ParentService {
           Promise.all(
             groups.map(async (group) => ({
               ...group,
-              attendance: await this.attendance(student.id, group.course.id),
+              attendance: await this.attendance(
+                student.id,
+                group.course.id,
+                group.group.id,
+              ),
               averageGrade: await this.averageGrade(student.id, group.group.id),
             })),
           ),
@@ -103,39 +107,72 @@ export class ParentService {
 
   private async averageGrade(studentId: string, groupId: string) {
     const grades = await this.students.myGrades(studentId, groupId);
-    const percentages = [
-      ...grades.quizzes.map((quiz) => quiz.score / quiz.maxScore),
-      ...grades.manual
-        .filter((grade) => grade.score !== null)
-        .map((grade) => (grade.score ?? 0) / grade.maxScore),
-    ];
-    if (!percentages.length) return 0;
-    return Math.round(
-      (percentages.reduce((sum, value) => sum + value, 0) / percentages.length) * 100,
-    );
+    const gradedQuizzes = grades.quizzes.filter((quiz) => !quiz.pending);
+    const nonNullManual = grades.manual.filter((grade) => grade.score !== null);
+    const totalEarned =
+      gradedQuizzes.reduce((sum, q) => sum + q.score, 0) +
+      nonNullManual.reduce((sum, m) => sum + (m.score ?? 0), 0);
+    const totalMax =
+      gradedQuizzes.reduce((sum, q) => sum + q.maxScore, 0) +
+      nonNullManual.reduce((sum, m) => sum + m.maxScore, 0);
+    if (!totalMax) return 0;
+    return Math.round((totalEarned / totalMax) * 100);
   }
 
-  private async attendance(studentId: string, courseId: string) {
-    const [totalRow] = await db
-      .select({ value: count() })
+  private async attendance(
+    studentId: string,
+    courseId: string,
+    groupId: string,
+  ) {
+    const courseLessons = await db
+      .select({ id: lessons.id })
       .from(lessons)
       .innerJoin(modules, eq(lessons.moduleId, modules.id))
       .where(eq(modules.courseId, courseId));
-    const [presentRow] = await db
-      .select({ value: count() })
+
+    if (!courseLessons.length) {
+      return { present: 0, total: 0, percent: 0 };
+    }
+
+    const hiddenLessonRows = await db
+      .select({ lessonId: groupLessonAccess.lessonId })
+      .from(groupLessonAccess)
+      .where(
+        and(
+          eq(groupLessonAccess.groupId, groupId),
+          eq(groupLessonAccess.isHidden, true),
+          inArray(
+            groupLessonAccess.lessonId,
+            courseLessons.map((l) => l.id),
+          ),
+        ),
+      );
+    const hiddenLessonIds = new Set(hiddenLessonRows.map((r) => r.lessonId));
+    const visibleLessonIds = courseLessons
+      .map((l) => l.id)
+      .filter((id) => !hiddenLessonIds.has(id));
+
+    if (!visibleLessonIds.length) {
+      return { present: 0, total: 0, percent: 0 };
+    }
+
+    const records = await db
+      .select({ isPresent: lessonAttendance.isPresent })
       .from(lessonAttendance)
-      .innerJoin(lessons, eq(lessonAttendance.lessonId, lessons.id))
-      .innerJoin(modules, eq(lessons.moduleId, modules.id))
       .where(
         and(
           eq(lessonAttendance.studentId, studentId),
-          eq(lessonAttendance.isPresent, true),
-          eq(modules.courseId, courseId),
+          inArray(lessonAttendance.lessonId, visibleLessonIds),
         ),
       );
-    const total = Number(totalRow?.value ?? 0);
-    const present = Number(presentRow?.value ?? 0);
-    return { present, total, percent: total === 0 ? 0 : Math.round((present / total) * 100) };
+
+    const marked = records.length;
+    const present = records.filter((r) => r.isPresent).length;
+    return {
+      present,
+      total: marked,
+      percent: marked === 0 ? 0 : Math.round((present / marked) * 100),
+    };
   }
 
   async unlink(parentId: string, studentId: string) {

@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -19,6 +21,7 @@ import {
   manualGradeColumns,
   manualGradeValues,
   modules,
+  parentStudents,
   quizAttempts,
   quizQuestions,
   quizzes,
@@ -26,6 +29,7 @@ import {
 } from '../../db/schema';
 import { joinGroupByCode } from '../../lib/group-join';
 import { StorageService } from '../storage/storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   serializeCourse,
   serializeGroup,
@@ -41,7 +45,11 @@ const norm = (s: string) => s.trim().toLowerCase();
 
 @Injectable()
 export class StudentService {
-  constructor(private readonly storage: StorageService) {}
+  constructor(
+    private readonly storage: StorageService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private async signedBanner(key: string | null): Promise<string | null> {
     if (!key) return null;
@@ -63,7 +71,7 @@ export class StudentService {
 
   private async assertEnrolled(studentId: string, groupId: string) {
     const rows = await db
-      .select({ membership: groupStudents })
+      .select({ membership: groupStudents, group: groups })
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
       .innerJoin(courses, eq(groups.courseId, courses.id))
@@ -77,7 +85,7 @@ export class StudentService {
       )
       .limit(1);
     if (!rows.length) throw new ForbiddenException('Not enrolled in this group');
-    return rows[0].membership;
+    return rows[0];
   }
 
   private async lessonEnrollments(studentId: string, lessonId: string) {
@@ -158,6 +166,7 @@ export class StudentService {
           isNull(groups.deletedAt),
           isNull(courses.deletedAt),
           isNull(users.deletedAt),
+          eq(users.isActive, true),
         ),
       );
 
@@ -238,10 +247,18 @@ export class StudentService {
     const grades = await Promise.all(
       groups.map((g) => this.myGrades(studentId, g.group.id)),
     );
-    const percentages = grades.flatMap((g) => [
-      ...g.quizzes.map((q) => q.score / q.maxScore),
-      ...g.manual.filter((m) => m.score !== null).map((m) => (m.score ?? 0) / m.maxScore),
-    ]);
+    let totalEarned = 0;
+    let totalMax = 0;
+    for (const g of grades) {
+      const gradedQuizzes = g.quizzes.filter((q) => !q.pending);
+      const nonNullManual = g.manual.filter((m) => m.score !== null);
+      totalEarned +=
+        gradedQuizzes.reduce((sum, q) => sum + q.score, 0) +
+        nonNullManual.reduce((sum, m) => sum + (m.score ?? 0), 0);
+      totalMax +=
+        gradedQuizzes.reduce((sum, q) => sum + q.maxScore, 0) +
+        nonNullManual.reduce((sum, m) => sum + m.maxScore, 0);
+    }
     const latestCourses = [...groups]
       .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
       .slice(0, 3);
@@ -249,17 +266,40 @@ export class StudentService {
       stats: {
         activeGroups: groups.length,
         lessonsDone: groups.reduce((sum, g) => sum + g.completedLessons, 0),
-        averageGrade: percentages.length
-          ? Math.round((percentages.reduce((sum, p) => sum + p, 0) / percentages.length) * 100)
-          : 0,
+        averageGrade: totalMax ? Math.round((totalEarned / totalMax) * 100) : 0,
       },
       latestCourses,
     };
   }
 
   async joinByCode(studentId: string, joinCode: string, entryCode?: string) {
-    const { group, course } = await joinGroupByCode(studentId, joinCode, entryCode);
+    const { group, course, enrolled } = await joinGroupByCode(studentId, joinCode, entryCode);
+    if (enrolled) await this.notifyEnrolled(studentId, group);
     return { group: serializeGroup(group), course: serializeCourse(course) };
+  }
+
+  /** One welcome note per new enrollment; failure never blocks the join. */
+  private async notifyEnrolled(studentId: string, groupRow: typeof groups.$inferSelect) {
+    const [student] = await db.select().from(users).where(eq(users.id, studentId));
+    const message = `تم تسجيلك في «${groupRow.name}» بنجاح 🎉`;
+    await this.notifications.sendWhatsApp(student?.phoneNumber ?? '', message, 'TEACHER');
+    await this.notifications.sendInApp(studentId, message, 'TEACHER');
+    if (student) {
+      const parents = await db
+        .select({ id: parentStudents.parentId })
+        .from(parentStudents)
+        .where(
+          and(
+            eq(parentStudents.studentId, studentId),
+            isNull(parentStudents.deletedAt),
+          ),
+        );
+      await Promise.all(
+        parents.map((p) =>
+          this.notifications.sendInApp(p.id, `تم تسجيل ${student.name} في «${groupRow.name}»`, 'PARENT'),
+        ),
+      );
+    }
   }
 
   async curriculum(studentId: string, groupId: string) {
@@ -339,9 +379,18 @@ export class StudentService {
     };
 
     const bestFor = (quizId?: string) => {
-      const attempt = attemptRows
-        .filter((a) => quizId && a.quizId === quizId)
-        .sort((a, b) => b.score - a.score)[0];
+      const matches = attemptRows.filter((a) => quizId && a.quizId === quizId);
+      if (!matches.length) return null;
+      const graded = matches.filter((a) => !a.pending).sort((a, b) => b.score - a.score);
+      const attempt = graded.length
+        ? graded[0]
+        : matches
+            .filter((a) => a.pending)
+            .sort(
+              (a, b) =>
+                new Date(b.submittedAt).getTime() -
+                new Date(a.submittedAt).getTime(),
+            )[0];
       return attempt ? serializeQuizAttempt(attempt) : null;
     };
     const visibleQuizzes = quizRows
@@ -413,9 +462,16 @@ export class StudentService {
     };
   }
 
-  async markComplete(studentId: string, lessonId: string) {
+  async markComplete(studentId: string, lessonId: string, groupId?: string) {
     const { enrollments } = await this.lessonEnrollments(studentId, lessonId);
-    if (!(await this.lessonUnlocked(enrollments, lessonId))) {
+    const relevant = groupId ? enrollments.filter((e) => e.group.id === groupId) : enrollments;
+    if (groupId && !relevant.length) {
+      throw new ForbiddenException('Not enrolled in this group');
+    }
+    if (!relevant.some((e) => e.group.isActive)) {
+      throw new BadRequestException('Group is inactive');
+    }
+    if (!(await this.lessonUnlocked(enrollments, lessonId, groupId))) {
       throw new ForbiddenException('Lesson is locked for your group');
     }
     await db
@@ -425,7 +481,15 @@ export class StudentService {
     return { ok: true };
   }
 
-  async unmarkComplete(studentId: string, lessonId: string) {
+  async unmarkComplete(studentId: string, lessonId: string, groupId?: string) {
+    const { enrollments } = await this.lessonEnrollments(studentId, lessonId);
+    const relevant = groupId ? enrollments.filter((e) => e.group.id === groupId) : enrollments;
+    if (groupId && !relevant.length) {
+      throw new ForbiddenException('Not enrolled in this group');
+    }
+    if (!relevant.some((e) => e.group.isActive)) {
+      throw new BadRequestException('Group is inactive');
+    }
     await db
       .delete(lessonCompletions)
       .where(
@@ -447,6 +511,36 @@ export class StudentService {
       .select()
       .from(lessonAttachments)
       .where(eq(lessonAttachments.lessonId, lessonId));
+
+    let accessibleGroupIds: Set<string>;
+    if (groupId) {
+      accessibleGroupIds = new Set([groupId]);
+    } else {
+      const overrides = enrollments.length
+        ? await db
+            .select()
+            .from(groupLessonAccess)
+            .where(
+              and(
+                eq(groupLessonAccess.lessonId, lessonId),
+                inArray(
+                  groupLessonAccess.groupId,
+                  enrollments.map((e) => e.group.id),
+                ),
+              ),
+            )
+        : [];
+      accessibleGroupIds = new Set(
+        enrollments
+          .filter((e) => {
+            const override = overrides.find((o) => o.groupId === e.group.id);
+            if (override?.isHidden) return false;
+            return override ? override.isUnlocked : e.group.unlockAllByDefault;
+          })
+          .map((e) => e.group.id),
+      );
+    }
+
     return {
       title: lesson.title,
       content: lesson.content,
@@ -461,7 +555,7 @@ export class StudentService {
         )
         .limit(1)).length,
       attachments: attachments
-        .filter((a) => !a.groupId || enrollments.some((e) => a.groupId === e.group.id))
+        .filter((a) => !a.groupId || accessibleGroupIds.has(a.groupId))
         .map((a) => ({
           id: a.id,
           title: a.title,
@@ -525,7 +619,10 @@ export class StudentService {
     groupId: string,
     answers: Record<string, string>,
   ) {
-    await this.assertEnrolled(studentId, groupId);
+    const { group } = await this.assertEnrolled(studentId, groupId);
+    if (!group.isActive) {
+      throw new BadRequestException('Group is inactive');
+    }
     const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, quizId));
     if (!quiz) throw new NotFoundException('Quiz not found');
     await this.assertQuizInGroupCourse(quiz, groupId);
@@ -563,7 +660,7 @@ export class StudentService {
     const result = questions.map((q) => {
       if (q.questionType === 'WRITTEN') {
         pending = true;
-        maxScore += 10;
+        maxScore += q.points ?? 10;
         return {
           questionId: q.id,
           correct: false,
@@ -725,7 +822,7 @@ export class StudentService {
       .from(quizQuestions)
       .where(eq(quizQuestions.quizId, quizId))
       .orderBy(asc(quizQuestions.displayOrder));
-    const [attempt] = await db
+    const attempts = await db
       .select()
       .from(quizAttempts)
       .where(
@@ -734,9 +831,18 @@ export class StudentService {
           eq(quizAttempts.groupId, groupId),
           eq(quizAttempts.quizId, quizId),
         ),
-      )
-      .orderBy(desc(quizAttempts.score))
-      .limit(1);
+      );
+    if (!attempts.length) return null;
+    const graded = attempts.filter((a) => !a.pending).sort((a, b) => b.score - a.score);
+    const attempt = graded.length
+      ? graded[0]
+      : attempts
+          .filter((a) => a.pending)
+          .sort(
+            (a, b) =>
+              new Date(b.submittedAt).getTime() -
+              new Date(a.submittedAt).getTime(),
+          )[0];
     if (!attempt) return null;
     const answers = attempt.answersJson as Record<string, string>;
     return {
@@ -779,6 +885,7 @@ export class StudentService {
         score: quizAttempts.score,
         maxScore: quizAttempts.maxScore,
         pending: quizAttempts.pending,
+        submittedAt: quizAttempts.submittedAt,
       })
       .from(quizAttempts)
       .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
@@ -809,23 +916,47 @@ export class StudentService {
       .from(manualGradeValues)
       .where(and(eq(manualGradeValues.studentId, studentId)));
 
+    const studentQuizAttempts = new Map<string, (typeof attempts)[number][]>();
+    for (const a of attempts.filter((row) => !hiddenQuizIds.has(row.quizId))) {
+      const list = studentQuizAttempts.get(a.quizId) ?? [];
+      list.push(a);
+      studentQuizAttempts.set(a.quizId, list);
+    }
+    const quizGrades: {
+      quizId: string;
+      title: string;
+      unitTitle: string;
+      lessonTitle: string;
+      score: number;
+      maxScore: number;
+      pending: boolean;
+    }[] = [];
+    for (const atts of studentQuizAttempts.values()) {
+      const graded = atts.filter((a) => !a.pending).sort((a, b) => b.score - a.score);
+      const best = graded.length
+        ? graded[0]
+        : atts
+            .filter((a) => a.pending)
+            .sort(
+              (a, b) =>
+                new Date(b.submittedAt).getTime() -
+                new Date(a.submittedAt).getTime(),
+            )[0];
+      if (best) {
+        quizGrades.push({
+          quizId: best.quizId,
+          title: best.quizTitle,
+          unitTitle: best.moduleTitle ?? best.courseTitle ?? '—',
+          lessonTitle: best.lessonTitle ?? '',
+          score: best.score,
+          maxScore: best.maxScore,
+          pending: best.pending,
+        });
+      }
+    }
+
     return {
-      quizzes: Object.values(
-        attempts.filter((row) => !hiddenQuizIds.has(row.quizId)).reduce<Record<string, any>>((acc, r) => {
-          if (!acc[r.quizId] || acc[r.quizId].score < r.score) {
-            acc[r.quizId] = {
-              quizId: r.quizId,
-              title: r.quizTitle,
-              unitTitle: r.moduleTitle ?? r.courseTitle ?? '—',
-              lessonTitle: r.lessonTitle ?? '',
-              score: r.score,
-              maxScore: r.maxScore,
-              pending: r.pending,
-            };
-          }
-          return acc;
-        }, {}),
-      ),
+      quizzes: quizGrades,
       manual: cols.map((c) => {
         const v = vals.find((v) => v.columnId === c.id);
         return {

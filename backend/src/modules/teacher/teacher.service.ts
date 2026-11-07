@@ -11,9 +11,11 @@ import { auth } from '../../auth/auth';
 import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
+import { TeacherEntitlementsService } from './teacher-entitlements.service';
 import {
   serializeAttachment,
   serializeCourse,
+  serializeGrade,
   serializeGroup,
   serializeLesson,
   serializeManualGradeColumn,
@@ -45,11 +47,9 @@ import {
   quizzes,
   users,
 } from '../../db/schema';
+import { ENTRY_ALPHABET, genJoinCode, generateUniqueMonitoringCode } from '../../lib/group-join';
+export { genJoinCode };
 
-export const genJoinCode = () =>
-  `OM${Math.floor(100000 + Math.random() * 900000)}`;
-
-const ENTRY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const genEntryCode = () =>
   Array.from({ length: 8 }, () => ENTRY_ALPHABET[randomInt(ENTRY_ALPHABET.length)]).join('');
 
@@ -71,6 +71,7 @@ export class TeacherService {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly entitlementsService: TeacherEntitlementsService,
   ) {}
 
   async homeStats(teacherId: string) {
@@ -94,11 +95,13 @@ export class TeacherService {
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
       .innerJoin(courses, eq(groups.courseId, courses.id))
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
       .where(
         and(
           eq(courses.teacherId, teacherId),
           isNull(courses.deletedAt),
           isNull(groups.deletedAt),
+          isNull(users.deletedAt),
         ),
       );
     return {
@@ -156,7 +159,8 @@ export class TeacherService {
       ? await db
           .select({ groupId: groupStudents.groupId, studentId: groupStudents.studentId })
           .from(groupStudents)
-          .where(inArray(groupStudents.groupId, groupIds))
+          .innerJoin(users, eq(groupStudents.studentId, users.id))
+          .where(and(inArray(groupStudents.groupId, groupIds), isNull(users.deletedAt)))
       : [];
     const lessonRows = courseIds.length
       ? await db
@@ -172,6 +176,24 @@ export class TeacherService {
       : [];
     const studentIds = [...new Set(memberships.map((m) => m.studentId))];
     const lessonIds = lessonRows.map((l) => l.id);
+    const hiddenLessonAccess = groupIds.length && lessonIds.length
+      ? await db
+          .select({
+            groupId: groupLessonAccess.groupId,
+            lessonId: groupLessonAccess.lessonId,
+          })
+          .from(groupLessonAccess)
+          .where(
+            and(
+              inArray(groupLessonAccess.groupId, groupIds),
+              eq(groupLessonAccess.isHidden, true),
+              inArray(groupLessonAccess.lessonId, lessonIds),
+            ),
+          )
+      : [];
+    const hiddenLessonSet = new Set(
+      hiddenLessonAccess.map((r) => `${r.groupId}:${r.lessonId}`),
+    );
     const completions = lessonIds.length && studentIds.length
       ? await db
           .select({ studentId: lessonCompletions.studentId, lessonId: lessonCompletions.lessonId })
@@ -220,10 +242,14 @@ export class TeacherService {
         groups: cGroups.map((g) => {
           const members = memberships.filter((m) => m.groupId === g.id);
           const memberIds = new Set(members.map((m) => m.studentId));
+          const visibleCourseLessons = courseLessons.filter(
+            (l) => !hiddenLessonSet.has(`${g.id}:${l.id}`),
+          );
+          const visibleLessonIds = new Set(visibleCourseLessons.map((l) => l.id));
           const groupDone = completions.filter(
-            (x) => memberIds.has(x.studentId) && cLessonIds.has(x.lessonId),
+            (x) => memberIds.has(x.studentId) && visibleLessonIds.has(x.lessonId),
           ).length;
-          const groupPossible = memberIds.size * cLessonIds.size;
+          const groupPossible = memberIds.size * visibleLessonIds.size;
           return {
             ...serializeGroup(g),
             studentCount: members.length,
@@ -232,6 +258,24 @@ export class TeacherService {
         }),
       };
     });
+  }
+
+  async listGrades(teacherId: string, country?: string) {
+    let targetCountry = country;
+    if (targetCountry !== 'OM' && targetCountry !== 'EG') {
+      const [teacher] = await db
+        .select({ country: users.country })
+        .from(users)
+        .where(eq(users.id, teacherId))
+        .limit(1);
+      targetCountry = teacher?.country ?? 'OM';
+    }
+    const rows = await db
+      .select()
+      .from(grades)
+      .where(eq(grades.country, targetCountry as 'OM' | 'EG'))
+      .orderBy(asc(grades.displayOrder), asc(grades.nameEn));
+    return rows.map(serializeGrade);
   }
 
   async createCourse(
@@ -252,11 +296,16 @@ export class TeacherService {
     let categoryId = dto.categoryId;
     if (dto.courseType === 'ACADEMIC') {
       if (!gradeId && dto.gradeName?.trim()) {
-        gradeId = (await this.ensureTaxonomy(grades, dto.gradeName)).id;
+        const [teacher] = await db
+          .select({ country: users.country })
+          .from(users)
+          .where(eq(users.id, teacherId))
+          .limit(1);
+        gradeId = (await this.ensureGrade(dto.gradeName, teacher?.country ?? 'OM')).id;
       }
       if (!gradeId) throw new ForbiddenException('Academic courses need a grade');
     } else if (!categoryId && dto.categoryName?.trim()) {
-      categoryId = (await this.ensureTaxonomy(categories, dto.categoryName)).id;
+      categoryId = (await this.ensureCategory(dto.categoryName)).id;
     }
     const [course] = await db
       .insert(courses)
@@ -274,18 +323,60 @@ export class TeacherService {
     return serializeCourse(course);
   }
 
-  private async ensureTaxonomy(
-    table: typeof grades | typeof categories,
+  private async ensureGrade(
     name: string,
+    country: 'OM' | 'EG' = 'OM',
   ): Promise<{ id: string }> {
     const trimmed = name.trim();
     const [existing] = await db
-      .select({ id: table.id })
-      .from(table)
-      .where(ilike(table.name, trimmed))
+      .select({ id: grades.id })
+      .from(grades)
+      .where(
+        and(
+          eq(grades.country, country),
+          or(
+            ilike(grades.name, trimmed),
+            ilike(grades.nameAr, trimmed),
+            ilike(grades.nameEn, trimmed),
+          ),
+        ),
+      )
       .limit(1);
     if (existing) return existing;
-    const [created] = await db.insert(table).values({ name: trimmed }).returning({ id: table.id });
+    const [created] = await db
+      .insert(grades)
+      .values({
+        country,
+        name: trimmed,
+        nameAr: trimmed,
+        nameEn: trimmed,
+      })
+      .returning({ id: grades.id });
+    return created;
+  }
+
+  private async ensureCategory(name: string): Promise<{ id: string }> {
+    const trimmed = name.trim();
+    const [existing] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(
+        or(
+          ilike(categories.name, trimmed),
+          ilike(categories.nameAr, trimmed),
+          ilike(categories.nameEn, trimmed),
+        ),
+      )
+      .limit(1);
+    if (existing) return existing;
+    const [created] = await db
+      .insert(categories)
+      .values({
+        name: trimmed,
+        nameAr: trimmed,
+        nameEn: trimmed,
+      })
+      .returning({ id: categories.id });
     return created;
   }
 
@@ -905,8 +996,14 @@ export class TeacherService {
         if (typeof value !== 'number') {
           throw new BadRequestException('Every written answer needs a grade');
         }
+        const maxPoints = question.points ?? 10;
+        if (value < 0 || value > maxPoints) {
+          throw new BadRequestException(
+            `Grade for question ${question.id} must be between 0 and ${maxPoints}`,
+          );
+        }
         score += value;
-        maxScore += 10;
+        maxScore += maxPoints;
       } else {
         maxScore += question.points;
         if (
@@ -1069,6 +1166,7 @@ export class TeacherService {
     maxUses: number,
   ) {
     const { group } = await this.assertOwnsGroup(user, groupId);
+    await this.entitlementsService.assertCanCreateEntryCode(user.id, maxUses);
     let code = genEntryCode();
     for (let i = 0; i < 5; i++) {
       const duplicate = await db
@@ -1151,6 +1249,12 @@ export class TeacherService {
     },
   ) {
     const course = await this.assertCourseAccess(user, courseId);
+    if (dto.students?.length) {
+      await this.entitlementsService.assertCanAddStudents(
+        user.id,
+        dto.students.map((s) => s.phoneNumber),
+      );
+    }
     let joinCode = genJoinCode();
     // collision-safe loop
     for (let i = 0; i < 5; i++) {
@@ -1197,7 +1301,10 @@ export class TeacherService {
       requiresEntryCode?: boolean;
     },
   ) {
-    const { course } = await this.assertOwnsGroup(user, groupId);
+    const { group, course } = await this.assertOwnsGroup(user, groupId);
+    if (dto.isActive === true && !group.isActive) {
+      await this.entitlementsService.assertCanReactivateGroup(user.id, groupId);
+    }
     const patch: Partial<typeof groups.$inferInsert> = {};
     if (dto.name !== undefined) {
       patch.name =
@@ -1411,7 +1518,7 @@ export class TeacherService {
       })
       .from(groupStudents)
       .innerJoin(users, eq(groupStudents.studentId, users.id))
-      .where(eq(groupStudents.groupId, groupId));
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)));
 
     const mods = await db.select().from(modules).where(eq(modules.courseId, group.courseId));
     const courseLessons = mods.length
@@ -1493,7 +1600,7 @@ export class TeacherService {
       .select({ studentId: users.id, name: users.name })
       .from(groupStudents)
       .innerJoin(users, eq(groupStudents.studentId, users.id))
-      .where(eq(groupStudents.groupId, groupId))
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)))
       .orderBy(asc(users.name));
     const marks = roster.length
       ? await db
@@ -1534,7 +1641,8 @@ export class TeacherService {
     const roster = await db
       .select({ studentId: groupStudents.studentId })
       .from(groupStudents)
-      .where(eq(groupStudents.groupId, groupId));
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)));
     const enrolled = new Set(roster.map((row) => row.studentId));
     if (records.some((record) => !enrolled.has(record.studentId))) {
       throw new BadRequestException('Student not in group');
@@ -1559,18 +1667,37 @@ export class TeacherService {
       .from(modules)
       .where(eq(modules.courseId, course.id))
       .orderBy(asc(modules.displayOrder));
-    const courseLessons = mods.length
+    const rawCourseLessons = mods.length
       ? await db
           .select()
           .from(lessons)
           .where(inArray(lessons.moduleId, mods.map((m) => m.id)))
           .orderBy(asc(lessons.displayOrder))
       : [];
+    const hiddenLessonRows = rawCourseLessons.length
+      ? await db
+          .select({ lessonId: groupLessonAccess.lessonId })
+          .from(groupLessonAccess)
+          .where(
+            and(
+              eq(groupLessonAccess.groupId, groupId),
+              eq(groupLessonAccess.isHidden, true),
+              inArray(
+                groupLessonAccess.lessonId,
+                rawCourseLessons.map((l) => l.id),
+              ),
+            ),
+          )
+      : [];
+    const hiddenLessonIds = new Set(hiddenLessonRows.map((r) => r.lessonId));
+    const courseLessons = rawCourseLessons.filter(
+      (l) => !hiddenLessonIds.has(l.id),
+    );
     const roster = await db
       .select({ id: users.id, name: users.name })
       .from(groupStudents)
       .innerJoin(users, eq(groupStudents.studentId, users.id))
-      .where(eq(groupStudents.groupId, groupId))
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)))
       .orderBy(asc(users.name));
     const lessonIds = courseLessons.map((lesson) => lesson.id);
     const completions =
@@ -1591,17 +1718,17 @@ export class TeacherService {
               ),
             )
         : [];
-    const presentRows =
+    const attendanceRecords =
       roster.length && lessonIds.length
         ? await db
             .select({
               studentId: lessonAttendance.studentId,
               lessonId: lessonAttendance.lessonId,
+              isPresent: lessonAttendance.isPresent,
             })
             .from(lessonAttendance)
             .where(
               and(
-                eq(lessonAttendance.isPresent, true),
                 inArray(
                   lessonAttendance.studentId,
                   roster.map((student) => student.id),
@@ -1616,19 +1743,36 @@ export class TeacherService {
       ...(lessonIds.length ? [inArray(quizzes.lessonId, lessonIds)] : []),
     ];
     const quizRows = await db.select().from(quizzes).where(or(...quizTargets));
-    const questions = quizRows.length
+    const hiddenQuizRows = quizRows.length
+      ? await db
+          .select({ quizId: groupQuizAccess.quizId })
+          .from(groupQuizAccess)
+          .where(
+            and(
+              eq(groupQuizAccess.groupId, groupId),
+              eq(groupQuizAccess.isHidden, true),
+              inArray(groupQuizAccess.quizId, quizRows.map((q) => q.id)),
+            ),
+          )
+      : [];
+    const hiddenQuizIds = new Set(hiddenQuizRows.map((r) => r.quizId));
+    const visibleQuizRows = quizRows.filter(
+      (q) => !hiddenQuizIds.has(q.id) && (!q.lessonId || !hiddenLessonIds.has(q.lessonId)),
+    );
+
+    const questions = visibleQuizRows.length
       ? await db
           .select()
           .from(quizQuestions)
-          .where(inArray(quizQuestions.quizId, quizRows.map((quiz) => quiz.id)))
+          .where(inArray(quizQuestions.quizId, visibleQuizRows.map((quiz) => quiz.id)))
       : [];
     const questionTotals: Record<string, number> = {};
     for (const question of questions) {
       questionTotals[question.quizId] =
-        (questionTotals[question.quizId] ?? 0) + question.points;
+        (questionTotals[question.quizId] ?? 0) + (question.points ?? (question.questionType === 'WRITTEN' ? 10 : 1));
     }
     const attempts =
-      roster.length && quizRows.length
+      roster.length && visibleQuizRows.length
         ? await db
             .select()
             .from(quizAttempts)
@@ -1641,15 +1785,16 @@ export class TeacherService {
                 ),
                 inArray(
                   quizAttempts.quizId,
-                  quizRows.map((quiz) => quiz.id),
+                  visibleQuizRows.map((quiz) => quiz.id),
                 ),
               ),
             )
         : [];
-    const best = new Map<string, number>();
+    const bestGraded = new Map<string, number>();
     for (const attempt of attempts) {
+      if (attempt.pending) continue;
       const key = `${attempt.studentId}:${attempt.quizId}`;
-      if ((best.get(key) ?? -1) < attempt.score) best.set(key, attempt.score);
+      if ((bestGraded.get(key) ?? -1) < attempt.score) bestGraded.set(key, attempt.score);
     }
 
     const completedLessons = new Set(completions.map((row) => row.lessonId));
@@ -1666,9 +1811,10 @@ export class TeacherService {
       total ? Math.round((part / total) * 100) : 0;
 
     const attendance = courseLessons.map((lesson) => {
-      const present = presentRows.filter(
+      const lessonRecords = attendanceRecords.filter(
         (row) => row.lessonId === lesson.id,
-      ).length;
+      );
+      const present = lessonRecords.filter((row) => row.isPresent).length;
       return {
         lessonId: lesson.id,
         title: lesson.title,
@@ -1680,10 +1826,10 @@ export class TeacherService {
       };
     });
 
-    const quizAverages = quizRows.map((quiz) => {
+    const quizAverages = visibleQuizRows.map((quiz) => {
       const max = questionTotals[quiz.id] ?? 0;
       const scores = roster
-        .map((student) => best.get(`${student.id}:${quiz.id}`))
+        .map((student) => bestGraded.get(`${student.id}:${quiz.id}`))
         .filter((score): score is number => score !== undefined);
       return {
         quizId: quiz.id,
@@ -1707,21 +1853,50 @@ export class TeacherService {
       };
     });
 
-    const totalMax = quizRows.reduce(
-      (sum, quiz) => sum + (questionTotals[quiz.id] ?? 0),
-      0,
-    );
+    const manualCols = await db
+      .select()
+      .from(manualGradeColumns)
+      .where(eq(manualGradeColumns.groupId, groupId))
+      .orderBy(asc(manualGradeColumns.displayOrder));
+    const manualVals = manualCols.length && roster.length
+      ? await db
+          .select()
+          .from(manualGradeValues)
+          .where(
+            and(
+              inArray(manualGradeValues.columnId, manualCols.map((c) => c.id)),
+              inArray(manualGradeValues.studentId, roster.map((s) => s.id)),
+            ),
+          )
+      : [];
+
     const students = roster.map((student) => {
-      const earned = quizRows.reduce((sum, quiz) => {
-        const max = questionTotals[quiz.id] ?? 0;
-        const score = best.get(`${student.id}:${quiz.id}`) ?? 0;
-        return sum + (max ? Math.min(score, max) : 0);
-      }, 0);
-      const gradePercent = totalMax ? percent(earned, totalMax) : null;
-      const present = presentRows.filter(
+      let earned = 0;
+      let studentMax = 0;
+      for (const quiz of visibleQuizRows) {
+        const score = bestGraded.get(`${student.id}:${quiz.id}`);
+        if (score !== undefined) {
+          const max = questionTotals[quiz.id] ?? 0;
+          earned += Math.min(score, max);
+          studentMax += max;
+        }
+      }
+      for (const col of manualCols) {
+        const val = manualVals.find(
+          (v) => v.studentId === student.id && v.columnId === col.id,
+        );
+        if (val && val.score !== null) {
+          earned += val.score;
+          studentMax += col.maxScore;
+        }
+      }
+      const gradePercent = studentMax ? Math.round((earned / studentMax) * 100) : null;
+      const studentAttendance = attendanceRecords.filter(
         (row) => row.studentId === student.id,
-      ).length;
-      const attendancePercent = percent(present, courseLessons.length);
+      );
+      const marked = studentAttendance.length;
+      const present = studentAttendance.filter((row) => row.isPresent).length;
+      const attendancePercent = percent(present, marked);
       const parts = [
         gradePercent,
         attendancePercent,
@@ -1763,7 +1938,8 @@ export class TeacherService {
     const students = await db
       .select({ id: groupStudents.studentId })
       .from(groupStudents)
-      .where(eq(groupStudents.groupId, groupId));
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)));
     const studentIds = students.map((s) => s.id);
     const parents = studentIds.length
       ? await db
@@ -1811,16 +1987,27 @@ export class TeacherService {
     students: Array<{ name: string; phoneNumber: string }>,
   ) {
     const { group } = await this.assertOwnsGroup(user, groupId);
+    if (!group.isActive) {
+      throw new BadRequestException('Group is inactive');
+    }
+    await this.entitlementsService.assertCanAddStudents(
+      user.id,
+      students.map((s) => s.phoneNumber),
+    );
     const results: Array<{ phoneNumber: string; created: boolean; enrolled: boolean }> = [];
     for (const s of students) {
       let [existing] = await db
         .select()
         .from(users)
         .where(eq(users.phoneNumber, s.phoneNumber));
+      if (existing && (existing.role !== 'STUDENT' || existing.deletedAt)) {
+        throw new BadRequestException(`Phone number ${s.phoneNumber} is registered to a non-student or deactivated account`);
+      }
       let created = false;
       if (!existing) {
         // ponytail: phone digits are the first password; the student must change it on first login.
         const email = `${s.phoneNumber.replace(/[^\d]/g, '')}@phone.emtiaz.om`;
+        const monitoringCode = await generateUniqueMonitoringCode();
         try {
           const data = await auth.api.signUpEmail({
             body: {
@@ -1829,11 +2016,12 @@ export class TeacherService {
               password: s.phoneNumber.replace(/[^\d]/g, ''),
               role: 'STUDENT',
               phoneNumber: s.phoneNumber,
+              monitoringCode,
             },
             returnHeaders: true,
           });
           [existing] = await db.select().from(users).where(eq(users.id, data.response.user.id));
-          await db.update(users).set({ mustChangePassword: true }).where(eq(users.id, existing.id));
+          await db.update(users).set({ mustChangePassword: true, monitoringCode }).where(eq(users.id, existing.id));
           created = true;
         } catch {
           // race on unique phone; re-select
@@ -1846,8 +2034,19 @@ export class TeacherService {
       if (!existing) {
         throw new BadRequestException(`Could not create student ${s.phoneNumber}`);
       }
+      if (existing.role !== 'STUDENT' || existing.deletedAt) {
+        throw new BadRequestException(`Phone number ${s.phoneNumber} is registered to a non-student or deactivated account`);
+      }
+      if (!existing.monitoringCode) {
+        const monitoringCode = await generateUniqueMonitoringCode();
+        await db.update(users).set({ monitoringCode }).where(eq(users.id, existing.id));
+        existing.monitoringCode = monitoringCode;
+      }
       const enrolled = await this.enrollWithPasswordless(existing.id, group.id);
       results.push({ phoneNumber: s.phoneNumber, created, enrolled });
+    }
+    if (results.some((r) => r.enrolled)) {
+      await this.entitlementsService.checkAndUnlockReferralReward(user.id);
     }
     return results;
   }
@@ -1910,6 +2109,9 @@ export class TeacherService {
   ) {
     await this.assertOwnsGroup(user, fromGroupId);
     const to = await this.assertOwnsGroup(user, toGroupId);
+    if (!to.group.isActive) {
+      throw new BadRequestException('Target group is inactive');
+    }
     if (to.group.courseId !== (await this.getCourseOfGroup(fromGroupId))) {
       throw new ForbiddenException('Groups must be in the same course');
     }
@@ -1963,36 +2165,68 @@ export class TeacherService {
       })
       .from(groupStudents)
       .innerJoin(users, eq(groupStudents.studentId, users.id))
-      .where(eq(groupStudents.groupId, groupId));
+      .where(and(eq(groupStudents.groupId, groupId), isNull(users.deletedAt)));
 
     // Quiz columns: one per lesson that has a quiz in this course
     const mods = await db.select().from(modules).where(eq(modules.courseId, course.id));
-    const lessonsInCourse = mods.length
+    const rawLessons = mods.length
       ? await db
           .select()
           .from(lessons)
           .where(inArray(lessons.moduleId, mods.map((m) => m.id)))
       : [];
+    const hiddenLessonRows = rawLessons.length
+      ? await db
+          .select({ lessonId: groupLessonAccess.lessonId })
+          .from(groupLessonAccess)
+          .where(
+            and(
+              eq(groupLessonAccess.groupId, groupId),
+              eq(groupLessonAccess.isHidden, true),
+              inArray(groupLessonAccess.lessonId, rawLessons.map((l) => l.id)),
+            ),
+          )
+      : [];
+    const hiddenLessonIds = new Set(hiddenLessonRows.map((r) => r.lessonId));
+    const lessonsInCourse = rawLessons.filter((l) => !hiddenLessonIds.has(l.id));
+
     const quizTargets = [
       eq(quizzes.courseId, course.id),
       ...(mods.length ? [inArray(quizzes.moduleId, mods.map((m) => m.id))] : []),
       ...(lessonsInCourse.length ? [inArray(quizzes.lessonId, lessonsInCourse.map((l) => l.id))] : []),
     ];
     const quizRows = await db.select().from(quizzes).where(or(...quizTargets));
+    const hiddenQuizRows = quizRows.length
+      ? await db
+          .select({ quizId: groupQuizAccess.quizId })
+          .from(groupQuizAccess)
+          .where(
+            and(
+              eq(groupQuizAccess.groupId, groupId),
+              eq(groupQuizAccess.isHidden, true),
+              inArray(groupQuizAccess.quizId, quizRows.map((q) => q.id)),
+            ),
+          )
+      : [];
+    const hiddenQuizIds = new Set(hiddenQuizRows.map((r) => r.quizId));
+    const visibleQuizRows = quizRows.filter(
+      (q) => !hiddenQuizIds.has(q.id) && (!q.lessonId || !hiddenLessonIds.has(q.lessonId)),
+    );
+
     const questionTotals: Record<string, number> = {};
-    if (quizRows.length) {
+    if (visibleQuizRows.length) {
       const qq = await db
         .select()
         .from(quizQuestions)
-        .where(inArray(quizQuestions.quizId, quizRows.map((q) => q.id)));
+        .where(inArray(quizQuestions.quizId, visibleQuizRows.map((q) => q.id)));
       for (const q of qq) {
         questionTotals[q.quizId] =
           (questionTotals[q.quizId] ?? 0) +
-          (q.questionType === 'WRITTEN' ? 10 : q.points);
+          (q.points ?? (q.questionType === 'WRITTEN' ? 10 : 1));
       }
     }
     const quizLabels = Object.fromEntries(
-      quizRows.map((q) => [
+      visibleQuizRows.map((q) => [
         q.id,
         lessonsInCourse.find((l) => l.id === q.lessonId)?.title ??
           mods.find((m) => m.id === q.moduleId)?.title ??
@@ -2000,7 +2234,7 @@ export class TeacherService {
       ]),
     );
 
-    const attempts = roster.length && quizRows.length
+    const attempts = roster.length && visibleQuizRows.length
       ? await db
           .select()
           .from(quizAttempts)
@@ -2011,23 +2245,43 @@ export class TeacherService {
                 quizAttempts.studentId,
                 roster.map((r) => r.id),
               ),
+              inArray(
+                quizAttempts.quizId,
+                visibleQuizRows.map((q) => q.id),
+              ),
             ),
           )
       : [];
 
-    const quizColumns = quizRows.map((q) => ({
+    const quizColumns = visibleQuizRows.map((q) => ({
       quizId: q.id,
       lessonTitle: quizLabels[q.id],
       maxScore: questionTotals[q.id] ?? 0,
     }));
 
-    const cells = attempts.reduce<Record<string, number>>((acc, a) => {
-      // best attempt wins
-      if ((acc[`${a.studentId}:${a.quizId}`] ?? -1) < a.score) {
-        acc[`${a.studentId}:${a.quizId}`] = a.score;
+    const studentQuizAttempts = new Map<string, (typeof attempts)[number][]>();
+    for (const a of attempts) {
+      const key = `${a.studentId}:${a.quizId}`;
+      const list = studentQuizAttempts.get(key) ?? [];
+      list.push(a);
+      studentQuizAttempts.set(key, list);
+    }
+    const cells: Record<string, number> = {};
+    for (const [key, atts] of studentQuizAttempts.entries()) {
+      const graded = atts.filter((a) => !a.pending).sort((a, b) => b.score - a.score);
+      const best = graded.length
+        ? graded[0]
+        : atts
+            .filter((a) => a.pending)
+            .sort(
+              (a, b) =>
+                new Date(b.submittedAt).getTime() -
+                new Date(a.submittedAt).getTime(),
+            )[0];
+      if (best) {
+        cells[key] = best.score;
       }
-      return acc;
-    }, {});
+    }
 
     const attendanceRows =
       roster.length && lessonsInCourse.length
@@ -2035,11 +2289,11 @@ export class TeacherService {
             .select({
               studentId: lessonAttendance.studentId,
               lessonId: lessonAttendance.lessonId,
+              isPresent: lessonAttendance.isPresent,
             })
             .from(lessonAttendance)
             .where(
               and(
-                eq(lessonAttendance.isPresent, true),
                 inArray(lessonAttendance.studentId, roster.map((r) => r.id)),
                 inArray(lessonAttendance.lessonId, lessonsInCourse.map((l) => l.id)),
               ),
@@ -2047,14 +2301,14 @@ export class TeacherService {
         : [];
     const attendance = Object.fromEntries(
       roster.map((student) => {
-        const present = attendanceRows.filter(
+        const studentRows = attendanceRows.filter(
           (row) => row.studentId === student.id,
-        ).length;
+        );
+        const marked = studentRows.length;
+        const present = studentRows.filter((row) => row.isPresent).length;
         return [
           student.id,
-          lessonsInCourse.length
-            ? Math.round((present / lessonsInCourse.length) * 100)
-            : 0,
+          marked ? Math.round((present / marked) * 100) : 0,
         ];
       }),
     );
@@ -2143,7 +2397,7 @@ export class TeacherService {
       );
     if (!col) throw new NotFoundException('Column not found');
     const [student] = await db.select().from(users).where(eq(users.id, studentId));
-    if (!student) throw new NotFoundException('Student not found');
+    if (!student || student.deletedAt) throw new NotFoundException('Student not found');
     const enrolled = await db
       .select()
       .from(groupStudents)

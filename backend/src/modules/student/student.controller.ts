@@ -38,14 +38,22 @@ export class StudentController {
 
   @Post('api/student/lessons/:lessonId/complete')
   @Roles('STUDENT')
-  complete(@Req() req: Request, @Param('lessonId') lessonId: string) {
-    return this.students.markComplete(req.user!.id, lessonId);
+  complete(
+    @Req() req: Request,
+    @Param('lessonId') lessonId: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.students.markComplete(req.user!.id, lessonId, groupId);
   }
 
   @Post('api/student/lessons/:lessonId/incomplete')
   @Roles('STUDENT')
-  incomplete(@Req() req: Request, @Param('lessonId') lessonId: string) {
-    return this.students.unmarkComplete(req.user!.id, lessonId);
+  incomplete(
+    @Req() req: Request,
+    @Param('lessonId') lessonId: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.students.unmarkComplete(req.user!.id, lessonId, groupId);
   }
 
   @Get('api/student/lessons/:lessonId/quiz')

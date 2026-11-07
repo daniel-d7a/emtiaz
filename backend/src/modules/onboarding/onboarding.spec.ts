@@ -5,6 +5,7 @@ import request from 'supertest';
 import { Pool } from 'pg';
 import { resetTestDb } from '../../db/migrate';
 import { StorageService } from '../storage/storage.service';
+import { countryCurrency } from '../../lib/phone';
 
 jest.setTimeout(90000);
 
@@ -83,7 +84,7 @@ describe('Phase 2: auth & onboarding', () => {
     expect(res.body.user.role).toBe('STUDENT');
   });
 
-  it('PATCH /api/me updates teacher name and phone, empty phone clears it', async () => {
+  it('PATCH /api/me updates teacher name and phone, disallows empty phone', async () => {
     const s = request.agent(server);
     await s.post('/api/auth/sign-in/email').send({ email: 'salim@teacher.om', password: 'Passw0rd!123' });
     const res = await s
@@ -102,11 +103,40 @@ describe('Phase 2: auth & onboarding', () => {
     expect(me.body.user).not.toHaveProperty('image');
     expect(me.body.user).not.toHaveProperty('landingBanner');
     const res2 = await s.patch('/api/me').send({ phoneNumber: '' });
-    expect(res2.status).toBe(200);
-    expect(res2.body.phoneNumber).toBeNull();
+    expect(res2.status).toBe(400);
     const res3 = await s.patch('/api/me').send({});
     expect(res3.status).toBe(200);
     expect(res3.body.name).toBe('Salim B'); // no-op still returns profile
+  });
+
+  it('updates synthetic email when phone number changes on a phone-only account', async () => {
+    const signup = await request(server)
+      .post('/api/onboarding/student')
+      .send({
+        name: 'Phone User',
+        phoneNumber: '+96893330001',
+        password: 'Passw0rd!123',
+      });
+    expect(signup.status).toBe(201);
+    const agent = request.agent(server);
+    await agent.post('/api/auth/sign-in/phone-number').send({
+      phoneNumber: '+96893330001',
+      password: 'Passw0rd!123',
+    });
+    const updateRes = await agent.patch('/api/me').send({
+      phoneNumber: '+96893330002',
+    });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.phoneNumber).toBe('+96893330002');
+    expect(updateRes.body.email).toBe('96893330002@phone.emtiaz.om');
+
+    // Fresh sign-in with the new phone number succeeds
+    const relogin = request.agent(server);
+    const loginRes = await relogin.post('/api/auth/sign-in/phone-number').send({
+      phoneNumber: '+96893330002',
+      password: 'Passw0rd!123',
+    });
+    expect(loginRes.status).toBe(200);
   });
 
   it('rejects a landing slug already used by another teacher', async () => {
@@ -308,5 +338,297 @@ describe('Phase 2: auth & onboarding', () => {
     await pool.query(
       `UPDATE "user" SET is_active=true WHERE email='aisha@student.om'`,
     );
+  });
+
+  describe('Country and phone validation for Oman and Egypt', () => {
+    it('resolves correct currency from country', () => {
+      expect(countryCurrency('OM')).toBe('OMR');
+      expect(countryCurrency('EG')).toBe('EGP');
+    });
+
+    it('registers an Omani teacher with valid +968 phone and sets country OM', async () => {
+      const res = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          name: 'Oman Teacher',
+          email: 'oman-teacher@teacher.om',
+          password: 'Passw0rd!123',
+          country: 'OM',
+          phoneNumber: '94001122',
+          subject: 'Science',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.user.country).toBe('OM');
+      expect(res.body.user.phoneNumber).toBe('+96894001122');
+    });
+
+    it('rejects an Omani teacher signup with invalid phone for Oman', async () => {
+      const res = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          name: 'Invalid Oman Teacher',
+          email: 'invalid-oman@teacher.om',
+          password: 'Passw0rd!123',
+          country: 'OM',
+          phoneNumber: '+201012345678', // Egypt phone with OM country
+          subject: 'Science',
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('registers an Egyptian teacher with valid +20 phone and sets country EG', async () => {
+      const res = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          name: 'Egypt Teacher',
+          email: 'egypt-teacher@teacher.eg',
+          password: 'Passw0rd!123',
+          country: 'EG',
+          phoneNumber: '01012345678',
+          subject: 'Arabic',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.user.country).toBe('EG');
+      expect(res.body.user.phoneNumber).toBe('+201012345678');
+    });
+
+    it('rejects an Egyptian teacher signup with invalid phone for Egypt', async () => {
+      const res = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          name: 'Invalid Egypt Teacher',
+          email: 'invalid-egypt@teacher.eg',
+          password: 'Passw0rd!123',
+          country: 'EG',
+          phoneNumber: '+96894001122', // Oman phone with EG country
+          subject: 'Arabic',
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('updates user country and phone via PATCH /api/me', async () => {
+      const s = request.agent(server);
+      await s
+        .post('/api/auth/sign-in/email')
+        .send({ email: 'oman-teacher@teacher.om', password: 'Passw0rd!123' });
+
+      // Updating country to EG with valid EG phone succeeds
+      const update = await s
+        .patch('/api/me')
+        .send({ country: 'EG', phoneNumber: '01123456789' });
+      expect(update.status).toBe(200);
+      expect(update.body.country).toBe('EG');
+      expect(update.body.phoneNumber).toBe('+201123456789');
+
+      // Attempting to change country back to OM without matching phone fails
+      const invalidSwitch = await s.patch('/api/me').send({ country: 'OM' });
+      expect(invalidSwitch.status).toBe(400);
+    });
+
+    it('returns country-scoped grades (12 OM, 12 EG) and 30+ bilingual general categories', async () => {
+      const omGrades = await request(server).get('/api/onboarding/grades?country=OM');
+      expect(omGrades.status).toBe(200);
+      expect(omGrades.body.length).toBeGreaterThanOrEqual(12);
+      expect(omGrades.body.every((g: any) => g.country === 'OM')).toBe(true);
+      expect(omGrades.body.some((g: any) => g.nameAr === 'الصف الأول' && g.nameEn === 'Grade 1')).toBe(true);
+      expect(omGrades.body.some((g: any) => g.nameAr === 'الصف الثاني عشر' && g.nameEn === 'Grade 12')).toBe(true);
+
+      const egGrades = await request(server).get('/api/onboarding/grades?country=EG');
+      expect(egGrades.status).toBe(200);
+      expect(egGrades.body.length).toBeGreaterThanOrEqual(12);
+      expect(egGrades.body.every((g: any) => g.country === 'EG')).toBe(true);
+      expect(
+        egGrades.body.some(
+          (g: any) => g.nameAr === 'الصف الأول الابتدائي' && g.nameEn === '1st Grade Primary Education',
+        ),
+      ).toBe(true);
+      expect(
+        egGrades.body.some(
+          (g: any) => g.nameAr === 'الصف الثالث الثانوي' && g.nameEn === '3rd Grade Secondary Education',
+        ),
+      ).toBe(true);
+
+      const cats = await request(server).get('/api/onboarding/categories');
+      expect(cats.status).toBe(200);
+      expect(cats.body.length).toBeGreaterThanOrEqual(30);
+      expect(
+        cats.body.some(
+          (c: any) =>
+            c.nameAr === 'البرمجة وعلوم الحاسب' &&
+            c.nameEn === 'Programming & Computer Science',
+        ),
+      ).toBe(true);
+      expect(
+        cats.body.some(
+          (c: any) =>
+            c.nameAr === 'تطوير المواقع والتطبيقات' &&
+            c.nameEn === 'Web & App Development',
+        ),
+      ).toBe(true);
+    });
+
+    it('supports teacher signup and profile update with courseFocus, gradeIds, customGrades, and onboardingCompleted', async () => {
+      const egGradesRes = await request(server).get('/api/onboarding/grades?country=EG');
+      const g1 = egGradesRes.body[0];
+      const g2 = egGradesRes.body[1];
+
+      const signupRes = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          name: 'Academic EG Teacher',
+          email: 'acad-eg@teacher.eg',
+          password: 'Passw0rd!123',
+          country: 'EG',
+          phoneNumber: '01099887766',
+          courseFocus: 'ACADEMIC',
+          gradeIds: [g1.id, g2.id],
+          customGrades: ['STEM Grade 10'],
+        });
+      expect(signupRes.status).toBe(201);
+      expect(signupRes.body.user.courseFocus).toBe('ACADEMIC');
+      expect(signupRes.body.user.taughtGrades).toHaveLength(3);
+      expect(signupRes.body.user.taughtGrades.some((g: any) => g.name === 'STEM Grade 10' && g.country === 'EG')).toBe(true);
+
+      const agent = request.agent(server);
+      await agent
+        .post('/api/auth/sign-in/email')
+        .send({ email: 'acad-eg@teacher.eg', password: 'Passw0rd!123' });
+
+      const meRes = await agent.get('/api/me');
+      expect(meRes.status).toBe(200);
+      expect(meRes.body.courseFocus).toBe('ACADEMIC');
+      expect(meRes.body.onboardingCompletedAt).toBeNull();
+      expect(meRes.body.taughtGrades).toHaveLength(3);
+
+      const patchRes = await agent.patch('/api/me').send({
+        courseFocus: 'GENERAL',
+        subject: 'UI/UX Design',
+        gradeIds: [g1.id],
+        onboardingCompleted: true,
+      });
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body.courseFocus).toBe('GENERAL');
+      expect(patchRes.body.onboardingCompletedAt).toBeTruthy();
+      expect(patchRes.body.taughtGrades).toHaveLength(1);
+      expect(patchRes.body.taughtGrades[0].id).toBe(g1.id);
+    });
+
+    it('POST /api/onboarding/check-availability validates email uniqueness and country phone format/uniqueness', async () => {
+      // Unused email
+      const freeEmail = await request(server)
+        .post('/api/onboarding/check-availability')
+        .send({ email: 'brandnew@teacher.om' });
+      expect([200, 201]).toContain(freeEmail.status);
+      expect(freeEmail.body).toEqual({ available: true });
+
+      // Taken email (case-insensitive)
+      const takenEmail = await request(server)
+        .post('/api/onboarding/check-availability')
+        .send({ email: 'SALIM@TEACHER.OM' });
+      expect([200, 201]).toContain(takenEmail.status);
+      expect(takenEmail.body).toEqual({
+        available: false,
+        field: 'email',
+        reason: 'Email is already registered',
+      });
+
+      // Invalid phone for OM
+      const badOmPhone = await request(server)
+        .post('/api/onboarding/check-availability')
+        .send({ phoneNumber: '01012345678', country: 'OM' });
+      expect([200, 201]).toContain(badOmPhone.status);
+      expect(badOmPhone.body).toEqual({
+        available: false,
+        field: 'phoneNumber',
+        reason: 'Invalid phone number for selected country',
+      });
+
+      // Invalid phone for EG
+      const badEgPhone = await request(server)
+        .post('/api/onboarding/check-availability')
+        .send({ phoneNumber: '94001122', country: 'EG' });
+      expect([200, 201]).toContain(badEgPhone.status);
+      expect(badEgPhone.body).toEqual({
+        available: false,
+        field: 'phoneNumber',
+        reason: 'Invalid phone number for selected country',
+      });
+
+      // Taken phone (already registered by Egypt Teacher +201012345678)
+      const takenPhone = await request(server)
+        .post('/api/onboarding/check-availability')
+        .send({ phoneNumber: '01012345678', country: 'EG' });
+      expect([200, 201]).toContain(takenPhone.status);
+      expect(takenPhone.body).toEqual({
+        available: false,
+        field: 'phoneNumber',
+        reason: 'Phone number is already registered',
+      });
+
+      // Unused valid phone for EG
+      const freePhone = await request(server)
+        .post('/api/onboarding/check-availability')
+        .send({ phoneNumber: '01234567890', country: 'EG' });
+      expect([200, 201]).toContain(freePhone.status);
+      expect(freePhone.body).toEqual({ available: true });
+    });
+
+    it('supports multi-step role registration payloads (GENERAL teacher, student with gradeId, parent with studentPhone) and GET /api/public/support', async () => {
+      const supportRes = await request(server).get('/api/public/support');
+      expect(supportRes.status).toBe(200);
+      expect(supportRes.body).toHaveProperty('supportWhatsapp');
+
+      // 1) Teacher GENERAL focus
+      const generalTeacherRes = await request(server)
+        .post('/api/onboarding/teacher')
+        .send({
+          name: 'General Track Teacher',
+          email: 'general-track@teacher.om',
+          password: 'Passw0rd!123',
+          country: 'OM',
+          phoneNumber: '95112233',
+          courseFocus: 'GENERAL',
+          subject: 'البرمجة وعلوم الحاسب',
+        });
+      expect(generalTeacherRes.status).toBe(201);
+      expect(generalTeacherRes.body.user.courseFocus).toBe('GENERAL');
+      expect(generalTeacherRes.body.user.subjectCategoryId).toBeTruthy();
+
+      // 2) Student with country-scoped gradeId
+      const omGradesRes = await request(server).get('/api/onboarding/grades?country=OM');
+      const grade10 = omGradesRes.body.find((g: any) => g.nameEn === 'Grade 10') ?? omGradesRes.body[0];
+      const studentRes = await request(server)
+        .post('/api/onboarding/student')
+        .send({
+          name: 'MultiStep Student',
+          password: 'Passw0rd!123',
+          country: 'OM',
+          phoneNumber: '95445566',
+          gradeId: grade10.id,
+        });
+      expect(studentRes.status).toBe(201);
+      expect(studentRes.body.user.gradeId).toBe(grade10.id);
+
+      // 3) Parent linking child immediately via studentPhone
+      const parentRes = await request(server)
+        .post('/api/onboarding/parent')
+        .send({
+          name: 'MultiStep Parent',
+          password: 'Passw0rd!123',
+          country: 'OM',
+          phoneNumber: '95778899',
+          studentPhone: '95445566',
+        });
+      expect(parentRes.status).toBe(201);
+      expect(parentRes.body.user.role).toBe('PARENT');
+
+      const parentAgent = request.agent(server);
+      await parentAgent
+        .post('/api/auth/sign-in/phone-number')
+        .send({ phoneNumber: '+96895778899', password: 'Passw0rd!123' });
+      const childrenRes = await parentAgent.get('/api/parent/students');
+      expect(childrenRes.status).toBe(200);
+      expect(childrenRes.body.some((c: any) => c.id === studentRes.body.user.id)).toBe(true);
+    });
   });
 });

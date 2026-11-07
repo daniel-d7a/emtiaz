@@ -5,10 +5,12 @@ import { Public } from '../../auth/public.decorator';
 import { db } from '../../db';
 import { StorageService } from '../storage/storage.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
-import { categories, courses, grades, lessons, modules, users } from '../../db/schema';
+import { categories, courses, grades, lessons, modules, plans, users } from '../../db/schema';
+import type { PublicPlansResponse } from '../../../shared/api';
 import {
   serializePublicCourseCard,
   serializePublicCourseDetail,
+  serializePublicPlan,
   serializePublicSupport,
   serializePublicTeacher,
 } from '../../lib/serializers';
@@ -60,9 +62,11 @@ export class PublicController {
 
   private async publicTeacher(slug: string) {
     const teacher = await this.publishedTeacher(slug);
-    const { id: _id, image, banner, ...rest } = teacher;
+    const { id: _id, image, banner, email, ...rest } = teacher;
+    const isSyntheticEmail = email?.endsWith('@phone.emtiaz.om');
     return serializePublicTeacher({
       ...rest,
+      email: isSyntheticEmail ? null : email,
       avatarUrl: image ? `/api/public/teachers/${slug}/avatar` : null,
       bannerUrl: await this.signed(banner),
     });
@@ -78,6 +82,16 @@ export class PublicController {
   }
 
   @Public()
+  @Get('api/public/support')
+  async publicSupport() {
+    const s = await this.support();
+    return {
+      ...s,
+      supportWhatsapp: s.whatsapp,
+    };
+  }
+
+  @Public()
   @Get('api/public/site')
   async site() {
     const settings = await this.settings.get();
@@ -88,6 +102,23 @@ export class PublicController {
         logoUrl: settings.logoUrl,
       },
       support: await this.support(),
+    };
+  }
+
+  @Public()
+  @Get('api/public/plans')
+  async listPublicPlans(): Promise<PublicPlansResponse> {
+    const settings = await this.settings.get();
+    const rows = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.isPublic, true))
+      .orderBy(asc(plans.displayOrder));
+
+    return {
+      plans: rows.map(serializePublicPlan),
+      yearlyPlanDiscountEnabled: settings.yearlyPlanDiscountEnabled,
+      supportWhatsapp: settings.supportWhatsapp,
     };
   }
 

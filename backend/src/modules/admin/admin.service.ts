@@ -5,18 +5,23 @@ import {
   NotFoundException,
   type OnApplicationBootstrap,
 } from '@nestjs/common';
-import { and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, sql, sum } from 'drizzle-orm';
+import { and, asc, count, countDistinct, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, or, sql, sum } from 'drizzle-orm';
 import { open } from 'fs/promises';
 import { logger } from '../../lib/logger';
 import { db } from '../../db';
 import { alias } from 'drizzle-orm/pg-core';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
+  checkAndUnlockReferralReward,
+  TeacherEntitlementsService,
+} from '../teacher/teacher-entitlements.service';
+import {
   adminRoles,
   auditLogs,
   categories,
   courses,
   grades,
+  groupLessonAccess,
   groupStudents,
   groups,
   lessonAttendance,
@@ -25,8 +30,13 @@ import {
   notifications,
   parentReports,
   parentStudents,
+  plans,
+  promoCodes,
   quizAttempts,
   semesters,
+  teacherDiscounts,
+  teacherGifts,
+  teacherSubscriptions,
   users,
 } from '../../db/schema';
 import type { AdminPermission } from '../../lib/admin-permissions';
@@ -45,7 +55,9 @@ import {
   serializeAdminStudentRow,
   serializeAdminTeacherRow,
   serializeAdminUser,
+  serializeCategory,
   serializeCourse,
+  serializeGrade,
   serializeUser,
 } from '../../lib/serializers';
 
@@ -53,6 +65,7 @@ import {
 export class AdminService implements OnApplicationBootstrap {
   constructor(
     private readonly notifications: NotificationsService,
+    private readonly entitlements: TeacherEntitlementsService,
   ) {}
 
   async overview() {
@@ -176,11 +189,13 @@ export class AdminService implements OnApplicationBootstrap {
       .from(groupStudents)
       .innerJoin(groups, eq(groupStudents.groupId, groups.id))
       .innerJoin(courses, eq(groups.courseId, courses.id))
+      .innerJoin(users, eq(groupStudents.studentId, users.id))
       .where(
         and(
           inArray(courses.teacherId, ids),
           isNull(courses.deletedAt),
           isNull(groups.deletedAt),
+          isNull(users.deletedAt),
         ),
       )
       .groupBy(courses.teacherId);
@@ -331,9 +346,8 @@ export class AdminService implements OnApplicationBootstrap {
       .update(users)
       .set({ isActive: false, deletedAt: new Date() })
       .where(eq(users.id, userId));
-    // Revoke access and drop memberships so rosters/grades stop showing the account.
+    // Revoke sessions. Group memberships and history are preserved so restoreUser can recover them.
     await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
-    await db.delete(groupStudents).where(eq(groupStudents.studentId, userId));
     return { ok: true };
   }
 
@@ -348,7 +362,13 @@ export class AdminService implements OnApplicationBootstrap {
     if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
     const patch: Partial<typeof users.$inferInsert> = {};
     if (dto.name !== undefined) patch.name = dto.name;
-    if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber || null;
+    if (dto.phoneNumber !== undefined) {
+      if (!dto.phoneNumber) throw new BadRequestException('Phone number cannot be cleared');
+      patch.phoneNumber = dto.phoneNumber;
+      if (teacher.email?.endsWith('@phone.emtiaz.om')) {
+        patch.email = `${dto.phoneNumber.replace(/\D/g, '')}@phone.emtiaz.om`;
+      }
+    }
     if (dto.subjectId !== undefined) patch.subjectCategoryId = dto.subjectId;
     const [updated] = await db
       .update(users)
@@ -479,7 +499,13 @@ export class AdminService implements OnApplicationBootstrap {
     if (!student || student.deletedAt) throw new NotFoundException('Student not found');
     const patch: Partial<typeof users.$inferInsert> = {};
     if (dto.name !== undefined) patch.name = dto.name;
-    if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber;
+    if (dto.phoneNumber !== undefined) {
+      if (!dto.phoneNumber) throw new BadRequestException('Phone number cannot be cleared');
+      patch.phoneNumber = dto.phoneNumber;
+      if (student.email?.endsWith('@phone.emtiaz.om')) {
+        patch.email = `${dto.phoneNumber.replace(/\D/g, '')}@phone.emtiaz.om`;
+      }
+    }
     if (dto.gradeId !== undefined) patch.gradeId = dto.gradeId;
     const [updated] = await db
       .update(users)
@@ -555,6 +581,7 @@ export class AdminService implements OnApplicationBootstrap {
       .orderBy(desc(groupStudents.joinedAt));
 
     const courseIds = [...new Set(groupRows.map((row) => row.courseId))];
+    const groupIds = [...new Set(groupRows.map((row) => row.groupId))];
     const lessonRows = courseIds.length
       ? await db
           .select({ id: lessons.id, courseId: modules.courseId })
@@ -562,14 +589,39 @@ export class AdminService implements OnApplicationBootstrap {
           .innerJoin(modules, eq(lessons.moduleId, modules.id))
           .where(inArray(modules.courseId, courseIds))
       : [];
-    const presentRows = lessonRows.length
+
+    const hiddenLessonRows = groupIds.length && lessonRows.length
       ? await db
-          .select({ lessonId: lessonAttendance.lessonId })
+          .select({
+            groupId: groupLessonAccess.groupId,
+            lessonId: groupLessonAccess.lessonId,
+          })
+          .from(groupLessonAccess)
+          .where(
+            and(
+              inArray(groupLessonAccess.groupId, groupIds),
+              eq(groupLessonAccess.isHidden, true),
+              inArray(
+                groupLessonAccess.lessonId,
+                lessonRows.map((r) => r.id),
+              ),
+            ),
+          )
+      : [];
+    const hiddenByGroup = new Set(
+      hiddenLessonRows.map((r) => `${r.groupId}:${r.lessonId}`),
+    );
+
+    const attendanceRecords = lessonRows.length
+      ? await db
+          .select({
+            lessonId: lessonAttendance.lessonId,
+            isPresent: lessonAttendance.isPresent,
+          })
           .from(lessonAttendance)
           .where(
             and(
               eq(lessonAttendance.studentId, studentId),
-              eq(lessonAttendance.isPresent, true),
               inArray(
                 lessonAttendance.lessonId,
                 lessonRows.map((row) => row.id),
@@ -577,7 +629,9 @@ export class AdminService implements OnApplicationBootstrap {
             ),
           )
       : [];
-    const presentLessons = new Set(presentRows.map((row) => row.lessonId));
+    const attendanceByLesson = new Map(
+      attendanceRecords.map((row) => [row.lessonId, row.isPresent]),
+    );
 
     const [quiz] = await db
       .select({
@@ -593,13 +647,23 @@ export class AdminService implements OnApplicationBootstrap {
       ...student,
       parents,
       groups: groupRows.map((group) => {
-        const courseLessons = lessonRows.filter((lesson) => lesson.courseId === group.courseId);
-        const present = courseLessons.filter((lesson) => presentLessons.has(lesson.id)).length;
+        const visibleLessons = lessonRows.filter(
+          (lesson) =>
+            lesson.courseId === group.courseId &&
+            !hiddenByGroup.has(`${group.groupId}:${lesson.id}`),
+        );
+        let marked = 0;
+        let present = 0;
+        for (const lesson of visibleLessons) {
+          const isPresent = attendanceByLesson.get(lesson.id);
+          if (isPresent !== undefined) {
+            marked++;
+            if (isPresent) present++;
+          }
+        }
         return {
           ...group,
-          attendancePercent: courseLessons.length
-            ? Math.round((present / courseLessons.length) * 100)
-            : 0,
+          attendancePercent: marked ? Math.round((present / marked) * 100) : 0,
         };
       }),
       quiz: {
@@ -638,6 +702,12 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async moveStudentGroup(studentId: string, fromGroupId: string, toGroupId: string) {
+    const [toGroup] = await db
+      .select({ id: groups.id, isActive: groups.isActive })
+      .from(groups)
+      .where(and(eq(groups.id, toGroupId), isNull(groups.deletedAt)));
+    if (!toGroup) throw new NotFoundException('Target group not found');
+    if (!toGroup.isActive) throw new BadRequestException('Group is inactive');
     if (fromGroupId === toGroupId) return { ok: true };
     const [membership] = await db
       .select({ id: groupStudents.id })
@@ -659,6 +729,10 @@ export class AdminService implements OnApplicationBootstrap {
         ),
       );
     return { ok: true };
+  }
+
+  async moveStudent(studentId: string, fromGroupId: string, toGroupId: string) {
+    return this.moveStudentGroup(studentId, fromGroupId, toGroupId);
   }
 
   async listParents(filters: {
@@ -742,7 +816,13 @@ export class AdminService implements OnApplicationBootstrap {
     if (!parent || parent.deletedAt) throw new NotFoundException('Parent not found');
     const patch: Partial<typeof users.$inferInsert> = {};
     if (dto.name !== undefined) patch.name = dto.name;
-    if (dto.phoneNumber !== undefined) patch.phoneNumber = dto.phoneNumber;
+    if (dto.phoneNumber !== undefined) {
+      if (!dto.phoneNumber) throw new BadRequestException('Phone number cannot be cleared');
+      patch.phoneNumber = dto.phoneNumber;
+      if (parent.email?.endsWith('@phone.emtiaz.om')) {
+        patch.email = `${dto.phoneNumber.replace(/\D/g, '')}@phone.emtiaz.om`;
+      }
+    }
     const [updated] = await db
       .update(users)
       .set({ ...patch, updatedAt: new Date() })
@@ -911,7 +991,8 @@ export class AdminService implements OnApplicationBootstrap {
       ? await db
           .select({ groupId: groupStudents.groupId, c: count() })
           .from(groupStudents)
-          .where(inArray(groupStudents.groupId, groupIds))
+          .innerJoin(users, eq(groupStudents.studentId, users.id))
+          .where(and(inArray(groupStudents.groupId, groupIds), isNull(users.deletedAt)))
           .groupBy(groupStudents.groupId)
       : [];
     return rows.map((r) =>
@@ -1115,8 +1196,8 @@ export class AdminService implements OnApplicationBootstrap {
   }
 
   async adminEnroll(studentId: string, groupId: string) {
-    const [group] = await db
-      .select({ group: groups })
+    const [groupData] = await db
+      .select({ group: groups, teacherId: courses.teacherId })
       .from(groups)
       .innerJoin(courses, eq(groups.courseId, courses.id))
       .where(
@@ -1125,9 +1206,10 @@ export class AdminService implements OnApplicationBootstrap {
           isNull(groups.deletedAt),
           isNull(courses.deletedAt),
         ),
-      )
-      .then((rows) => rows.map((row) => row.group));
-    if (!group) throw new NotFoundException('Group not found');
+      );
+    if (!groupData) throw new NotFoundException('Group not found');
+    const group = groupData.group;
+    if (!group.isActive) throw new BadRequestException('Group is inactive');
     const [user] = await db.select().from(users).where(eq(users.id, studentId));
     if (!user || user.deletedAt) throw new NotFoundException('Student not found');
     const added = await db
@@ -1136,6 +1218,7 @@ export class AdminService implements OnApplicationBootstrap {
       .onConflictDoNothing()
       .returning({ id: groupStudents.id });
     if (added.length) {
+      await checkAndUnlockReferralReward(groupData.teacherId);
       const message = `تم تسجيلك في «${group.name}» بنجاح 🎉`;
       await this.notifications.sendWhatsApp(user.phoneNumber ?? '', message, 'ADMIN');
       await this.notifications.sendInApp(studentId, message, 'ADMIN');
@@ -1209,24 +1292,74 @@ export class AdminService implements OnApplicationBootstrap {
     return row;
   }
 
-  async listGrades() {
-    return db.select().from(grades).orderBy(asc(grades.displayOrder));
+  async listGrades(country?: string) {
+    const query = db.select().from(grades);
+    const rows =
+      country === 'OM' || country === 'EG'
+        ? await query
+            .where(eq(grades.country, country))
+            .orderBy(asc(grades.displayOrder), asc(grades.nameEn))
+        : await query.orderBy(asc(grades.country), asc(grades.displayOrder), asc(grades.nameEn));
+    return rows.map(serializeGrade);
   }
-  async createGrade(name: string, displayOrder?: number) {
+  async createGrade(dto: {
+    name?: string;
+    nameAr?: string;
+    nameEn?: string;
+    country?: 'OM' | 'EG';
+    displayOrder?: number;
+  }) {
+    const nameEn = dto.nameEn?.trim() || dto.name?.trim() || dto.nameAr?.trim() || '';
+    const nameAr = dto.nameAr?.trim() || dto.name?.trim() || dto.nameEn?.trim() || '';
+    const name = nameEn || nameAr;
     const [row] = await db
       .insert(grades)
-      .values({ name, displayOrder: displayOrder ?? 0 })
+      .values({
+        name,
+        nameAr,
+        nameEn,
+        country: dto.country ?? 'OM',
+        displayOrder: dto.displayOrder ?? 0,
+      })
       .returning();
-    return row;
+    return serializeGrade(row);
   }
-  async updateGrade(id: string, dto: { name?: string; displayOrder?: number }) {
+  async updateGrade(
+    id: string,
+    dto: {
+      name?: string;
+      nameAr?: string;
+      nameEn?: string;
+      country?: 'OM' | 'EG';
+      displayOrder?: number;
+    },
+  ) {
+    const patch: Partial<typeof grades.$inferInsert> = {};
+    if (dto.nameEn !== undefined) {
+      patch.nameEn = dto.nameEn;
+      patch.name = dto.nameEn;
+    } else if (dto.name !== undefined) {
+      patch.name = dto.name;
+      patch.nameEn = dto.name;
+    }
+    if (dto.nameAr !== undefined) {
+      patch.nameAr = dto.nameAr;
+      if (!patch.name) {
+        const [existing] = await db.select().from(grades).where(eq(grades.id, id)).limit(1);
+        if (existing && !existing.nameEn) {
+          patch.name = dto.nameAr;
+        }
+      }
+    }
+    if (dto.country !== undefined) patch.country = dto.country;
+    if (dto.displayOrder !== undefined) patch.displayOrder = dto.displayOrder;
     const [row] = await db
       .update(grades)
-      .set(dto)
+      .set(patch)
       .where(eq(grades.id, id))
       .returning();
     if (!row) throw new NotFoundException('Grade not found');
-    return row;
+    return serializeGrade(row);
   }
   async deleteGrade(id: string) {
     await db.delete(grades).where(eq(grades.id, id));
@@ -1256,23 +1389,601 @@ export class AdminService implements OnApplicationBootstrap {
     return { ok: true };
   }
   async listCategories() {
-    return db.select().from(categories).orderBy(asc(categories.name));
+    const rows = await db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.nameEn), asc(categories.name));
+    return rows.map(serializeCategory);
   }
-  async createCategory(name: string) {
-    const [row] = await db.insert(categories).values({ name }).returning();
-    return row;
+  async createCategory(dto: { name?: string; nameAr?: string; nameEn?: string }) {
+    const nameEn = dto.nameEn?.trim() || dto.name?.trim() || dto.nameAr?.trim() || '';
+    const nameAr = dto.nameAr?.trim() || dto.name?.trim() || dto.nameEn?.trim() || '';
+    const name = nameEn || nameAr;
+    const [row] = await db
+      .insert(categories)
+      .values({ name, nameAr, nameEn })
+      .returning();
+    return serializeCategory(row);
   }
-  async updateCategory(id: string, name: string) {
+  async updateCategory(id: string, dto: { name?: string; nameAr?: string; nameEn?: string }) {
+    const patch: Partial<typeof categories.$inferInsert> = {};
+    if (dto.nameEn !== undefined) {
+      patch.nameEn = dto.nameEn;
+      patch.name = dto.nameEn;
+    } else if (dto.name !== undefined) {
+      patch.name = dto.name;
+      patch.nameEn = dto.name;
+    }
+    if (dto.nameAr !== undefined) {
+      patch.nameAr = dto.nameAr;
+    }
     const [row] = await db
       .update(categories)
-      .set({ name })
+      .set(patch)
       .where(eq(categories.id, id))
       .returning();
     if (!row) throw new NotFoundException('Category not found');
-    return row;
+    return serializeCategory(row);
   }
   async deleteCategory(id: string) {
     await db.delete(categories).where(eq(categories.id, id));
     return { ok: true };
+  }
+
+  // ---------- Plans ----------
+  async listPlans() {
+    return db
+      .select()
+      .from(plans)
+      .orderBy(asc(plans.tierRank), asc(plans.displayOrder));
+  }
+
+  async createPlan(dto: {
+    slug: string;
+    tierRank?: number;
+    nameAr: string;
+    nameEn: string;
+    descriptionAr?: string | null;
+    descriptionEn?: string | null;
+    monthlyPriceOmr?: number;
+    yearlyMonthlyPriceOmr?: number;
+    monthlyPriceEgp?: number;
+    yearlyMonthlyPriceEgp?: number;
+    maxStudents?: number | null;
+    maxStorageBytes?: number | null;
+    maxGroups?: number | null;
+    trialDays?: number;
+    isPublic?: boolean;
+    isDefault?: boolean;
+    displayOrder?: number;
+  }) {
+    const [existing] = await db
+      .select({ id: plans.id })
+      .from(plans)
+      .where(eq(plans.slug, dto.slug))
+      .limit(1);
+
+    if (existing) {
+      throw new ConflictException('Plan with this slug already exists');
+    }
+
+    const [row] = await db
+      .insert(plans)
+      .values({
+        slug: dto.slug,
+        tierRank: dto.tierRank ?? 0,
+        nameAr: dto.nameAr,
+        nameEn: dto.nameEn,
+        descriptionAr: dto.descriptionAr ?? null,
+        descriptionEn: dto.descriptionEn ?? null,
+        monthlyPriceOmr: dto.monthlyPriceOmr ?? 0,
+        yearlyMonthlyPriceOmr: dto.yearlyMonthlyPriceOmr ?? 0,
+        monthlyPriceEgp: dto.monthlyPriceEgp ?? 0,
+        yearlyMonthlyPriceEgp: dto.yearlyMonthlyPriceEgp ?? 0,
+        maxStudents: dto.maxStudents ?? null,
+        maxStorageBytes: dto.maxStorageBytes ?? null,
+        maxGroups: dto.maxGroups ?? null,
+        trialDays: dto.trialDays ?? 0,
+        isPublic: dto.isPublic ?? false,
+        isDefault: dto.isDefault ?? false,
+        displayOrder: dto.displayOrder ?? 0,
+      })
+      .returning();
+
+    return row;
+  }
+
+  async updatePlan(
+    id: string,
+    dto: {
+      tierRank?: number;
+      nameAr?: string;
+      nameEn?: string;
+      descriptionAr?: string | null;
+      descriptionEn?: string | null;
+      monthlyPriceOmr?: number;
+      yearlyMonthlyPriceOmr?: number;
+      monthlyPriceEgp?: number;
+      yearlyMonthlyPriceEgp?: number;
+      maxStudents?: number | null;
+      maxStorageBytes?: number | null;
+      maxGroups?: number | null;
+      trialDays?: number;
+      isPublic?: boolean;
+      isDefault?: boolean;
+      displayOrder?: number;
+    },
+  ) {
+    const [row] = await db
+      .update(plans)
+      .set({
+        ...dto,
+        updatedAt: new Date(),
+      })
+      .where(eq(plans.id, id))
+      .returning();
+
+    if (!row) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    return row;
+  }
+
+  // ---------- Promo Codes ----------
+  async listPromoCodes() {
+    const rows = await db
+      .select({
+        id: promoCodes.id,
+        code: promoCodes.code,
+        planId: promoCodes.planId,
+        planSlug: plans.slug,
+        planNameAr: plans.nameAr,
+        planNameEn: plans.nameEn,
+        durationDays: promoCodes.durationDays,
+        maxUses: promoCodes.maxUses,
+        usedCount: promoCodes.usedCount,
+        expiresAt: promoCodes.expiresAt,
+        isActive: promoCodes.isActive,
+        createdAt: promoCodes.createdAt,
+      })
+      .from(promoCodes)
+      .innerJoin(plans, eq(promoCodes.planId, plans.id))
+      .orderBy(desc(promoCodes.createdAt));
+
+    return rows.map((r) => ({
+      ...r,
+      expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  }
+
+  async createPromoCode(dto: {
+    code: string;
+    planId: string;
+    durationDays: number;
+    maxUses?: number | null;
+    expiresAt?: string | null;
+  }) {
+    const code = dto.code.trim().toUpperCase();
+    const [existing] = await db
+      .select({ id: promoCodes.id })
+      .from(promoCodes)
+      .where(eq(promoCodes.code, code))
+      .limit(1);
+
+    if (existing) {
+      throw new ConflictException('Promo code already exists');
+    }
+
+    const [plan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, dto.planId))
+      .limit(1);
+
+    if (!plan) {
+      throw new NotFoundException('Target plan not found');
+    }
+
+    const [row] = await db
+      .insert(promoCodes)
+      .values({
+        code,
+        planId: dto.planId,
+        durationDays: dto.durationDays,
+        maxUses: dto.maxUses ?? null,
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        isActive: true,
+      })
+      .returning();
+
+    return {
+      id: row.id,
+      code: row.code,
+      planId: row.planId,
+      planSlug: plan.slug,
+      planNameAr: plan.nameAr,
+      planNameEn: plan.nameEn,
+      durationDays: row.durationDays,
+      maxUses: row.maxUses,
+      usedCount: row.usedCount,
+      expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,
+      isActive: row.isActive,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  async updatePromoCode(
+    id: string,
+    dto: {
+      isActive?: boolean;
+      maxUses?: number | null;
+      expiresAt?: string | null;
+    },
+  ) {
+    const patch: Record<string, unknown> = {};
+    if (dto.isActive !== undefined) patch.isActive = dto.isActive;
+    if (dto.maxUses !== undefined) patch.maxUses = dto.maxUses;
+    if (dto.expiresAt !== undefined) {
+      patch.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
+    }
+
+    const [row] = await db
+      .update(promoCodes)
+      .set(patch)
+      .where(eq(promoCodes.id, id))
+      .returning();
+
+    if (!row) {
+      throw new NotFoundException('Promo code not found');
+    }
+
+    const [plan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, row.planId))
+      .limit(1);
+
+    return {
+      id: row.id,
+      code: row.code,
+      planId: row.planId,
+      planSlug: plan?.slug ?? '',
+      planNameAr: plan?.nameAr ?? '',
+      planNameEn: plan?.nameEn ?? '',
+      durationDays: row.durationDays,
+      maxUses: row.maxUses,
+      usedCount: row.usedCount,
+      expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,
+      isActive: row.isActive,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  // ---------- Teacher Entitlements & Drawer ----------
+  async getTeacherEntitlements(teacherId: string) {
+    const [teacher] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        country: users.country,
+      })
+      .from(users)
+      .where(and(eq(users.id, teacherId), eq(users.role, 'TEACHER'), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    const entitlements = await this.entitlements.getEntitlements(teacherId);
+
+    const discounts = await db
+      .select()
+      .from(teacherDiscounts)
+      .where(eq(teacherDiscounts.teacherId, teacherId))
+      .orderBy(desc(teacherDiscounts.createdAt));
+
+    return {
+      teacherId: teacher.id,
+      teacherName: teacher.name,
+      teacherEmail: teacher.email,
+      teacherPhone: teacher.phoneNumber,
+      country: teacher.country,
+      currency: entitlements.currency,
+      activePlan: entitlements.activePlan,
+      usage: entitlements.usage,
+      isLockedOut: entitlements.isLockedOut,
+      savedGifts: entitlements.savedGifts,
+      referral: entitlements.referral,
+      discounts: discounts.map((d) => ({
+        id: d.id,
+        occasion: d.occasion,
+        planSlug: d.planSlug,
+        referenceId: d.referenceId,
+        description: d.description,
+        createdAt: d.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  async assignTeacherSubscription(
+    teacherId: string,
+    dto: {
+      planId: string;
+      currency: 'OMR' | 'EGP';
+      billingCycle: 'MONTHLY' | 'YEARLY';
+      durationDays?: number | null;
+      pricePaid?: number | null;
+      recordLimitCrossingDiscount?: boolean;
+    },
+    actorId: string,
+  ) {
+    const [teacher] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, teacherId), eq(users.role, 'TEACHER'), isNull(users.deletedAt)))
+      .limit(1);
+    if (!teacher) throw new NotFoundException('Teacher not found');
+
+    const [plan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, dto.planId))
+      .limit(1);
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    const durationDays = dto.durationDays ?? (dto.billingCycle === 'YEARLY' ? 365 : 30);
+    const pricePaid =
+      dto.pricePaid ??
+      (dto.currency === 'OMR'
+        ? dto.billingCycle === 'YEARLY'
+          ? plan.yearlyMonthlyPriceOmr * 12
+          : plan.monthlyPriceOmr
+        : dto.billingCycle === 'YEARLY'
+          ? plan.yearlyMonthlyPriceEgp * 12
+          : plan.monthlyPriceEgp);
+
+    const sub = await db.transaction(async (tx) => {
+      const [activeSub] = await tx
+        .select()
+        .from(teacherSubscriptions)
+        .where(
+          and(
+            eq(teacherSubscriptions.teacherId, teacherId),
+            gt(teacherSubscriptions.endsAt, sql`now()`),
+          ),
+        )
+        .orderBy(desc(teacherSubscriptions.endsAt))
+        .limit(1);
+
+      const now = new Date();
+      const baseTime =
+        activeSub?.endsAt && activeSub.endsAt.getTime() > now.getTime()
+          ? activeSub.endsAt.getTime()
+          : now.getTime();
+      const endsAt = new Date(baseTime + durationDays * 24 * 60 * 60 * 1000);
+
+      const [created] = await tx
+        .insert(teacherSubscriptions)
+        .values({
+          teacherId,
+          planId: plan.id,
+          planSlug: plan.slug,
+          tierRank: plan.tierRank,
+          planNameAr: plan.nameAr,
+          planNameEn: plan.nameEn,
+          pricePaid,
+          currency: dto.currency,
+          billingCycle: dto.billingCycle,
+          maxStudents: plan.maxStudents,
+          maxStorageBytes: plan.maxStorageBytes,
+          maxGroups: plan.maxGroups,
+          startsAt: now,
+          endsAt,
+          source: 'ADMIN_PAID',
+          giftsAppliedInCycle: 0,
+        })
+        .returning();
+
+      // Ensure teacher gets a referral code for paid subscription
+      await this.entitlements.ensureTeacherReferralCode(teacherId, tx);
+
+      if (dto.recordLimitCrossingDiscount) {
+        const occasion = `LIMIT_CROSS_${plan.slug.toUpperCase().replace(/-/g, '_')}`;
+        await tx.insert(teacherDiscounts).values({
+          teacherId,
+          occasion,
+          planSlug: plan.slug,
+          referenceId: created.id,
+          description: 'Admin limit-crossing discount assignment',
+        });
+      }
+
+      return created;
+    });
+
+    await this.audit(actorId, 'teacher.subscription.assign', 'teacher_subscription', sub.id, {
+      teacherId,
+      planId: plan.id,
+      planSlug: plan.slug,
+      billingCycle: dto.billingCycle,
+      currency: dto.currency,
+      pricePaid,
+      durationDays,
+      recordLimitCrossingDiscount: !!dto.recordLimitCrossingDiscount,
+    });
+
+    return sub;
+  }
+
+  async grantTeacherGift(
+    teacherId: string,
+    dto: {
+      planId: string;
+      durationDays: number;
+      adminOverride?: boolean;
+      note?: string;
+    },
+    actorId: string,
+  ) {
+    const [teacher] = await db
+      .select({ id: users.id, country: users.country })
+      .from(users)
+      .where(and(eq(users.id, teacherId), eq(users.role, 'TEACHER'), isNull(users.deletedAt)))
+      .limit(1);
+    if (!teacher) throw new NotFoundException('Teacher not found');
+
+    const [plan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, dto.planId))
+      .limit(1);
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    const currency = teacher.country === 'EG' ? 'EGP' : 'OMR';
+
+    const result = await db.transaction(async (tx) => {
+      const [activeSub] = await tx
+        .select()
+        .from(teacherSubscriptions)
+        .where(
+          and(
+            eq(teacherSubscriptions.teacherId, teacherId),
+            gt(teacherSubscriptions.endsAt, sql`now()`),
+          ),
+        )
+        .orderBy(desc(teacherSubscriptions.endsAt), desc(teacherSubscriptions.tierRank))
+        .limit(1);
+
+      if (!dto.adminOverride) {
+        if (activeSub) {
+          if (activeSub.planSlug === plan.slug) {
+            if (activeSub.source === 'ADMIN_PAID' && activeSub.giftsAppliedInCycle >= 1) {
+              throw new BadRequestException('Teacher has already applied a gift in this billing cycle');
+            }
+          } else {
+            const [savedCountRes] = await tx
+              .select({ count: sql<number>`count(*)::int` })
+              .from(teacherGifts)
+              .where(eq(teacherGifts.teacherId, teacherId));
+            if (Number(savedCountRes?.count ?? 0) >= 3) {
+              throw new BadRequestException('Maximum of 3 saved gifts reached');
+            }
+          }
+        }
+      }
+
+      let action: 'ACTIVATED' | 'EXTENDED' | 'SAVED';
+
+      if (!activeSub) {
+        action = 'ACTIVATED';
+        const now = new Date();
+        const endsAt = new Date(now.getTime() + dto.durationDays * 24 * 60 * 60 * 1000);
+        await tx.insert(teacherSubscriptions).values({
+          teacherId,
+          planId: plan.id,
+          planSlug: plan.slug,
+          tierRank: plan.tierRank,
+          planNameAr: plan.nameAr,
+          planNameEn: plan.nameEn,
+          pricePaid: 0,
+          currency,
+          billingCycle: 'TRIAL',
+          maxStudents: plan.maxStudents,
+          maxStorageBytes: plan.maxStorageBytes,
+          maxGroups: plan.maxGroups,
+          startsAt: now,
+          endsAt,
+          source: 'ADMIN_TRIAL',
+          giftsAppliedInCycle: 1,
+        });
+      } else if (activeSub.planSlug === plan.slug) {
+        action = 'EXTENDED';
+        const baseTime =
+          activeSub.endsAt && activeSub.endsAt.getTime() > Date.now()
+            ? activeSub.endsAt.getTime()
+            : Date.now();
+        const newEndsAt = new Date(baseTime + dto.durationDays * 24 * 60 * 60 * 1000);
+        await tx
+          .update(teacherSubscriptions)
+          .set({
+            endsAt: newEndsAt,
+            giftsAppliedInCycle: activeSub.giftsAppliedInCycle + 1,
+          })
+          .where(eq(teacherSubscriptions.id, activeSub.id));
+      } else {
+        if (dto.adminOverride) {
+          action = 'ACTIVATED';
+          const now = new Date();
+          const baseTime =
+            activeSub.endsAt && activeSub.endsAt.getTime() > now.getTime()
+              ? activeSub.endsAt.getTime()
+              : now.getTime();
+          const endsAt = new Date(baseTime + dto.durationDays * 24 * 60 * 60 * 1000);
+          await tx.insert(teacherSubscriptions).values({
+            teacherId,
+            planId: plan.id,
+            planSlug: plan.slug,
+            tierRank: plan.tierRank,
+            planNameAr: plan.nameAr,
+            planNameEn: plan.nameEn,
+            pricePaid: 0,
+            currency,
+            billingCycle: 'TRIAL',
+            maxStudents: plan.maxStudents,
+            maxStorageBytes: plan.maxStorageBytes,
+            maxGroups: plan.maxGroups,
+            startsAt: now,
+            endsAt,
+            source: 'ADMIN_TRIAL',
+            giftsAppliedInCycle: 1,
+          });
+        } else {
+          action = 'SAVED';
+          await tx.insert(teacherGifts).values({
+            teacherId,
+            planId: plan.id,
+            planSlug: plan.slug,
+            tierRank: plan.tierRank,
+            planNameAr: plan.nameAr,
+            planNameEn: plan.nameEn,
+            durationDays: dto.durationDays,
+            source: 'ADMIN_TRIAL',
+            sourceRef: dto.note || null,
+          });
+        }
+      }
+
+      await tx.insert(teacherDiscounts).values({
+        teacherId,
+        occasion: 'ADMIN_TRIAL',
+        planSlug: plan.slug,
+        description:
+          dto.note ||
+          `Admin granted ${dto.durationDays} gift days (${dto.adminOverride ? 'Override' : 'Standard'})`,
+      });
+
+      return {
+        success: true,
+        action,
+        planNameAr: plan.nameAr,
+        planNameEn: plan.nameEn,
+        durationDays: dto.durationDays,
+      };
+    });
+
+    await this.audit(actorId, 'teacher.gift.grant', 'user', teacherId, {
+      planId: plan.id,
+      planSlug: plan.slug,
+      durationDays: dto.durationDays,
+      adminOverride: !!dto.adminOverride,
+      note: dto.note,
+    });
+
+    return result;
   }
 }

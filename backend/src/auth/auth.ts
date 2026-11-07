@@ -50,12 +50,15 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: { type: 'string', defaultValue: 'STUDENT', input: true },
+      country: { type: 'string', defaultValue: 'OM', input: true },
+      courseFocus: { type: 'string', defaultValue: 'ACADEMIC', input: true },
       phoneNumber: { type: 'string', required: false, input: true },
       gradeId: { type: 'string', required: false, input: true },
       subjectCategoryId: { type: 'string', required: false, input: true },
       landingSlug: { type: 'string', required: false, input: false },
       isActive: { type: 'boolean', defaultValue: true, input: false },
       mustChangePassword: { type: 'boolean', defaultValue: false, input: false },
+      monitoringCode: { type: 'string', required: false, input: true },
     },
   },
 });

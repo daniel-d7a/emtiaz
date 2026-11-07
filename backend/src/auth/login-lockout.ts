@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { normalizePhone } from '../lib/phone';
 
 type Attempt = { count: number; firstAt: number; lockedUntil: number };
 type LockState = { locked: boolean; retryAfterSec: number };
@@ -38,23 +39,23 @@ export class LoginLockout {
     this.now = opts.now ?? Date.now;
   }
 
-  check(email: string): LockState {
-    const key = normalizeEmail(email);
-    const a = this.attempts.get(key);
+  check(key: string): LockState {
+    const norm = normalizeIdentifier(key);
+    const a = this.attempts.get(norm);
     if (!a) return { locked: false, retryAfterSec: 0 };
     if (a.lockedUntil > this.now()) {
       return { locked: true, retryAfterSec: Math.ceil((a.lockedUntil - this.now()) / 1000) };
     }
-    if (a.lockedUntil && a.lockedUntil <= this.now()) this.attempts.delete(key);
+    if (a.lockedUntil && a.lockedUntil <= this.now()) this.attempts.delete(norm);
     return { locked: false, retryAfterSec: 0 };
   }
 
-  recordFailure(email: string): void {
-    const key = normalizeEmail(email);
+  recordFailure(key: string): void {
+    const norm = normalizeIdentifier(key);
     const now = this.now();
-    const a = this.attempts.get(key);
+    const a = this.attempts.get(norm);
     if (!a || now - a.firstAt > this.windowMs) {
-      this.attempts.set(key, {
+      this.attempts.set(norm, {
         count: 1,
         firstAt: now,
         lockedUntil: this.max <= 1 ? now + this.lockMs : 0,
@@ -65,8 +66,8 @@ export class LoginLockout {
     if (a.count >= this.max) a.lockedUntil = now + this.lockMs;
   }
 
-  reset(email: string): void {
-    this.attempts.delete(normalizeEmail(email));
+  reset(key: string): void {
+    this.attempts.delete(normalizeIdentifier(key));
   }
 }
 
@@ -107,28 +108,38 @@ export class RedisLoginLockout {
     await this.redis.del(this.lockKey(email));
   }
 
-  private failKey(email: string) {
-    return `login:fail:${normalizeEmail(email)}`;
+  private failKey(key: string) {
+    return `login:fail:${normalizeIdentifier(key)}`;
   }
 
-  private lockKey(email: string) {
-    return `login:lock:${normalizeEmail(email)}`;
+  private lockKey(key: string) {
+    return `login:lock:${normalizeIdentifier(key)}`;
   }
 }
 
-export const normalizeEmail = (email: unknown) =>
-  typeof email === 'string' ? email.trim().toLowerCase() : '';
+export const normalizeIdentifier = (input: unknown): string => {
+  if (typeof input !== 'string') return '';
+  const trimmed = input.trim();
+  if (trimmed.includes('@')) {
+    return trimmed.toLowerCase();
+  }
+  const phone = normalizePhone(trimmed);
+  return phone || trimmed.toLowerCase();
+};
+
+export const normalizeEmail = normalizeIdentifier;
 
 /** Express middleware: reject locked accounts and record the outcome of each attempt. */
 export function loginLockoutMiddleware(lockout: LockoutStore) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== 'POST' || !req.path.startsWith('/sign-in')) return next();
-    const email = normalizeEmail((req.body as { email?: unknown } | undefined)?.email);
-    if (!email) return next();
+    const body = req.body as { email?: unknown; phoneNumber?: unknown; phone?: unknown } | undefined;
+    const identifier = normalizeIdentifier(body?.email ?? body?.phoneNumber ?? body?.phone);
+    if (!identifier) return next();
 
     let state: LockState;
     try {
-      state = await lockout.check(email);
+      state = await lockout.check(identifier);
     } catch {
       return next(); // Redis down: keep serving, IP throttling still applies
     }
@@ -140,9 +151,9 @@ export function loginLockoutMiddleware(lockout: LockoutStore) {
     res.on('finish', () => {
       const action =
         res.statusCode >= 400
-          ? lockout.recordFailure(email)
+          ? lockout.recordFailure(identifier)
           : res.statusCode < 300
-            ? lockout.reset(email)
+            ? lockout.reset(identifier)
             : undefined;
       Promise.resolve(action).catch(() => {});
     });

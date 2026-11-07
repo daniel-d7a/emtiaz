@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthGuard } from './auth/auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { TeacherEntitlementsGuard } from './auth/teacher-entitlements.guard';
 import { AdminPermissionGuard } from './modules/admin/admin-permission.guard';
 import { AppThrottlerGuard } from './auth/throttler.guard';
 import { RedisThrottlerStorage } from './auth/redis-throttler.storage';
@@ -43,6 +44,7 @@ import { DatabaseLifecycle } from './db';
     { provide: APP_GUARD, useClass: AppThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: TeacherEntitlementsGuard },
     { provide: APP_GUARD, useClass: AdminPermissionGuard },
   ],
 })

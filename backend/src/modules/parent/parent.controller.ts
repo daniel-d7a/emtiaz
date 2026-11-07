@@ -12,7 +12,7 @@ export class ParentController {
   @Post('api/parent/link')
   @Roles('PARENT')
   link(@Req() req: Request, @Body(new ZodBodyPipe(ParentLinkDto)) dto: z.infer<typeof ParentLinkDto>) {
-    return this.parents.linkByPhone(req.user!.id, dto.phoneNumber);
+    return this.parents.linkByCode(req.user!.id, dto.monitoringCode);
   }
 
   @Get('api/parent/students')

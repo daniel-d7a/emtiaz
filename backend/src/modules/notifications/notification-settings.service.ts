@@ -47,6 +47,9 @@ export class NotificationSettingsService {
         | 'primaryColor'
         | 'secondaryColor'
         | 'logoUrl'
+        | 'yearlyPlanDiscountEnabled'
+        | 'referralPlanSlug'
+        | 'referralGiftDays'
       >
     >,
   ) {

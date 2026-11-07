@@ -39,12 +39,45 @@ import {
   UpdateLessonDto,
   UpdateModuleDto,
   UpsertQuizDto,
+  RedeemCodeDto,
+  RedeemCodeSchema,
 } from '../../lib/schemas';
 import { TeacherService } from './teacher.service';
+import { TeacherEntitlementsService } from './teacher-entitlements.service';
 
 @Controller()
 export class TeacherController {
-  constructor(private teachers: TeacherService) {}
+  constructor(
+    private teachers: TeacherService,
+    private entitlements: TeacherEntitlementsService,
+  ) {}
+
+  @Get('api/teacher/entitlements')
+  @Roles('TEACHER')
+  getEntitlements(@Req() req: Request) {
+    return this.entitlements.getEntitlements(req.user!.id);
+  }
+
+  @Post('api/teacher/entitlements/redeem-code')
+  @Roles('TEACHER')
+  redeemCode(
+    @Req() req: Request,
+    @Body(new ZodBodyPipe(RedeemCodeSchema)) dto: RedeemCodeDto,
+  ) {
+    return this.entitlements.redeemCode(req.user!.id, dto.code);
+  }
+
+  @Post('api/teacher/entitlements/gifts/:id/activate')
+  @Roles('TEACHER')
+  activateGift(@Req() req: Request, @Param('id') id: string) {
+    return this.entitlements.activateSavedGift(req.user!.id, id);
+  }
+
+  @Delete('api/teacher/entitlements/gifts/:id')
+  @Roles('TEACHER')
+  deleteGift(@Req() req: Request, @Param('id') id: string) {
+    return this.entitlements.deleteSavedGift(req.user!.id, id);
+  }
 
   // ---------- Courier: courses & curriculum ----------
 
@@ -52,6 +85,12 @@ export class TeacherController {
   @Roles('TEACHER')
   stats(@Req() req: Request) {
     return this.teachers.homeStats(req.user!.id);
+  }
+
+  @Get('api/teacher/grades')
+  @Roles('TEACHER')
+  grades(@Req() req: Request, @Query('country') country?: string) {
+    return this.teachers.listGrades(req.user!.id, country);
   }
 
   @Get('api/teacher/courses')

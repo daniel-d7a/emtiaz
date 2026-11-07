@@ -15,13 +15,17 @@ import {
 } from '../../db/schema';
 import { Roles } from '../../auth/roles.decorator';
 import { StorageService } from './storage.service';
+import { TeacherEntitlementsService } from '../teacher/teacher-entitlements.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { serializeAttachment } from '../../lib/serializers';
 
 @Controller()
 @Injectable()
 export class StorageController {
-  constructor(private storage: StorageService) {}
+  constructor(
+    private storage: StorageService,
+    private entitlementsService: TeacherEntitlementsService,
+  ) {}
 
   @Roles('TEACHER')
   @Post('api/storage/presigned-upload')
@@ -33,6 +37,9 @@ export class StorageController {
     const course = await this.teacherCourse(req.user!, dto.lessonId);
     if (course.id !== dto.courseId) {
       throw new ForbiddenException('Lesson/course mismatch');
+    }
+    if (dto.fileSizeBytes && dto.fileSizeBytes > 0) {
+      await this.entitlementsService.assertCanUploadStorage(req.user!.id, dto.fileSizeBytes);
     }
     const objectKey = StorageService.buildObjectKey(dto.courseId, dto.lessonId, dto.fileName);
     const uploadUrl = await this.storage.presignedPut(objectKey);
@@ -84,7 +91,7 @@ export class StorageController {
     return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
   }
 
-  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
   @Post('api/storage/avatar')
   async avatarUpload(
     @Req() req: Request,
@@ -95,7 +102,7 @@ export class StorageController {
     return { objectKey, uploadUrl: await this.storage.presignedPut(objectKey) };
   }
 
-  @Roles('TEACHER', 'STUDENT', 'ADMIN')
+  @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
   @Delete('api/storage/uploaded')
   async deleteUploaded(
     @Req() req: Request,
@@ -128,6 +135,9 @@ export class StorageController {
     dto: z.infer<typeof AttachDto>,
   ) {
     const course = await this.teacherCourse(req.user!, dto.lessonId);
+    if (dto.fileSizeBytes && dto.fileSizeBytes > 0) {
+      await this.entitlementsService.assertCanUploadStorage(req.user!.id, dto.fileSizeBytes);
+    }
     if (dto.objectKey) {
       const prefix = `courses/${course.id}/lessons/${dto.lessonId}/`;
       if (!dto.objectKey.startsWith(prefix)) {
