@@ -6,6 +6,8 @@ export { EmptyState } from './EmptyState';
 export { ErrorBox } from './ErrorBox';
 export { FilterLayout } from './FilterLayout';
 export { IconButton } from './IconButton';
+export { InfoHint } from './InfoHint';
+export type { InfoHintProps, InfoHintStep } from './InfoHint';
 export { Input } from './Input';
 export { Loading } from './Loading';
 export { Page } from './Page';

@@ -616,6 +616,7 @@ type QuestionForm = {
   correctIndex: number | null;
   correctBool: 'true' | 'false' | '';
   modelAnswer: string;
+  points?: number;
 };
 
 const blankQuestion = (): QuestionForm => ({
@@ -627,6 +628,7 @@ const blankQuestion = (): QuestionForm => ({
   correctIndex: null,
   correctBool: '',
   modelAnswer: '',
+  points: 1,
 });
 
 const formQuestion = (q: QuizQuestionData): QuestionForm => ({
@@ -646,6 +648,7 @@ const formQuestion = (q: QuizQuestionData): QuestionForm => ({
         : 'true'
       : '',
   modelAnswer: q.questionType === 'WRITTEN' ? q.correctAnswer : '',
+  points: q.points,
 });
 
 function QuizOrderButtons({ courseId, quizId, canUp, canDown }: {
@@ -703,6 +706,7 @@ function QuizBuilder({ courseId, targetType, targetId, existing }: {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [confirmEdit, setConfirmEdit] = useState(false);
   const [title, setTitle] = useState('');
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [err, setErr] = useState<Error | null>(null);
@@ -734,7 +738,7 @@ function QuizBuilder({ courseId, targetType, targetId, existing }: {
               : q.questionType === 'WRITTEN'
                 ? q.modelAnswer.trim()
                 : q.correctBool,
-          points: 1,
+          points: q.points ?? (q.questionType === 'WRITTEN' ? 10 : 1),
         })),
       };
       return existing
@@ -785,7 +789,11 @@ function QuizBuilder({ courseId, targetType, targetId, existing }: {
       return;
     }
     setErr(null);
-    upsert.mutate();
+    if (existing) {
+      setConfirmEdit(true);
+    } else {
+      upsert.mutate();
+    }
   };
 
   const uploadImage = async (qi: number, file: File) => {
@@ -883,14 +891,16 @@ function QuizBuilder({ courseId, targetType, targetId, existing }: {
               <Select
                 label={t('question')}
                 value={q.questionType}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const newType = e.target.value as QuestionForm['questionType'];
                   update(qi, {
-                    questionType: e.target.value as QuestionForm['questionType'],
+                    questionType: newType,
                     correctIndex: null,
                     correctBool: '',
                     modelAnswer: '',
-                  })
-                }
+                    points: newType === 'WRITTEN' ? 10 : 1,
+                  });
+                }}
               >
                 <option value="MCQ">{t('mcq')}</option>
                 <option value="TRUE_FALSE">{t('trueFalse')}</option>
@@ -981,15 +991,25 @@ function QuizBuilder({ courseId, targetType, targetId, existing }: {
                   )}
                 </div>
               ) : q.questionType === 'WRITTEN' ? (
-                <label className="block">
-                  <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('modelAnswer')}</span>
-                  <textarea
-                    className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
-                    rows={2}
-                    value={q.modelAnswer}
-                    onChange={(e) => update(qi, { modelAnswer: e.target.value })}
+                <div className="flex flex-col gap-2">
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('modelAnswer')}</span>
+                    <textarea
+                      className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none focus:border-primary"
+                      rows={2}
+                      value={q.modelAnswer}
+                      onChange={(e) => update(qi, { modelAnswer: e.target.value })}
+                    />
+                  </label>
+                  <Input
+                    label={t('points')}
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={q.points ?? 10}
+                    onChange={(e) => update(qi, { points: Math.max(1, parseInt(e.target.value) || 10) })}
                   />
-                </label>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {(['true', 'false'] as const).map((value) => (
@@ -1025,6 +1045,19 @@ function QuizBuilder({ courseId, targetType, targetId, existing }: {
         cancelLabel={t('cancel')}
         destructive
         onConfirm={() => remove.mutate()}
+      />
+      <ConfirmDialog
+        open={confirmEdit}
+        onOpenChange={setConfirmEdit}
+        title={t('confirmEditQuizTitle')}
+        description={t('confirmEditQuizBody')}
+        confirmLabel={t('confirm')}
+        cancelLabel={t('cancel')}
+        destructive
+        onConfirm={() => {
+          setConfirmEdit(false);
+          upsert.mutate();
+        }}
       />
     </>
   );

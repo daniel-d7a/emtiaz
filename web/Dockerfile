@@ -7,6 +7,7 @@ RUN npm ci --legacy-peer-deps
 COPY frontend/vite.config.ts frontend/index.html frontend/tsconfig.json ./
 COPY frontend/public ./public
 COPY frontend/src ./src
+COPY shared /shared
 RUN npx vite build
 
 # ---------- runtime ----------

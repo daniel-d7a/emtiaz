@@ -1,6 +1,10 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { Button, ConfirmDialog, ErrorBox, Input, Progress } from './ui';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { Button, ConfirmDialog, ErrorBox, InfoHint, Input, Progress, Select } from './ui';
+import { OnboardingGuide } from './OnboardingGuide';
+import { LanguageProvider } from '../lib/i18n';
 
 afterEach(cleanup);
 
@@ -32,6 +36,32 @@ describe('UI primitives', () => {
     expect(bar.getAttribute('aria-valuenow')).toBe('42');
     expect(bar.getAttribute('aria-valuemax')).toBe('100');
   });
+
+  it('Select forwards ref and preserves value with react-hook-form on blur/change', () => {
+    function TestForm() {
+      const { register, watch } = useForm<{ courseType: 'ACADEMIC' | 'GENERAL' }>({
+        defaultValues: { courseType: 'ACADEMIC' },
+      });
+      const type = watch('courseType');
+      return (
+        <div>
+          <Select label="Course type" {...register('courseType')}>
+            <option value="ACADEMIC">Academic</option>
+            <option value="GENERAL">General</option>
+          </Select>
+          <span data-testid="watched-type">{type}</span>
+        </div>
+      );
+    }
+
+    render(<TestForm />);
+    const select = screen.getByLabelText('Course type');
+    expect(screen.getByTestId('watched-type').textContent).toBe('ACADEMIC');
+    fireEvent.blur(select);
+    expect(screen.getByTestId('watched-type').textContent).toBe('ACADEMIC');
+    fireEvent.change(select, { target: { value: 'GENERAL' } });
+    expect(screen.getByTestId('watched-type').textContent).toBe('GENERAL');
+  });
 });
 
 describe('ConfirmDialog', () => {
@@ -57,5 +87,114 @@ describe('ConfirmDialog', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(confirmed).toBe(true);
+  });
+});
+
+describe('InfoHint', () => {
+  it('opens a simple 1-sentence hint dialog when clicked and closes on Got it', () => {
+    render(
+      <InfoHint
+        title="Pacing explained"
+        hint="Unlock lessons all at once or week by week for your cohort."
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'Pacing explained' });
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('Pacing explained')).toBeTruthy();
+    expect(screen.getByText('Unlock lessons all at once or week by week for your cohort.')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'حسناً' }));
+    expect(screen.queryByText('Unlock lessons all at once or week by week for your cohort.')).toBeNull();
+  });
+
+  it('steps through a multi-step onboarding modal and closes on the final step', () => {
+    render(
+      <InfoHint
+        title="Courses vs. Groups"
+        steps={[
+          { title: 'Step 1: Master Course', body: 'Build your curriculum once.' },
+          { title: 'Step 2: Student Cohorts', body: 'Create multiple groups per course.' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Courses vs. Groups' }));
+
+    expect(screen.getByText('Step 1: Master Course')).toBeTruthy();
+    expect(screen.getByText('Build your curriculum once.')).toBeTruthy();
+    expect(screen.getByText('1 / 2')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'التالي' }));
+
+    expect(screen.getByText('Step 2: Student Cohorts')).toBeTruthy();
+    expect(screen.getByText('Create multiple groups per course.')).toBeTruthy();
+    expect(screen.getByText('2 / 2')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'السابق' }));
+    expect(screen.getByText('Step 1: Master Course')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'التالي' }));
+    fireEvent.click(screen.getByRole('button', { name: 'حسناً' }));
+
+    expect(screen.queryByText('Step 2: Student Cohorts')).toBeNull();
+  });
+});
+
+describe('OnboardingGuide', () => {
+  it('auto-opens the 3-step welcome tour on first visit and calls PATCH /api/me when finished', async () => {
+    localStorage.clear();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/api/me') && (!init?.method || init.method === 'GET')) {
+        return new Response(
+          JSON.stringify({
+            user: { id: 'teacher-1', name: 'Salim', role: 'TEACHER', onboardingCompletedAt: null },
+            onboardingCompletedAt: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.endsWith('/api/me') && init?.method === 'PATCH') {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response('{}', { status: 200 });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <LanguageProvider>
+        <QueryClientProvider client={qc}>
+          <OnboardingGuide role="STUDENT" completedSteps={[true, false, false]} />
+        </QueryClientProvider>
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText('كيف أبدأ؟')).toBeTruthy();
+    expect(screen.getByText('1/3')).toBeTruthy();
+
+    await waitFor(() => {
+      expect(screen.getByText('مرحباً بك في منصة امتياز')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'التالي' }));
+    fireEvent.click(screen.getByRole('button', { name: 'التالي' }));
+    fireEvent.click(screen.getByRole('button', { name: 'حسناً' }));
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining('/api/me'),
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ onboardingCompleted: true }),
+        }),
+      );
+    });
+
+    fetchSpy.mockRestore();
   });
 });

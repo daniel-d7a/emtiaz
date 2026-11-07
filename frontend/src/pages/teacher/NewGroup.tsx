@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
-import { useLang } from '../../lib/i18n';
+import { getWeekdayOptions, serializeDays, useLang, type WeekdayKey } from '../../lib/i18n';
 import { normalizePhone } from '../../lib/phone';
 import { Button, Card, ErrorBox, Input, Page } from '../../components/ui';
 import type { Group } from '../../../../shared/api';
@@ -21,19 +21,13 @@ export default function NewGroup() {
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [time, setTime] = useState('');
-  const [days, setDays] = useState<string[]>([]);
+  const [days, setDays] = useState<WeekdayKey[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([{ name: '', phone: '' }]);
   const [error, setError] = useState<Error | null>(null);
 
-  const dayOptions = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(2024, 0, 7 + index);
-    return {
-      value: new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(date),
-      label: new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(date),
-    };
-  });
+  const dayOptions = getWeekdayOptions(lang);
 
-  const toggleDay = (day: string) =>
+  const toggleDay = (day: WeekdayKey) =>
     setDays((current) =>
       current.includes(day) ? current.filter((item) => item !== day) : [...current, day],
     );
@@ -56,7 +50,7 @@ export default function NewGroup() {
         body: {
           name,
           time: time.trim() || null,
-          days: days.length ? days.join(', ') : null,
+          days: serializeDays(days),
           students: rows.map((student) => ({
             name: student.name.trim(),
             phoneNumber: normalizePhone(student.phone),
@@ -89,7 +83,7 @@ export default function NewGroup() {
         <Card>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input label={t('newGroup')} value={name} onChange={(e) => setName(e.target.value)} />
-            <Input label={t('time')} value={time} onChange={(e) => setTime(e.target.value)} placeholder="4:00 PM" />
+            <Input label={t('time')} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
           <p className="mt-2 text-xs text-ink-soft">{t('groupNameFallback')}</p>
           <fieldset className="mt-4">

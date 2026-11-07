@@ -62,7 +62,7 @@ const createSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(8),
   phoneNumber: phoneRule,
-  studentPhone: z.string().trim().refine((v) => !v || /^[+\d\s()-]+$/.test(v)),
+  monitoringCode: z.string().trim().refine((v) => !v || v.length === 8).optional(),
 });
 type CreateValues = z.infer<typeof createSchema>;
 
@@ -348,13 +348,13 @@ function CreateParentDialog({ onClose, onCreated }: { onClose: () => void; onCre
   const { t } = useLang();
   const { register, handleSubmit, formState: { errors } } = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { name: '', email: '', password: '', phoneNumber: '', studentPhone: '' },
+    defaultValues: { name: '', email: '', password: '', phoneNumber: '', monitoringCode: '' },
   });
   const create = useMutation({
     mutationFn: (values: CreateValues) => api('/api/admin/parents', {
       body: {
         ...values,
-        studentPhone: values.studentPhone || undefined,
+        monitoringCode: values.monitoringCode?.trim().toUpperCase() || undefined,
       },
     }),
     onSuccess: () => {
@@ -383,11 +383,12 @@ function CreateParentDialog({ onClose, onCreated }: { onClose: () => void; onCre
           <Input label={t('password')} type="password" error={errors.password && t('passwordMin')} {...register('password')} />
           <Input label={t('phone')} dir="ltr" error={errors.phoneNumber && t('phoneInvalid')} {...register('phoneNumber')} />
           <Input
-            label={t('studentPhoneOptional')}
+            label={t('studentMonitoringCodeOptional')}
             dir="ltr"
-            placeholder={t('phoneExample')}
-            error={errors.studentPhone && t('phoneInvalid')}
-            {...register('studentPhone')}
+            maxLength={8}
+            placeholder={t('monitoringCodePlaceholder')}
+            error={errors.monitoringCode && t('monitoringCodeInvalid')}
+            {...register('monitoringCode')}
           />
           {create.error && <ErrorBox error={create.error} />}
         </div>

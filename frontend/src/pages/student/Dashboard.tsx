@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { formatDateTime, localizeName, useLang } from '../../lib/i18n';
 import { useSession } from '../../lib/session';
-import { Button, Card, EmptyState, ErrorBox, Input, Loading, Page, Progress, StatCard } from '../../components/ui';
+import { Button, Card, EmptyState, ErrorBox, InfoHint, Input, Loading, Page, Progress, StatCard } from '../../components/ui';
+import { OnboardingGuide } from '../../components/OnboardingGuide';
 import type { InboxItem, StudentHome } from '../../../../shared/api';
 
 export default function StudentDashboard() {
@@ -41,6 +42,14 @@ export default function StudentDashboard() {
 
   return (
     <Page title={`${t('welcome')} ${session?.user.name ?? ''}`}>
+      <OnboardingGuide
+        role="STUDENT"
+        completedSteps={[
+          (stats?.activeGroups ?? 0) > 0,
+          (stats?.activeGroups ?? 0) > 0,
+          (stats?.lessonsDone ?? 0) > 0,
+        ]}
+      />
       {home.isLoading ? <Loading /> : home.error ? <ErrorBox error={home.error} /> : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -104,7 +113,17 @@ export default function StudentDashboard() {
       )}
 
       <Card>
-        <h2 className="mb-3 text-lg font-bold">{t('joinClass')}</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-bold">{t('joinClass')}</h2>
+          <InfoHint
+            title={t('hintStudentJoinTitle')}
+            steps={[
+              { title: t('hintStudentJoinStep1Title'), body: t('hintStudentJoinStep1Body') },
+              { title: t('hintStudentJoinStep2Title'), body: t('hintStudentJoinStep2Body') },
+              { title: t('hintStudentJoinStep3Title'), body: t('hintStudentJoinStep3Body') },
+            ]}
+          />
+        </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="grow">
             <Input

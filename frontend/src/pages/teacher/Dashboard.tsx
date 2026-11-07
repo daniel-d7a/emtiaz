@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { deleteUploadedObject } from '../../lib/upload';
 import { useLang } from '../../lib/i18n';
-import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, Input, Loading, Page, StatCard } from '../../components/ui';
+import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, InfoHint, Input, Loading, Page, StatCard } from '../../components/ui';
 import type { MeResponse, PresignedUpload, TeacherCourse as Course, TeacherStats } from '../../../../shared/api';
 import { ThemeStrip, ThemeSurface } from '../../components/TeacherTheme';
+import { OnboardingGuide } from '../../components/OnboardingGuide';
 
 export default function TeacherDashboard() {
   const { t } = useLang();
@@ -40,6 +41,15 @@ export default function TeacherDashboard() {
       <ThemeSurface theme={me?.user.landingTheme}>
         <ThemeStrip theme={me?.user.landingTheme} bannerUrl={me?.bannerUrl ?? null} />
 
+        <OnboardingGuide
+          role="TEACHER"
+          completedSteps={[
+            (stats?.curricula ?? 0) > 0,
+            (stats?.groups ?? 0) > 0,
+            (stats?.uniqueStudents ?? 0) > 0,
+          ]}
+        />
+
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard label={t('curricula')} value={stats?.curricula ?? 0} />
           <StatCard label={t('groups')} value={stats?.groups ?? 0} />
@@ -47,7 +57,17 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">{t('courses')}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">{t('courses')}</h2>
+            <InfoHint
+              title={t('hintCoursesVsGroupsTitle')}
+              steps={[
+                { title: t('hintCoursesVsGroupsStep1Title'), body: t('hintCoursesVsGroupsStep1Body') },
+                { title: t('hintCoursesVsGroupsStep2Title'), body: t('hintCoursesVsGroupsStep2Body') },
+                { title: t('hintCoursesVsGroupsStep3Title'), body: t('hintCoursesVsGroupsStep3Body') },
+              ]}
+            />
+          </div>
           <Button onClick={() => navigate({ to: '/teacher/courses/new' })}>
             <Plus className="inline" size={18} /> {t('newCourse')}
           </Button>

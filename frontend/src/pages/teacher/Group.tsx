@@ -9,8 +9,8 @@ import {
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
-import { formatDateTime, useLang } from '../../lib/i18n';
-import { Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, Input, Loading, Page, Progress, Select } from '../../components/ui';
+import { formatDateTime, getWeekdayOptions, parseDays, serializeDays, useLang, type WeekdayKey } from '../../lib/i18n';
+import { Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconButton, InfoHint, Input, Loading, Page, Progress, Select } from '../../components/ui';
 import { toCsv } from '../../lib/csv';
 import type {
   Group,
@@ -293,7 +293,10 @@ export function PacingTab({ groupId }: { groupId: string }) {
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-bold">{t('lessons')}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold">{t('lessons')}</h3>
+            <InfoHint title={t('hintPacingTitle')} hint={t('hintPacingBody')} />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" className="!min-h-9 !px-3" onClick={() => flipAll.mutate(true)} disabled={flipAll.isPending}>
               <Unlock className="inline" size={15} /> {t('releaseAll')}
@@ -510,6 +513,7 @@ export function GradebookTab({ groupId }: { groupId: string }) {
               placeholder={t('roster')}
             />
           </div>
+          <InfoHint title={t('hintGradebookTitle')} hint={t('hintGradebookBody')} />
           <Button variant="ghost" onClick={exportCsv}>
             <Download className="inline" size={16} /> {t('exportCsv')}
           </Button>
@@ -684,10 +688,10 @@ function QuizSubmissionsDialog({ groupId, quizId, title, onClose }: {
                   <p className="text-sm text-ink-soft">{submission.answers[question.id] || t('notAnswered')}</p>
                   {question.questionType === 'WRITTEN' && (
                     <Input
-                      label={t('gradeOutOfTen')}
+                      label={`${t('grade')} (0 - ${question.points ?? 10})`}
                       type="number"
                       min={0}
-                      max={10}
+                      max={question.points ?? 10}
                       value={values[question.id] ?? ''}
                       onChange={(e) =>
                         setGrades((current) => ({
@@ -1132,6 +1136,14 @@ export function EntryCodesTab({ groupId }: { groupId: string }) {
       <Card>
         <h3 className="flex items-center gap-2 font-bold">
           <KeyRound size={18} /> {t('entryCodes')}
+          <InfoHint
+            title={t('hintEntryCodesTitle')}
+            steps={[
+              { title: t('hintEntryCodesStep1Title'), body: t('hintEntryCodesStep1Body') },
+              { title: t('hintEntryCodesStep2Title'), body: t('hintEntryCodesStep2Body') },
+              { title: t('hintEntryCodesStep3Title'), body: t('hintEntryCodesStep3Body') },
+            ]}
+          />
         </h3>
         <p className="mt-1 text-sm text-ink-soft">{t('entryCodeHint')}</p>
         <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -1257,22 +1269,27 @@ export function SettingsTab({ groupId }: { groupId: string }) {
 }
 
 function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const [name, setName] = useState(group.name);
-  const [days, setDays] = useState(group.days ?? '');
+  const [days, setDays] = useState<WeekdayKey[]>(() => parseDays(group.days));
   const [time, setTime] = useState(group.time ?? '');
   const [joinCode, setJoinCode] = useState(group.joinCode);
   const [whatsappMessage, setWhatsappMessage] = useState(group.whatsappMessage ?? '');
   const [isActive, setIsActive] = useState(group.isActive);
   const [requiresEntryCode, setRequiresEntryCode] = useState(group.requiresEntryCode);
+  const dayOptions = getWeekdayOptions(lang);
+  const toggleDay = (day: WeekdayKey) =>
+    setDays((current) =>
+      current.includes(day) ? current.filter((item) => item !== day) : [...current, day],
+    );
   const save = useMutation({
     mutationFn: () =>
       api<Group>(`/api/teacher/groups/${groupId}`, {
         method: 'PATCH',
         body: {
           name,
-          days: days.trim() || null,
+          days: serializeDays(days),
           time: time.trim() || null,
           joinCode: joinCode.trim(),
           whatsappMessage: whatsappMessage.trim() || null,
@@ -1294,8 +1311,7 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
       <h3 className="font-bold">{t('settings')}</h3>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
-        <Input label={t('days')} value={days} onChange={(e) => setDays(e.target.value)} />
-        <Input label={t('time')} value={time} onChange={(e) => setTime(e.target.value)} />
+        <Input label={t('time')} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         <Select label={t('status')} value={isActive ? 'active' : 'suspended'} onChange={(e) => setIsActive(e.target.value === 'active')}>
           <option value="active">{t('active')}</option>
           <option value="suspended">{t('suspended')}</option>
@@ -1307,6 +1323,29 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
           dir="ltr"
         />
       </div>
+      <fieldset className="mt-4">
+        <legend className="mb-2 text-sm font-semibold text-ink-soft">{t('days')}</legend>
+        <div className="flex flex-wrap gap-2">
+          {dayOptions.map((day) => (
+            <label
+              key={day.value}
+              className={`flex min-h-10 cursor-pointer items-center rounded-xl border px-3 text-sm font-semibold ${
+                days.includes(day.value)
+                  ? 'border-primary bg-primary-light text-primary-dark'
+                  : 'border-line text-ink-soft'
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={days.includes(day.value)}
+                onChange={() => toggleDay(day.value)}
+              />
+              {day.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-ink-soft">
         <input
           type="checkbox"
@@ -1314,7 +1353,15 @@ function GroupSettingsForm({ group, groupId }: { group: Group; groupId: string }
           onChange={(e) => setRequiresEntryCode(e.target.checked)}
           className="size-4 accent-primary"
         />
-        {t('requiresEntryCode')}
+        <span>{t('requiresEntryCode')}</span>
+        <InfoHint
+          title={t('hintEntryCodesTitle')}
+          steps={[
+            { title: t('hintEntryCodesStep1Title'), body: t('hintEntryCodesStep1Body') },
+            { title: t('hintEntryCodesStep2Title'), body: t('hintEntryCodesStep2Body') },
+            { title: t('hintEntryCodesStep3Title'), body: t('hintEntryCodesStep3Body') },
+          ]}
+        />
       </label>
       <p className="mt-2 text-xs text-ink-soft">{t('groupNameFallback')}</p>
       <label className="mt-3 block">

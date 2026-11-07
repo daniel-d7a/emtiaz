@@ -36,7 +36,7 @@
       <div class="nav-links" id="nav-links">
         <a class="navlink" href="#tools" data-t="nav_tools">الأدوات</a>
         <a class="navlink" href="#workflow" data-t="nav_workflow">كيف تعمل</a>
-        <a class="navlink" href="./#pricing" data-t="nav_pricing">الأسعار</a>
+        <a class="navlink" href="#pricing" data-t="nav_pricing">الأسعار</a>
         <button class="btn langbtn" id="lang" type="button" onclick="toggleLang()">English</button>
         <a class="btn btn-outline" id="cta-login" data-t="cta_login">تسجيل الدخول</a>
         <a class="btn btn-primary" id="cta-register" data-t="cta_register">ابدأ مجانًا</a>
@@ -91,13 +91,26 @@
       </div>
     </section>
 
+    <section class="pricing" id="pricing" style="border-radius:var(--radius); padding:48px 24px; margin:36px 0;">
+      <div class="center">
+        <span class="eyebrow" style="color:var(--secondary)" data-t="pri_badge">خطط المعلمين</span>
+        <h2 data-t="pri_h">أسعار واضحة وبسيطة</h2>
+        <p class="lead" data-t="pri_p">اختر الخطة المناسبة لاحتياجاتك. الطلبة وأولياء الأمور مجانًا دائمًا.</p>
+        <div class="curr-toggle" role="group" aria-label="Currency selection">
+          <button type="button" class="active" id="btn-curr-omr" onclick="setCurrency('OMR')">ر.ع (OMR)</button>
+          <button type="button" id="btn-curr-egp" onclick="setCurrency('EGP')">ج.م (EGP)</button>
+        </div>
+      </div>
+      <div class="plans" id="plans" style="max-width:880px; margin:36px auto 0;"></div>
+    </section>
+
     <section class="final">
       <div class="card">
         <h2 data-t="final_h">جرّبها مع مجموعتك القادمة</h2>
         <p class="lead" style="margin:0 auto 22px" data-t="final_p">أنشئ حسابًا مجانيًا، وابدأ بمجموعة واحدة. لا التزام، ولا إعداد معقد.</p>
         <div class="cta" style="justify-content:center">
           <a class="btn btn-primary btn-lg" id="cta-final" data-t="cta_final">أنشئ حساب معلم</a>
-          <a class="btn btn-outline btn-lg" href="./#pricing" data-t="cta_pricing">شاهد الأسعار</a>
+          <a class="btn btn-outline btn-lg" href="#pricing" data-t="cta_pricing">شاهد الأسعار</a>
         </div>
       </div>
     </section>
@@ -106,7 +119,7 @@
   <footer>
     <div class="wrap footer-inner">
       <div data-t="footer">امتياز — مبني ببساطة للمعلمين في سلطنة عُمان.</div>
-      <div class="footer-links"><a href="./" data-t="nav_home">الصفحة الرئيسية</a><a href="./#pricing" data-t="nav_pricing">الأسعار</a></div>
+      <div class="footer-links"><a href="./" data-t="nav_home">الصفحة الرئيسية</a><a href="#pricing" data-t="nav_pricing">الأسعار</a></div>
     </div>
   </footer>
 
@@ -166,6 +179,12 @@
       final_p: { ar: 'أنشئ حسابًا مجانيًا، وابدأ بمجموعة واحدة. لا التزام، ولا إعداد معقد.', en: 'Create a free account and start with one group. No commitment, no complex setup.' },
       cta_final: { ar: 'أنشئ حساب معلم', en: 'Create teacher account' },
       cta_pricing: { ar: 'شاهد الأسعار', en: 'See pricing' },
+      pri_badge: { ar: 'خطط المعلمين', en: 'Teacher Plans' },
+      pri_h: { ar: 'أسعار واضحة وبسيطة', en: 'Simple, honest pricing' },
+      pri_p: { ar: 'اختر الخطة المناسبة لنمو طلابك. الطلبة وأولياء الأمور مجانًا دائمًا.', en: 'Choose the plan that fits your cohort. Students and parents are always free.' },
+      early_bird_badge: { ar: 'عرض الإطلاق · تجربة مجانية 30 يومًا', en: 'Launch Offer · 30-Day Free Trial' },
+      free_forever: { ar: 'مجانًا دائمًا', en: 'Free forever' },
+      per_month: { ar: 'شهريًا', en: 'per month' },
       footer: { ar: 'امتياز — مبني ببساطة للمعلمين في سلطنة عُمان.', en: 'Emtiaz — built simply for teachers in the Sultanate of Oman.' },
     };
 
@@ -179,11 +198,127 @@
     ];
 
     let lang = 'ar';
+    let currency = 'OMR';
+    let supportWhatsapp = '+96890000000';
+    let publicPlans = [
+      {
+        slug: 'free',
+        tierRank: 0,
+        nameAr: 'المجانية',
+        nameEn: 'Free',
+        descriptionAr: 'للبدء وتجربة المنصة مع مجموعات صغيرة',
+        descriptionEn: 'Get started and try the platform with small groups',
+        monthlyPriceOmr: 0,
+        yearlyMonthlyPriceOmr: 0,
+        monthlyPriceEgp: 0,
+        yearlyMonthlyPriceEgp: 0,
+        maxStudents: 10,
+        maxStorageBytes: 1073741824,
+        trialDays: 0,
+      },
+      {
+        slug: 'early-bird',
+        tierRank: 30,
+        nameAr: 'الانطلاقة المبكرة',
+        nameEn: 'Early Bird',
+        descriptionAr: 'عرض إطلاق حصري مع تجربة مجانية كاملة لمدة 30 يومًا',
+        descriptionEn: 'Exclusive launch offer with a 30-day full free trial',
+        monthlyPriceOmr: 5,
+        yearlyMonthlyPriceOmr: 5,
+        monthlyPriceEgp: 300,
+        yearlyMonthlyPriceEgp: 300,
+        maxStudents: 500,
+        maxStorageBytes: 107374182400,
+        trialDays: 30,
+      },
+    ];
+
+    function setCurrency(curr) {
+      currency = curr;
+      document.getElementById('btn-curr-omr')?.classList.toggle('active', curr === 'OMR');
+      document.getElementById('btn-curr-egp')?.classList.toggle('active', curr === 'EGP');
+      renderPlans();
+    }
+
+    function renderPlans() {
+      const container = document.getElementById('plans');
+      if (!container) return;
+      container.innerHTML = publicPlans.map((p) => {
+        const isFree = p.slug === 'free' || (currency === 'OMR' ? p.monthlyPriceOmr === 0 : p.monthlyPriceEgp === 0);
+        const name = lang === 'ar' ? p.nameAr : p.nameEn;
+        const desc = lang === 'ar' ? (p.descriptionAr || '') : (p.descriptionEn || '');
+        const priceNum = currency === 'OMR' ? p.monthlyPriceOmr : p.monthlyPriceEgp;
+        const priceUnit = isFree
+          ? (lang === 'ar' ? 'مجانًا دائمًا' : 'Free forever')
+          : (currency === 'OMR' ? (lang === 'ar' ? 'ر.ع / شهريًا' : 'OMR / month') : (lang === 'ar' ? 'ج.م / شهريًا' : 'EGP / month'));
+
+        const storageGb = p.maxStorageBytes ? Math.round(p.maxStorageBytes / (1024 * 1024 * 1024)) : null;
+        const studentLabel = p.maxStudents
+          ? (lang === 'ar' ? `حتى ${p.maxStudents} طالب نشط` : `Up to ${p.maxStudents} active students`)
+          : (lang === 'ar' ? 'طلاب غير محدودين' : 'Unlimited students');
+        const storageLabel = storageGb
+          ? (lang === 'ar' ? `${storageGb} جيجابايت سعة ملفات` : `${storageGb} GB file storage`)
+          : (lang === 'ar' ? 'سعة ملفات قياسية' : 'Standard file storage');
+
+        const items = [
+          studentLabel,
+          storageLabel,
+          lang === 'ar' ? 'مقررات ودروس واختبارات ذاتية التصحيح' : 'Full courses, lessons & self-graded quizzes',
+          p.trialDays > 0
+            ? (lang === 'ar' ? `تجربة مجانية كاملة ${p.trialDays} يومًا` : `Full ${p.trialDays}-day free trial`)
+            : (lang === 'ar' ? 'الطلبة وأولياء الأمور مجانًا دائمًا' : 'Students & parents 100% free forever'),
+          lang === 'ar' ? 'دعوات ورسائل واتساب مؤتمتة' : 'Automated WhatsApp invites & notices',
+        ];
+
+        let badge = '';
+        if (p.trialDays > 0) {
+          badge = `<span class="plan-pill">${lang === 'ar' ? `عرض الإطلاق · تجربة ${p.trialDays} يومًا` : `Launch Offer · ${p.trialDays}-day trial`}</span>`;
+        }
+
+        let ctaButton = '';
+        if (isFree) {
+          ctaButton = `<a class="btn btn-outline" href="${APP_URL}/register/teacher">${lang === 'ar' ? 'ابدأ مجانًا' : 'Start free'}</a>`;
+        } else {
+          const cleanPhone = (supportWhatsapp || '+96890000000').replace(/[^\d]/g, '');
+          const waMsgAr = `مرحباً، أود الاشتراك في خطة ${p.nameAr} (${currency === 'OMR' ? p.monthlyPriceOmr + ' ر.ع' : p.monthlyPriceEgp + ' ج.م'}/شهرياً)`;
+          const waMsgEn = `Hello, I would like to subscribe to the ${p.nameEn} plan (${currency === 'OMR' ? p.monthlyPriceOmr + ' OMR' : p.monthlyPriceEgp + ' EGP'}/month)`;
+          const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(lang === 'ar' ? waMsgAr : waMsgEn)}`;
+          ctaButton = `<a class="btn btn-primary" href="${waUrl}" target="_blank" rel="noopener noreferrer">${lang === 'ar' ? 'تفعيل الخطة عبر واتساب' : 'Upgrade via WhatsApp'}</a>`;
+        }
+
+        return `
+          <div class="plan reveal">
+            ${badge}
+            <h3>${name}</h3>
+            <p style="font-size:13px; color:var(--ink-soft); margin:6px 0 0;">${desc}</p>
+            <div class="price">${priceNum} <span>${priceUnit}</span></div>
+            <ul>${items.map((it) => `<li>${it}</li>`).join('')}</ul>
+            ${ctaButton}
+          </div>
+        `;
+      }).join('');
+    }
+
+    fetch('/api/public/plans')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data) {
+          if (data.supportWhatsapp) supportWhatsapp = data.supportWhatsapp;
+          if (Array.isArray(data.plans) && data.plans.length > 0) {
+            publicPlans = data.plans;
+          }
+          renderPlans();
+        }
+      })
+      .catch(() => {});
+
     const pick = (o) => o[lang];
 
     function render() {
       document.getElementById('tools-grid').innerHTML = tools.map((t) => `
         <div class="card reveal"><div class="icon">${icons[t.icon]}</div><h3>${pick(t.h)}</h3><p>${pick(t.p)}</p></div>`).join('');
+
+      renderPlans();
 
       document.querySelectorAll('[data-t]').forEach((el) => {
         const v = dict[el.getAttribute('data-t')]?.[lang];

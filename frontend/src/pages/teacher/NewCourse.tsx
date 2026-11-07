@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,9 +7,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { deleteUploadedObject } from '../../lib/upload';
-import { useLang } from '../../lib/i18n';
+import { localizeName, useLang } from '../../lib/i18n';
 import { Button, Card, ErrorBox, Input, Page, Select } from '../../components/ui';
-import type { Course, PresignedUpload, TaxonomyItem } from '../../../../shared/api';
+import type { CategoryItem, Course, GradeItem, MeResponse, PresignedUpload, TaxonomyItem } from '../../../../shared/api';
 import { teacherCoursesQuery, teacherStatsQuery } from './Dashboard';
 
 const schema = z
@@ -38,29 +38,34 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 export default function NewCourse() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<Error | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<MeResponse>('/api/me'),
+  });
+  const teacherCountry = me?.user?.country ?? 'OM';
   const { data: grades } = useQuery({
-    queryKey: ['grades-list'],
-    queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/grades'),
+    queryKey: ['grades-list', teacherCountry],
+    queryFn: () => api<GradeItem[]>(`/api/onboarding/grades?country=${teacherCountry}`),
   });
   const { data: categories } = useQuery({
     queryKey: ['categories-list'],
-    queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/categories'),
+    queryFn: () => api<CategoryItem[]>('/api/onboarding/categories'),
   });
   const { data: semesters } = useQuery({
     queryKey: ['semesters-list'],
     queryFn: () => api<TaxonomyItem[]>('/api/admin/taxonomy/semesters'),
   });
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, dirtyFields } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: '',
-      courseType: 'ACADEMIC',
+      courseType: me?.courseFocus ?? me?.user?.courseFocus ?? 'ACADEMIC',
       grade: '',
       semester: '',
       skill: '',
@@ -68,13 +73,42 @@ export default function NewCourse() {
       previewUrl: '',
     },
   });
+
+  useEffect(() => {
+    const defaultFocus = me?.courseFocus ?? me?.user?.courseFocus;
+    if (defaultFocus && !dirtyFields.courseType) {
+      setValue('courseType', defaultFocus);
+    }
+  }, [me?.courseFocus, me?.user?.courseFocus, dirtyFields.courseType, setValue]);
+
+  const prioritizedGrades = useMemo(() => {
+    if (!grades) return [];
+    const taughtIds = new Set((me?.taughtGrades ?? me?.user?.taughtGrades ?? []).map((g) => g.id));
+    const countryFiltered = grades.filter((g) => !g.country || g.country === teacherCountry);
+    const taught = countryFiltered.filter((g) => taughtIds.has(g.id));
+    const rest = countryFiltered.filter((g) => !taughtIds.has(g.id));
+    return [...taught, ...rest];
+  }, [grades, me?.taughtGrades, me?.user?.taughtGrades, teacherCountry]);
+
   const type = watch('courseType');
 
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
       const academic = values.courseType === 'ACADEMIC';
-      const grade = grades?.find((item) => item.name.toLowerCase() === values.grade.trim().toLowerCase());
-      const skill = categories?.find((item) => item.name.toLowerCase() === values.skill.trim().toLowerCase());
+      const gradeInput = values.grade.trim().toLowerCase();
+      const grade = prioritizedGrades.find(
+        (item) =>
+          item.name.toLowerCase() === gradeInput ||
+          item.nameAr?.toLowerCase() === gradeInput ||
+          item.nameEn?.toLowerCase() === gradeInput,
+      );
+      const skillInput = values.skill.trim().toLowerCase();
+      const skill = categories?.find(
+        (item) =>
+          item.name.toLowerCase() === skillInput ||
+          item.nameAr?.toLowerCase() === skillInput ||
+          item.nameEn?.toLowerCase() === skillInput,
+      );
       const course = await api<Course>('/api/teacher/courses', {
         body: {
           title: values.title,
@@ -173,16 +207,21 @@ export default function NewCourse() {
             label={t('previewUrl')}
             placeholder="https://"
             dir="ltr"
+            error={errors.previewUrl ? t('invalidUrl') : undefined}
             {...register('previewUrl')}
           />
-          <Select label={`${t('academic')} / ${t('general')}`} {...register('courseType')}>
+          <Select
+            label={`${t('academic')} / ${t('general')}`}
+            error={errors.courseType ? t('requiredField') : undefined}
+            {...register('courseType')}
+          >
             <option value="ACADEMIC">{t('academic')}</option>
             <option value="GENERAL">{t('general')}</option>
           </Select>
 
           {type === 'ACADEMIC' ? (
             <>
-              <div>
+              <div key="academic-grade">
                 <Input
                   label={t('grade')}
                   list="teacher-grades"
@@ -190,10 +229,16 @@ export default function NewCourse() {
                   {...register('grade')}
                 />
                 <datalist id="teacher-grades">
-                  {grades?.map((gradeOption) => <option key={gradeOption.id} value={gradeOption.name} />)}
+                  {prioritizedGrades.map((gradeOption) => (
+                    <option
+                      key={gradeOption.id}
+                      value={localizeName(gradeOption, lang)}
+                      label={gradeOption.nameEn && gradeOption.nameAr ? `${gradeOption.nameAr} — ${gradeOption.nameEn}` : undefined}
+                    />
+                  ))}
                 </datalist>
               </div>
-              <div>
+              <div key="academic-semester">
                 <Input
                   label={t('semester')}
                   list="teacher-semesters"
@@ -206,7 +251,7 @@ export default function NewCourse() {
               </div>
             </>
           ) : (
-            <div>
+            <div key="general-skill">
               <Input
                 label={t('skill')}
                 list="teacher-skills"
@@ -215,7 +260,13 @@ export default function NewCourse() {
                 {...register('skill')}
               />
               <datalist id="teacher-skills">
-                {categories?.map((category) => <option key={category.id} value={category.name} />)}
+                {categories?.map((category) => (
+                  <option
+                    key={category.id}
+                    value={localizeName(category, lang)}
+                    label={category.nameEn && category.nameAr ? `${category.nameAr} — ${category.nameEn}` : undefined}
+                  />
+                ))}
               </datalist>
             </div>
           )}

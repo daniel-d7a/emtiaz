@@ -1,1 +1,1 @@
-export { embedUrl } from '../../../shared/embed';
+export { embedUrl } from "@shared/embed";

@@ -56,7 +56,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
 }
 
 export function Sheet({
-  open, onOpenChange, title, closeLabel, children, side = 'end',
+  open, onOpenChange, title, closeLabel, children, side = 'end', className = '',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,6 +64,7 @@ export function Sheet({
   closeLabel: string;
   children: ReactNode;
   side?: 'start' | 'end';
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -95,7 +96,7 @@ export function Sheet({
       onClose={() => {
         if (open) onOpenChange(false);
       }}
-      className={`fixed inset-y-0 m-0 h-full max-h-none w-80 max-w-[calc(100%-2rem)] overflow-y-auto border-line bg-surface p-5 text-ink backdrop:bg-ink/40 ${
+      className={`fixed inset-y-0 m-0 h-full max-h-none ${className || 'w-80'} max-w-[calc(100%-2rem)] overflow-y-auto border-line bg-surface p-5 text-ink backdrop:bg-ink/40 ${
         side === 'end' ? 'end-0 border-s' : 'start-0 border-e'
       }`}
     >

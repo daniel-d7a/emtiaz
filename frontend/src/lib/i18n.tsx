@@ -43,6 +43,20 @@ const dict = {
   myChildren: { ar: 'أبنائي', en: 'My children' },
   studentPhone: { ar: 'رقم هاتف الطالب', en: 'Student phone number' },
   studentPhoneHint: { ar: 'رقم الهاتف المسجل للطالب.', en: 'The phone number the student registered with.' },
+  monitoringCode: { ar: 'رمز المتابعة', en: 'Monitoring code' },
+  monitoringCodeStudentHint: {
+    ar: 'شارك هذا الرمز أو رمز الاستجابة السريعة (QR) مع ولي أمرك ليتمكن من متابعة درجاتك وتقدمك الدراسي.',
+    en: 'Share this code or QR code with your parent so they can monitor your grades and academic progress.',
+  },
+  yourMonitoringCode: { ar: 'رمز المتابعة الخاص بك', en: 'Your monitoring code' },
+  studentMonitoringCode: { ar: 'رمز متابعة الطالب', en: 'Student monitoring code' },
+  studentMonitoringCodeHint: {
+    ar: 'أدخل رمز المتابعة المكون من 8 خانات الظاهر في ملف الطالب الشخصي.',
+    en: 'Enter the 8-character monitoring code displayed on the student profile.',
+  },
+  studentMonitoringCodeOptional: { ar: 'رمز متابعة الطالب (اختياري)', en: 'Student monitoring code (optional)' },
+  monitoringCodeInvalid: { ar: 'رمز المتابعة يجب أن يتكون من 8 خانات', en: 'Monitoring code must be exactly 8 characters' },
+  monitoringCodePlaceholder: { ar: 'مثال: ABCD2345', en: 'e.g. ABCD2345' },
   linkChild: { ar: 'ربط الطالب', en: 'Link student' },
   unlinkChild: { ar: 'فصل الطالب', en: 'Unlink child' },
   noChildren: { ar: 'لم يتم ربط أي طالب بعد.', en: 'No children linked yet.' },
@@ -368,6 +382,13 @@ const dict = {
   pending: { ar: 'بانتظار التصحيح', en: 'Pending grading' },
   submissions: { ar: 'الإجابات', en: 'Submissions' },
   gradeOutOfTen: { ar: 'الدرجة من 10', en: 'Grade out of 10' },
+  points: { ar: 'الدرجة', en: 'Points' },
+  confirm: { ar: 'تأكيد', en: 'Confirm' },
+  confirmEditQuizTitle: { ar: 'تأكيد تعديل الاختبار', en: 'Confirm Quiz Edit' },
+  confirmEditQuizBody: {
+    ar: 'تعديل هذا الاختبار سيؤدي إلى مسح جميع محاولات الطلاب السابقة. هل أنت متأكد من المتابعة؟',
+    en: 'Editing this quiz will clear all previous student attempts. Are you sure you want to continue?',
+  },
   studentAnswer: { ar: 'إجابة الطالب', en: 'Student answer' },
   viewSubmissions: { ar: 'عرض الإجابات', en: 'View submissions' },
   noSubmissions: { ar: 'لا توجد إجابات بعد', en: 'No submissions yet' },
@@ -396,6 +417,362 @@ const dict = {
   landingSlugPlaceholder: { ar: 'salim-physics', en: 'salim-physics' },
   joined: { ar: 'تاريخ الانضمام', en: 'Joined' },
   joinMessage: { ar: 'انضم إلى صفي على امتياز! الرمز: ', en: 'Join my class on Emtiaz! Code: ' },
+  country: { ar: 'الدولة', en: 'Country' },
+  oman: { ar: 'سلطنة عُمان', en: 'Oman' },
+  egypt: { ar: 'مصر', en: 'Egypt' },
+  currency: { ar: 'العملة', en: 'Currency' },
+  omr: { ar: 'ر.ع', en: 'OMR' },
+  egp: { ar: 'ج.م', en: 'EGP' },
+  plans: { ar: 'الخطط والأسعار', en: 'Plans & Pricing' },
+  teacherPlans: { ar: 'خطط المعلمين', en: 'Teacher Plans' },
+  studentsPermanentlyFree: { ar: 'الطلبة وأولياء الأمور مجانًا دائمًا', en: 'Students and parents are permanently free' },
+  freePlan: { ar: 'المجانية', en: 'Free' },
+  earlyBirdPlan: { ar: 'الانطلاقة المبكرة', en: 'Early Bird' },
+  proPlan: { ar: 'المحترف', en: 'Pro' },
+  ultimatePlan: { ar: 'اللامحدود', en: 'Ultimate' },
+  monthly: { ar: 'شهريًا', en: 'per month' },
+  upToStudents: { ar: 'حتى {n} طالب', en: 'Up to {n} students' },
+  storageGb: { ar: '{n} جيجابايت سعة تخزين', en: '{n} GB storage' },
+  entitlementsAndPlans: { ar: 'الاشتراك والخطط', en: 'Subscription & Plans' },
+  activePlan: { ar: 'الخطة الحالية', en: 'Active Plan' },
+  planStatusActive: { ar: 'نشط', en: 'Active' },
+  planStatusTrial: { ar: 'تجريبي', en: 'Trial' },
+  planStatusFree: { ar: 'مجاني', en: 'Free' },
+  planStatusExpired: { ar: 'منتهي الصلاحية', en: 'Expired' },
+  expiresOn: { ar: 'ينتهي في', en: 'Expires on' },
+  noExpiration: { ar: 'لا تنتهي', en: 'No expiration' },
+  activeStudentsUsage: { ar: 'الطلاب النشطون', en: 'Active Students' },
+  storageUsage: { ar: 'سعة تخزين الدروس', en: 'Lesson Storage' },
+  upgradeOrViewPlans: { ar: 'ترقية / عرض الخطط', en: 'Upgrade / View Plans' },
+  upgradeViaWhatsapp: { ar: 'ترقية الخطة عبر واتساب', en: 'Upgrade Plan via WhatsApp' },
+  unlimited: { ar: 'غير محدود', en: 'Unlimited' },
+  studentsCount: { ar: 'طلاب', en: 'students' },
+  redeemPromoCode: { ar: 'استرداد كود الخصم أو الإحالة', en: 'Redeem Promo or Referral Code' },
+  enterPromoCodePlaceholder: { ar: 'أدخل الكود هنا (مثال: PROMO30)', en: 'Enter code here (e.g. PROMO30)' },
+  redeemButton: { ar: 'استرداد', en: 'Redeem' },
+  savedGifts: { ar: 'الهدايا المحفوظة', en: 'Saved Gifts' },
+  noSavedGifts: { ar: 'لا توجد هدايا محفوظة', en: 'No saved gifts' },
+  activateGift: { ar: 'تفعيل', en: 'Activate' },
+  deleteGift: { ar: 'حذف', en: 'Delete' },
+  alreadyOnHigherPlan: { ar: 'أنت بالفعل على خطة أعلى', en: 'You are already on a higher plan' },
+  giftDaysBonus: { ar: '+{n} يوم', en: '+{n} days' },
+  giftSlotsUsed: { ar: '{count} من 3 هدايا', en: '{count} of 3 gifts' },
+  teacherReferralProgram: { ar: 'برنامج إحالة المعلمين', en: 'Teacher Referral Program' },
+  yourReferralCode: { ar: 'كود الإحالة الخاص بك', en: 'Your Referral Code' },
+  copyCode: { ar: 'نسخ الكود', en: 'Copy Code' },
+  copiedCode: { ar: 'تم النسخ!', en: 'Copied!' },
+  shareViaWhatsapp: { ar: 'مشاركة عبر واتساب', en: 'Share via WhatsApp' },
+  referralsProgress: { ar: 'الإحالات: {used} / {max}', en: 'Referrals: {used} / {max}' },
+  referralUpgradePrompt: {
+    ar: 'قم بالترقية إلى خطة مدفوعة لفتح كود الإحالة الخاص بك وكسب أيام مجانية.',
+    en: 'Upgrade to a paid plan to unlock your unique referral code and earn free days.',
+  },
+  recentReferrals: { ar: 'سجل الإحالات', en: 'Referral History' },
+  noReferralsYet: {
+    ar: 'لم تقم بإحالة أي معلم بعد. شارك كودك وابدأ في كسب الأيام المجانية!',
+    en: 'No referrals yet. Share your code and start earning free days!',
+  },
+  referralStatusPending: {
+    ar: 'معلق (بانتظار 4 طلاب في مجموعة)',
+    en: 'Pending (Needs 4 students in a group)',
+  },
+  referralStatusRewarded: {
+    ar: 'مكافأة (+7 أيام مكتسبة)',
+    en: 'Rewarded (+7 days earned)',
+  },
+  referralStatusDropped: {
+    ar: 'تم إسقاط الهدية (المخزون ممتلئ)',
+    en: 'Dropped (Saved gifts inventory full)',
+  },
+  referralShareMessage: {
+    ar: 'انضم إلى منصة امتياز للمعلمين واستخدم كود الإحالة الخاص بي للحصول على 7 أيام مجانية:\n{code}\nhttps://emtiaz.om',
+    en: 'Join Emtiaz platform for teachers and use my referral code to get 7 free days:\n{code}\nhttps://emtiaz.om',
+  },
+  planLimitReached: { ar: 'تم الوصول للحد الأقصى للخطة', en: 'Plan Limit Reached' },
+  studentLimitReachedDesc: {
+    ar: 'لقد وصلت إلى الحد الأقصى لعدد الطلاب المتاح في خطتك. يُرجى ترقية خطتك لإضافة المزيد من الطلاب.',
+    en: 'You have reached the maximum number of students allowed on your plan. Please upgrade your plan to add more.',
+  },
+  storageLimitReachedDesc: {
+    ar: 'لقد استهلكت مساحة التخزين المتاحة لملفات الدروس في خطتك. يُرجى ترقية خطتك لمتابعة الرفع.',
+    en: 'You have reached the lesson storage limit on your plan. Please upgrade your plan to upload more files.',
+  },
+  firstMonthDiscount: { ar: 'خصم الشهر الأول', en: 'First-Month Discount' },
+  customPlanPromptText: {
+    ar: 'تواصل مع الإدارة للحصول على خطة مخصصة تناسب احتياجاتك',
+    en: 'Contact administration for a custom plan suited to your needs',
+  },
+  upgradeGateTitle: { ar: 'بوابة الترقية — مساحة العمل معلقة', en: 'Upgrade Gate — Workspace Locked' },
+  upgradeGateMessage: {
+    ar: 'انتهت فترة اشتراكك الحالية وتتجاوز بياناتك حدود الخطة المجانية. للاستمرار في إدارة مساحة عملك، يُرجى تجديد أو ترقية خطتك.',
+    en: 'Your subscription has expired and your current usage exceeds Free plan limits. To continue managing your workspace, please renew or upgrade your plan.',
+  },
+  upgradeOptionsTitle: { ar: 'خيارات الترقية المتاحة', en: 'Available Upgrade Options' },
+  backToProfile: { ar: 'العودة إلى الملف الشخصي', en: 'Back to Profile' },
+  contactAdminCustomPlan: {
+    ar: 'تواصل مع الإدارة لخطة مخصصة',
+    en: 'Contact Administration for a Custom Plan',
+  },
+  plansAndBilling: { ar: 'الخطط والاشتراكات', en: 'Plans & Billing' },
+  promoCodes: { ar: 'أكواد الخصم', en: 'Promo Codes' },
+  createPlan: { ar: 'إنشاء خطة جديدة', en: 'Create Plan' },
+  editPlan: { ar: 'تعديل الخطة', en: 'Edit Plan' },
+  createPromoCode: { ar: 'إنشاء كود خصم', en: 'Create Promo Code' },
+  planSlug: { ar: 'المعرف الفريد (Slug)', en: 'Slug' },
+  planNameAr: { ar: 'الاسم بالعربية', en: 'Name (Arabic)' },
+  planNameEn: { ar: 'الاسم بالإنجليزية', en: 'Name (English)' },
+  planDescriptionAr: { ar: 'الوصف بالعربية', en: 'Description (Arabic)' },
+  planDescriptionEn: { ar: 'الوصف بالإنجليزية', en: 'Description (English)' },
+  monthlyPriceOmr: { ar: 'السعر الشهري (ر.ع)', en: 'Monthly Price (OMR)' },
+  yearlyMonthlyPriceOmr: { ar: 'السعر السنوي الشهري (ر.ع)', en: 'Yearly Monthly Price (OMR)' },
+  monthlyPriceEgp: { ar: 'السعر الشهري (ج.م)', en: 'Monthly Price (EGP)' },
+  yearlyMonthlyPriceEgp: { ar: 'السعر السنوي الشهري (ج.م)', en: 'Yearly Monthly Price (EGP)' },
+  maxStudents: { ar: 'الحد الأقصى للطلاب', en: 'Max Students' },
+  maxStorageBytes: { ar: 'مساحة التخزين (جيجابايت)', en: 'Storage Quota (GB)' },
+  maxGroups: { ar: 'الحد الأقصى للمجموعات', en: 'Max Groups' },
+  trialDays: { ar: 'أيام التجربة المجانية', en: 'Trial Days' },
+  isPublic: { ar: 'مرئية للعامة', en: 'Public' },
+  displayOrder: { ar: 'ترتيب العرض', en: 'Display Order' },
+  tierRank: { ar: 'رتبة المستوى', en: 'Tier Rank' },
+  yearlyPlanDiscountEnabled: { ar: 'تفعيل خصم الاشتراك السنوي', en: 'Enable Yearly Plan Discount' },
+  referralPlanSlug: { ar: 'خطة هدية الإحالة الافتراضية', en: 'Default Referral Gift Plan' },
+  referralGiftDays: { ar: 'أيام هدية الإحالة', en: 'Referral Gift Days' },
+  billingSettings: { ar: 'إعدادات الفوترة والاشتراكات', en: 'Billing & Plans Settings' },
+  saveSettings: { ar: 'حفظ الإعدادات', en: 'Save Settings' },
+  settingsSaved: { ar: 'تم حفظ الإعدادات بنجاح', en: 'Settings saved successfully' },
+  code: { ar: 'الكود', en: 'Code' },
+  durationDays: { ar: 'المدة (أيام)', en: 'Duration (Days)' },
+  usedCount: { ar: 'مرات الاستخدام', en: 'Used Count' },
+  expiresAt: { ar: 'تاريخ الانتهاء', en: 'Expires At' },
+  subscriptionAndEntitlements: { ar: 'الاشتراك والاستحقاقات', en: 'Subscription & Entitlements' },
+  assignPaidSubscription: { ar: 'تعيين اشتراك مدفوع', en: 'Assign Paid Subscription' },
+  grantGiftDays: { ar: 'منح أيام تجربة / هدية', en: 'Grant Trial / Gift Days' },
+  discountLedger: { ar: 'سجل الخصومات والهدايا', en: 'Discount & Gift Ledger' },
+  billingCycle: { ar: 'دورة الفوترة', en: 'Billing Cycle' },
+  monthlyCycle: { ar: 'شهري', en: 'Monthly' },
+  yearlyCycle: { ar: 'سنوي', en: 'Yearly' },
+  pricePaid: { ar: 'المبلغ المدفوع', en: 'Price Paid' },
+  recordLimitCrossingDiscount: { ar: 'تسجيل مناسبة خصم تخطي الحد', en: 'Record Limit-Crossing Discount Occasion' },
+  adminOverride: { ar: 'تجاوز المشرف (تخطي قواعد التكديس وسعة الهدايا)', en: 'Admin Override (Bypass Anti-Stacking & Slot Limits)' },
+  note: { ar: 'ملاحظة', en: 'Note' },
+  occasion: { ar: 'المناسبة', en: 'Occasion' },
+  noDiscountsRecorded: { ar: 'لا توجد خصومات أو هدايا مسجلة لهذا المعلم.', en: 'No discounts or gifts recorded for this teacher.' },
+  savedGiftsInventory: { ar: 'مخزون الهدايا المحفوظة', en: 'Saved Gifts Inventory' },
+  customPlan: { ar: 'خطة مخصصة', en: 'Custom Plan' },
+  date: { ar: 'التاريخ', en: 'Date' },
+  courseFocus: { ar: 'تركيز التدريس', en: 'Teaching Focus' },
+  academicFocus: { ar: 'مقررات أكاديمية (مناهج دراسية)', en: 'Academic Courses (School Curriculum)' },
+  generalFocus: { ar: 'مقررات عامة / مهارية', en: 'General / Skill Courses' },
+  taughtGrades: { ar: 'الصفوف التي تدرّسها', en: 'Grades Taught' },
+  customGradePlaceholder: { ar: 'أضف صفاً مخصصاً...', en: 'Add custom grade...' },
+  nameAr: { ar: 'الاسم بالعربية', en: 'Name (Arabic)' },
+  nameEn: { ar: 'الاسم بالإنجليزية', en: 'Name (English)' },
+  allCountries: { ar: 'جميع الدول', en: 'All Countries' },
+  gotIt: { ar: 'حسناً', en: 'Got it' },
+  moreInfo: { ar: 'معلومات إضافية', en: 'More information' },
+  helpfulHint: { ar: 'معلومة توضيحية', en: 'Helpful hint' },
+  platformGuide: { ar: 'دليل المنصة', en: 'Platform Guide' },
+  gettingStarted: { ar: 'كيف أبدأ؟', en: 'Getting Started' },
+  hideChecklist: { ar: 'إخفاء القائمة', en: 'Hide checklist' },
+  showChecklist: { ar: 'عرض خطوات البداية', en: 'Show getting started' },
+  // InfoHint: Teacher Courses vs Groups
+  hintCoursesVsGroupsTitle: { ar: 'المقررات مقابل المجموعات', en: 'Master Courses vs. Groups (Cohorts)' },
+  hintCoursesVsGroupsStep1Title: { ar: '١. المقرر الرئيسي (Master Course)', en: '1. Master Course' },
+  hintCoursesVsGroupsStep1Body: {
+    ar: 'المقرر يحتوي على المنهج الكامل من وحدات ودروس ومواد واختبارات، وتبنيه مرة واحدة فقط.',
+    en: 'A Course holds your master curriculum—modules, lessons, materials, and quizzes—built once.',
+  },
+  hintCoursesVsGroupsStep2Title: { ar: '٢. المجموعات (دفعات الطلاب)', en: '2. Groups (Student Cohorts)' },
+  hintCoursesVsGroupsStep2Body: {
+    ar: 'داخل كل مقرر يمكنك إنشاء عدة مجموعات بمواعيد ورموز انضمام مستقلة لكل شعبة أو دفعة.',
+    en: 'Inside each course you can create multiple Groups with separate schedules and join codes for each cohort.',
+  },
+  hintCoursesVsGroupsStep3Title: { ar: '٣. تحكم مستقل لكل مجموعة', en: '3. Independent Pacing & Grades' },
+  hintCoursesVsGroupsStep3Body: {
+    ar: 'كل مجموعة لها جدولة محتوى وسجل حضور ودرجات خاص بها دون تكرار رفع الدروس.',
+    en: 'Each group has its own lesson unlock pacing, attendance, and gradebook without duplicating lessons.',
+  },
+  // InfoHint: Entry Codes
+  hintEntryCodesTitle: { ar: 'رمز المجموعة ورموز الدخول', en: 'Group Join Code vs. Entry Codes' },
+  hintEntryCodesStep1Title: { ar: '١. رمز المجموعة العام (Join Code)', en: '1. Group Join Code' },
+  hintEntryCodesStep1Body: {
+    ar: 'لكل مجموعة رمز انضمام ثابت يحدد المجموعة التي يريد الطالب التسجيل فيها.',
+    en: 'Every group has a unique Join Code that identifies which group a student is joining.',
+  },
+  hintEntryCodesStep2Title: { ar: '٢. اشتراط رمز الدخول (Requires Entry Code)', en: '2. Require Entry Code' },
+  hintEntryCodesStep2Body: {
+    ar: 'عند تفعيل هذا الخيار، لن يتمكن أي طالب جديد من الانضمام إلا إذا أدخل رمز دخول صالحاً بالإضافة لرمز المجموعة.',
+    en: 'When enabled, new students must also provide a valid Entry Code alongside the Group Join Code.',
+  },
+  hintEntryCodesStep3Title: { ar: '٣. رموز الدخول محدودة الاستخدام', en: '3. Usage-Capped Entry Codes' },
+  hintEntryCodesStep3Body: {
+    ar: 'يمكنك توليد رموز دخول بعدد استخدامات محدد (مثلاً ١ لكل طالب أو ٢٠ لشعبة كاملة) ومتابعة من استخدم كل رمز.',
+    en: 'Generate entry codes with a custom max-use limit (e.g., 1 per student or 20 for a class) and track who redeemed each code.',
+  },
+  // InfoHint: Pacing
+  hintPacingTitle: { ar: 'جدولة المحتوى وفتح الدروس', en: 'Content Pacing & Lesson Unlocking' },
+  hintPacingBody: {
+    ar: 'تحكم في الدروس والاختبارات المتاحة لطلاب هذه المجموعة: يمكنك فتح الكل دفعة واحدة أو فتح كل درس تدريجياً بعد شرحه.',
+    en: 'Control which lessons and quizzes are visible and unlocked for this group—unlock all at once or release lessons week by week.',
+  },
+  // InfoHint: Gradebook
+  hintGradebookTitle: { ar: 'سجل الدرجات والتصحيح', en: 'Gradebook & Written Grading' },
+  hintGradebookBody: {
+    ar: 'يعرض السجل أعلى درجة لكل طالب في الاختبارات تلقائياً، ويمكنك الضغط على درجة الاختبار لتصحيح الأسئلة المقالية أو إضافة أعمدة درجات يدوية.',
+    en: 'The gradebook automatically records each student’s best quiz score; click any quiz score to grade written answers or add manual grade columns.',
+  },
+  // InfoHint: Teacher Entitlements & Saved Gifts
+  hintEntitlementsTitle: { ar: 'الخطط والسعة والهدايا المحفوظة', en: 'Plans, Quotas & Saved Gifts' },
+  hintEntitlementsStep1Title: { ar: '١. الطلاب النشطون وسعة التخزين', en: '1. Active Students & Storage Quota' },
+  hintEntitlementsStep1Body: {
+    ar: 'يُحتسب عدد الطلاب الفريدين المسجلين في مجموعاتك النشطة، بالإضافة إلى حجم الملفات والصور المرفوعة في دروسك.',
+    en: 'Your plan tracks unique active students across your groups and total storage used by lesson files and images.',
+  },
+  hintEntitlementsStep2Title: { ar: '٢. مخزون الهدايا المحفوظة (٣ خانات)', en: '2. 3-Slot Saved Gifts Inventory' },
+  hintEntitlementsStep2Body: {
+    ar: 'عند كسب أيام مجانية من الإحالات أو أكواد الهدايا، يمكنك حفظ ما يصل إلى ٣ هدايا في مخزونك لتفعيلها في الوقت المناسب.',
+    en: 'When you earn bonus days from referrals or promo codes, up to 3 gifts can be stored in your inventory to activate whenever you choose.',
+  },
+  hintEntitlementsStep3Title: { ar: '٣. الترقية وتفعيل الهدايا', en: '3. Activating Gifts & Upgrading' },
+  hintEntitlementsStep3Body: {
+    ar: 'تفعيل هدية من نفس مستوى خطتك يمدد صلاحيتها، كما يمكنك الترقية في أي وقت عبر واتساب بضغطة واحدة.',
+    en: 'Activating a gift on your current tier extends your expiration date, and you can upgrade anytime via WhatsApp in one click.',
+  },
+  // InfoHint: Student Join Group
+  hintStudentJoinTitle: { ar: 'كيف تنضم إلى مجموعة معلمك؟', en: 'How to Join Your Teacher’s Group' },
+  hintStudentJoinStep1Title: { ar: '١. اطلب رمز المجموعة من معلمك', en: '1. Ask Your Teacher for the Group Code' },
+  hintStudentJoinStep1Body: {
+    ar: 'يرسل لك المعلم رمز المجموعة (مثل OM123456) أو رابط انضمام مباشر عبر واتساب.',
+    en: 'Your teacher will share a Group Join Code (e.g., OM123456) or a direct join link on WhatsApp.',
+  },
+  hintStudentJoinStep2Title: { ar: '٢. أدخل رمز الدخول الإضافي (إن طُلب)', en: '2. Enter the Entry Code (If Required)' },
+  hintStudentJoinStep2Body: {
+    ar: 'إذا كانت المجموعة مقفلة برمز دخول، سيُزودك المعلم برمز دخول مكون من ٨ خانات لإدخاله في الحقل الثاني.',
+    en: 'If the group requires an entry code, your teacher will also give you an 8-character Entry Code for the second field.',
+  },
+  hintStudentJoinStep3Title: { ar: '٣. ابدأ الدراسة وحل الاختبارات', en: '3. Start Learning & Taking Quizzes' },
+  hintStudentJoinStep3Body: {
+    ar: 'بمجرد الانضمام ستظهر المجموعة في لوحتك لفتح الدروس، تحميل المرفقات، وحل الاختبارات القصيرة.',
+    en: 'Once joined, the group appears on your dashboard so you can open lessons, download materials, and take quizzes.',
+  },
+  // InfoHint: Parent Link Child
+  hintParentLinkTitle: { ar: 'ربط حساب الابن برمز المتابعة', en: 'Linking Your Child with Monitoring Code' },
+  hintParentLinkBody: {
+    ar: 'افتح الملف الشخصي في حساب ابنك (الطالب) لنسخ رمز المتابعة المكون من ٨ خانات أو مسح رمز QR، ثم أدخله هنا لمتابعة حضوره ودرجاته.',
+    en: 'Open your child’s Student Profile to copy their 8-character Monitoring Code (or scan their QR code) and enter it here to follow their attendance and grades.',
+  },
+  // Onboarding Welcome Tour & Checklist
+  tourWelcomeTeacherTitle: { ar: 'مرحباً بك في استوديو المعلم', en: 'Welcome to Your Teacher Studio' },
+  tourTeacherStep1Title: { ar: '١. أنشئ مقررك الرئيسي', en: '1. Create Your Master Course' },
+  tourTeacherStep1Body: {
+    ar: 'ابدأ بإنشاء المقرر وإضافة الوحدات والدروس والملفات والاختبارات القصيرة في مكان واحد.',
+    en: 'Start by creating a Course and adding your modules, lessons, attachments, and quizzes in one place.',
+  },
+  tourTeacherStep2Title: { ar: '٢. أنشئ مجموعة (دفعة طلاب)', en: '2. Create a Group (Cohort)' },
+  tourTeacherStep2Body: {
+    ar: 'افتح المقرر وأنشئ مجموعة لتحديد المواعيد وجدولة فتح الدروس وتسجيل الحضور والدرجات.',
+    en: 'Open your course and create a Group to set class schedules, control lesson pacing, and track attendance and grades.',
+  },
+  tourTeacherStep3Title: { ar: '٣. شارك رمز الانضمام ورموز الدخول', en: '3. Share Join & Entry Codes' },
+  tourTeacherStep3Body: {
+    ar: 'انسخ رابط المجموعة أو ولّد رموز دخول محدودة الاستخدام وشاركها مع طلابك عبر واتساب.',
+    en: 'Copy your group join link or generate usage-capped Entry Codes and share them with your students on WhatsApp.',
+  },
+  tourWelcomeStudentTitle: { ar: 'مرحباً بك في منصة امتياز', en: 'Welcome to Emtiaz' },
+  tourStudentStep1Title: { ar: '١. احصل على رمز المجموعة من معلمك', en: '1. Get Your Group Code from Your Teacher' },
+  tourStudentStep1Body: {
+    ar: 'اطلب من معلمك رمز المجموعة (ورمز الدخول الإضافي إن كان مطلوباً).',
+    en: 'Ask your teacher for the Group Join Code (and Entry Code if required for your cohort).',
+  },
+  tourStudentStep2Title: { ar: '٢. انضم إلى مجموعتك بضغطة واحدة', en: '2. Join Your Group in One Step' },
+  tourStudentStep2Body: {
+    ar: 'أدخل الرمز في بطاقة «انضم إلى مجموعة» في لوحتك الرئيسية لتظهر دروسك فوراً.',
+    en: 'Enter the code in the “Join group” card on your dashboard to unlock your class right away.',
+  },
+  tourStudentStep3Title: { ar: '٣. ادرس الدروس وحل الاختبارات', en: '3. Study Lessons & Complete Quizzes' },
+  tourStudentStep3Body: {
+    ar: 'تصفح الوحدات، حمّل الملخصات، وأكمل الاختبارات القصيرة لمتابعة تقدمك ومعدلك.',
+    en: 'Read lessons, download study materials, and submit quizzes to track your progress and average grade.',
+  },
+  tourWelcomeParentTitle: { ar: 'مرحباً بك في بوابة ولي الأمر', en: 'Welcome to the Parent Portal' },
+  tourParentStep1Title: { ar: '١. احصل على رمز متابعة الطالب', en: '1. Find Your Child’s Monitoring Code' },
+  tourParentStep1Body: {
+    ar: 'ستجد رمز المتابعة المكون من ٨ خانات (ورمز QR) داخل صفحة «الملف الشخصي» في حساب ابنك الطالب.',
+    en: 'Find the 8-character Monitoring Code (and QR code) inside the Profile page of your child’s student account.',
+  },
+  tourParentStep2Title: { ar: '٢. اربط حساب ابنك', en: '2. Link Your Child’s Account' },
+  tourParentStep2Body: {
+    ar: 'أدخل رمز المتابعة في الحقل المخصص أعلى الصفحة لربط حساب ابنك بحسابك فوراً.',
+    en: 'Enter the Monitoring Code in the box at the top of this page to link your child’s account.',
+  },
+  tourParentStep3Title: { ar: '٣. تابع الحضور والدرجات والتقارير', en: '3. Track Attendance, Grades & Reports' },
+  tourParentStep3Body: {
+    ar: 'اطلع في أي وقت على نسبة حضور ابنك، درجاته في الاختبارات، والتقارير الشهرية المرسلة من المعلمين.',
+    en: 'Monitor your child’s attendance percentage, quiz scores, and monthly teacher reports anytime.',
+  },
+  checklistTeacher1: { ar: 'إنشاء مقررك الدراسي الأول وإضافة الوحدات والدروس', en: 'Create your first master Course and add lessons' },
+  checklistTeacher2: { ar: 'إنشاء مجموعة (شعبة) لطلابك داخل المقرر', en: 'Create a Group (Cohort) for your students' },
+  checklistTeacher3: { ar: 'توليد رموز الدخول ومشاركة رابط المجموعة عبر واتساب', en: 'Generate Entry Codes & share your group on WhatsApp' },
+  checklistStudent1: { ar: 'اطلب رمز المجموعة (ورمز الدخول) من معلمك', en: 'Ask your teacher for the Group Join Code (+ Entry Code)' },
+  checklistStudent2: { ar: 'انضم إلى مجموعتك الدراسية من لوحة التحكم', en: 'Join your Group from the dashboard' },
+  checklistStudent3: { ar: 'افتح دروسك وأكمل الاختبارات القصيرة', en: 'Open your lessons and complete quizzes' },
+  checklistParent1: { ar: 'ربط حساب ابنك الطالب باستخدام رمز المتابعة', en: 'Link your child’s student account using their monitoring code' },
+  checklistParent2: { ar: 'متابعة الحضور والدرجات والتقارير الشهرية', en: 'Follow their attendance, grades, and monthly reports' },
+  // Role Auth, Multi-Step Signup Wizard & WhatsApp Support CTA
+  reportProblemWhatsapp: { ar: 'الإبلاغ عن مشكلة / اقتراح (واتساب)', en: 'Report a problem / Feedback (WhatsApp)' },
+  reportProblemShort: { ar: 'إبلاغ / دعم واتساب', en: 'Support / Report (WhatsApp)' },
+  teacherRoleTab: { ar: 'المعلّم', en: 'Teacher' },
+  studentRoleTab: { ar: 'الطالب', en: 'Student' },
+  parentRoleTab: { ar: 'وليّ الأمر', en: 'Parent' },
+  teacherLoginSubtitle: {
+    ar: 'أدر مقرراتك ومجموعاتك وطلابك واختباراتك من استوديو المعلم.',
+    en: 'Manage your courses, cohorts, attendance, and quizzes from your teacher studio.',
+  },
+  studentLoginSubtitle: {
+    ar: 'ادخل إلى مجموعاتك الدراسية وتابع دروسك واختباراتك.',
+    en: 'Access your enrolled groups, lessons, study materials, and quizzes.',
+  },
+  parentLoginSubtitle: {
+    ar: 'تابع حضور أبنائك ودرجاتهم وتقاريرهم الشهرية.',
+    en: 'Monitor your children’s attendance, quiz grades, and monthly reports.',
+  },
+  noAccountYet: { ar: 'ليس لديك حساب؟', en: 'Don’t have an account?' },
+  alreadyHaveAccount: { ar: 'لديك حساب بالفعل؟', en: 'Already have an account?' },
+  stepProgress: { ar: 'الخطوة {step} من 3', en: 'Step {step} of 3' },
+  wizardStep1Title: { ar: 'بيانات الحساب', en: 'Account Credentials' },
+  wizardStep2Title: { ar: 'الدولة ورقم الهاتف', en: 'Country & Phone Number' },
+  wizardStep3TeacherTitle: { ar: 'تركيز التدريس والصفوف', en: 'Teaching Focus & Grades' },
+  wizardStep3StudentTitle: { ar: 'الصف الدراسي والانضمام لمجموعة', en: 'School Grade & Cohort Join' },
+  wizardStep3ParentTitle: { ar: 'ربط حساب الابن (اختياري)', en: 'Link Child Account (Optional)' },
+  wizardStep4Title: { ar: 'تهانينا! تم إنشاء حسابك بنجاح', en: 'Congratulations! Your Account is Ready' },
+  completeRegistration: { ar: 'إكمال التسجيل', en: 'Complete Registration' },
+  enterDashboard: { ar: 'الدخول إلى لوحة التحكم', en: 'Enter Dashboard' },
+  checkingAvailability: { ar: 'جارٍ التحقق…', en: 'Checking…' },
+  emailAlreadyRegistered: { ar: 'البريد الإلكتروني مسجل مسبقاً.', en: 'Email is already registered.' },
+  phoneAlreadyRegistered: { ar: 'رقم الهاتف مسجل مسبقاً.', en: 'Phone number is already registered.' },
+  invalidPhoneForCountry: { ar: 'رقم الهاتف غير صالح للدولة المختارة.', en: 'Invalid phone number for selected country.' },
+  selectYourGrades: { ar: 'اختر الصفوف الدراسية التي تدرّسها', en: 'Select the grades you teach' },
+  selectGeneralTrack: { ar: 'اختر المسار العام أو المهاري', en: 'Select a general or skill track' },
+  customTrackPlaceholder: { ar: 'أو اكتب مساراً مخصصاً...', en: 'Or type a custom track...' },
+  academicSubjectPlaceholder: { ar: 'مثال: الرياضيات، الفيزياء، اللغة العربية', en: 'e.g. Mathematics, Physics, Arabic' },
+  studentGradeOptional: { ar: 'الصف الدراسي (اختياري)', en: 'School Grade (optional)' },
+  groupJoinCodeOptional: { ar: 'رمز الانضمام للمجموعة (اختياري)', en: 'Group Join Code (optional)' },
+  parentChildPhoneOrCodeOptional: {
+    ar: 'رقم هاتف الطالب أو رمز المتابعة (اختياري — يمكنك الربط لاحقاً)',
+    en: 'Student phone number or monitoring code (optional — you can also link later)',
+  },
+  congratsTeacherSummary: {
+    ar: 'تم تجهيز استوديو المعلم الخاص بك على الخطة المجانية. يمكنك الآن إنشاء مقررك الأول وإضافة مجموعاتك.',
+    en: 'Your teacher studio is ready on the Free Plan. You can now create your first course and launch your student cohorts.',
+  },
+  congratsStudentSummary: {
+    ar: 'تم تفعيل حسابك كطالب. يمكنك الآن استعراض دروسك أو الانضمام إلى مجموعات معلميك.',
+    en: 'Your student account is active. You can now open your lessons or join your teachers’ groups.',
+  },
+  congratsParentSummary: {
+    ar: 'تم تفعيل حساب ولي الأمر. يمكنك الآن متابعة حضور أبنائك ودرجاتهم وتقاريرهم.',
+    en: 'Your parent account is active. You can now track your children’s attendance, grades, and reports.',
+  },
 } as const;
 
 export type Key = keyof typeof dict;
@@ -436,10 +813,75 @@ const knownNames: Record<string, { ar: string; en: string }> = {
   English: { ar: 'الإنجليزية', en: 'English' },
   'Semester 1': { ar: 'الفصل الدراسي الأول', en: 'Semester 1' },
   'Semester 2': { ar: 'الفصل الدراسي الثاني', en: 'Semester 2' },
+  // Oman Grades 1-12
+  'Grade 1': { ar: 'الصف الأول', en: 'Grade 1' },
+  'Grade 2': { ar: 'الصف الثاني', en: 'Grade 2' },
+  'Grade 3': { ar: 'الصف الثالث', en: 'Grade 3' },
+  'Grade 4': { ar: 'الصف الرابع', en: 'Grade 4' },
+  'Grade 5': { ar: 'الصف الخامس', en: 'Grade 5' },
+  'Grade 6': { ar: 'الصف السادس', en: 'Grade 6' },
+  'Grade 7': { ar: 'الصف السابع', en: 'Grade 7' },
+  'Grade 8': { ar: 'الصف الثامن', en: 'Grade 8' },
+  'Grade 9': { ar: 'الصف التاسع', en: 'Grade 9' },
+  'Grade 10': { ar: 'الصف العاشر', en: 'Grade 10' },
+  'Grade 11': { ar: 'الصف الحادي عشر', en: 'Grade 11' },
+  'Grade 12': { ar: 'الصف الثاني عشر', en: 'Grade 12' },
+  // Egypt Grades
+  '1st Grade Primary Education': { ar: 'الصف الأول الابتدائي', en: '1st Grade Primary Education' },
+  '2nd Grade Primary Education': { ar: 'الصف الثاني الابتدائي', en: '2nd Grade Primary Education' },
+  '3rd Grade Primary Education': { ar: 'الصف الثالث الابتدائي', en: '3rd Grade Primary Education' },
+  '4th Grade Primary Education': { ar: 'الصف الرابع الابتدائي', en: '4th Grade Primary Education' },
+  '5th Grade Primary Education': { ar: 'الصف الخامس الابتدائي', en: '5th Grade Primary Education' },
+  '6th Grade Primary Education': { ar: 'الصف السادس الابتدائي', en: '6th Grade Primary Education' },
+  '1st Grade Preparatory Education': { ar: 'الصف الأول الإعدادي', en: '1st Grade Preparatory Education' },
+  '2nd Grade Preparatory Education': { ar: 'الصف الثاني الإعدادي', en: '2nd Grade Preparatory Education' },
+  '3rd Grade Preparatory Education': { ar: 'الصف الثالث الإعدادي', en: '3rd Grade Preparatory Education' },
+  '1st Grade Secondary Education': { ar: 'الصف الأول الثانوي', en: '1st Grade Secondary Education' },
+  '2nd Grade Secondary Education': { ar: 'الصف الثاني الثانوي', en: '2nd Grade Secondary Education' },
+  '3rd Grade Secondary Education': { ar: 'الصف الثالث الثانوي', en: '3rd Grade Secondary Education' },
+  // General Course Tracks
+  'English Language': { ar: 'اللغة الإنجليزية', en: 'English Language' },
+  'IELTS & TOEFL Preparation': { ar: 'التحضير لاختبارات آيلتس وتوفل', en: 'IELTS & TOEFL Preparation' },
+  German: { ar: 'اللغة الألمانية', en: 'German' },
+  French: { ar: 'اللغة الفرنسية', en: 'French' },
+  'Arabic for Non-Native Speakers': { ar: 'العربية لغير الناطقين بها', en: 'Arabic for Non-Native Speakers' },
+  Spanish: { ar: 'اللغة الإسبانية', en: 'Spanish' },
+  Turkish: { ar: 'اللغة التركية', en: 'Turkish' },
+  'Programming & Computer Science': { ar: 'البرمجة وعلوم الحاسب', en: 'Programming & Computer Science' },
+  'Web & App Development': { ar: 'تطوير المواقع والتطبيقات', en: 'Web & App Development' },
+  'AI & Data Science': { ar: 'الذكاء الاصطناعي وعلوم البيانات', en: 'AI & Data Science' },
+  'Cybersecurity & Networking': { ar: 'الأمن السيبراني والشبكات', en: 'Cybersecurity & Networking' },
+  'Graphic Design': { ar: 'التصميم الجرافيكي', en: 'Graphic Design' },
+  'UI/UX Design': { ar: 'تصميم واجهات وتجربة المستخدم (UI/UX)', en: 'UI/UX Design' },
+  'Video Editing & Motion Graphics': { ar: 'مونتاج الفيديو والموشن جرافيك', en: 'Video Editing & Motion Graphics' },
+  'Digital Marketing & Content Creation': { ar: 'التسويق الرقمي وصناعة المحتوى', en: 'Digital Marketing & Content Creation' },
+  'Business & Entrepreneurship': { ar: 'إدارة الأعمال وريادة الأعمال', en: 'Business & Entrepreneurship' },
+  'Accounting & Finance': { ar: 'المحاسبة والمالية', en: 'Accounting & Finance' },
+  'Excel & Office Productivity': { ar: 'إكسل وبرامج الأوفيس الإنتاجية', en: 'Excel & Office Productivity' },
+  'Project Management': { ar: 'إدارة المشاريع', en: 'Project Management' },
+  'Quran & Tajweed': { ar: 'القرآن الكريم والتجويد', en: 'Quran & Tajweed' },
+  'Islamic Studies': { ar: 'الدراسات الإسلامية', en: 'Islamic Studies' },
+  'Mathematics & Mental Math': { ar: 'الرياضيات والحساب الذهني', en: 'Mathematics & Mental Math' },
+  'Robotics & Electronics': { ar: 'الروبوتات والإلكترونيات', en: 'Robotics & Electronics' },
+  'Public Speaking & Communication': { ar: 'الخطابة ومهارات التواصل', en: 'Public Speaking & Communication' },
+  'Drawing & Fine Arts': { ar: 'الرسم والفنون الجميلة', en: 'Drawing & Fine Arts' },
+  Photography: { ar: 'التصوير الفوتوغرافي', en: 'Photography' },
+  'Chess & Strategic Thinking': { ar: 'الشطرنج والتفكير الاستراتيجي', en: 'Chess & Strategic Thinking' },
+  'Standardized Test Preparation': { ar: 'التحضير للاختبارات المعيارية والقدرات', en: 'Standardized Test Preparation' },
+  'Soft Skills & Personal Development': { ar: 'المهارات الشخصية وتطوير الذات', en: 'Soft Skills & Personal Development' },
 };
 
-export function localizeName(name: string, lang: Lang) {
-  return knownNames[name]?.[lang] ?? name;
+export function localizeName(
+  item: string | { name: string; nameAr?: string; nameEn?: string } | null | undefined,
+  lang: Lang,
+): string {
+  if (!item) return '';
+  if (typeof item === 'object') {
+    const localized = lang === 'ar' ? item.nameAr : item.nameEn;
+    if (localized?.trim()) return localized;
+    return knownNames[item.name]?.[lang] ?? item.name;
+  }
+  return knownNames[item]?.[lang] ?? item;
 }
 
 export function formatDateTime(value: string | Date, lang: Lang) {
@@ -447,6 +889,113 @@ export function formatDateTime(value: string | Date, lang: Lang) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+export type WeekdayKey = (typeof WEEKDAYS)[number];
+
+const weekdayLabels: Record<WeekdayKey, { ar: string; en: string }> = {
+  Sun: { ar: 'الأحد', en: 'Sunday' },
+  Mon: { ar: 'الاثنين', en: 'Monday' },
+  Tue: { ar: 'الثلاثاء', en: 'Tuesday' },
+  Wed: { ar: 'الأربعاء', en: 'Wednesday' },
+  Thu: { ar: 'الخميس', en: 'Thursday' },
+  Fri: { ar: 'الجمعة', en: 'Friday' },
+  Sat: { ar: 'السبت', en: 'Saturday' },
+};
+
+const weekdayAliases: Record<string, WeekdayKey> = {
+  sun: 'Sun',
+  sunday: 'Sun',
+  الأحد: 'Sun',
+  الاحد: 'Sun',
+  أحد: 'Sun',
+  احد: 'Sun',
+  mon: 'Mon',
+  monday: 'Mon',
+  الاثنين: 'Mon',
+  الإثنين: 'Mon',
+  اثنين: 'Mon',
+  إثنين: 'Mon',
+  tue: 'Tue',
+  tues: 'Tue',
+  tuesday: 'Tue',
+  الثلاثاء: 'Tue',
+  ثلاثاء: 'Tue',
+  wed: 'Wed',
+  weds: 'Wed',
+  wednesday: 'Wed',
+  الأربعاء: 'Wed',
+  الاربعاء: 'Wed',
+  أربعاء: 'Wed',
+  اربعاء: 'Wed',
+  thu: 'Thu',
+  thur: 'Thu',
+  thurs: 'Thu',
+  thursday: 'Thu',
+  الخميس: 'Thu',
+  خميس: 'Thu',
+  fri: 'Fri',
+  friday: 'Fri',
+  الجمعة: 'Fri',
+  جمعة: 'Fri',
+  الجمعه: 'Fri',
+  جمعه: 'Fri',
+  sat: 'Sat',
+  saturday: 'Sat',
+  السبت: 'Sat',
+  سبت: 'Sat',
+};
+
+function resolveWeekday(token: string): WeekdayKey | null {
+  const cleaned = token.trim().replace(/^يوم\s+/, '').toLowerCase();
+  return weekdayAliases[cleaned] ?? null;
+}
+
+export function getWeekdayOptions(lang: Lang): Array<{ value: WeekdayKey; label: string }> {
+  return WEEKDAYS.map((value) => ({
+    value,
+    label: weekdayLabels[value][lang],
+  }));
+}
+
+export function parseDays(raw: string | null | undefined): WeekdayKey[] {
+  if (!raw?.trim()) return [];
+  const matched = new Set<WeekdayKey>();
+  for (const token of raw.split(/[,،/]+|\s+و\s+/)) {
+    const day = resolveWeekday(token);
+    if (day) matched.add(day);
+  }
+  return WEEKDAYS.filter((day) => matched.has(day));
+}
+
+export function serializeDays(days: readonly WeekdayKey[]): string | null {
+  const unique = new Set(days);
+  const ordered = WEEKDAYS.filter((day) => unique.has(day));
+  return ordered.length ? ordered.join(', ') : null;
+}
+
+export function formatDays(raw: string | null | undefined, lang: Lang): string {
+  if (!raw?.trim()) return '';
+  const tokens = raw
+    .split(/[,،/]+|\s+و\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  if (tokens.length === 0) return '';
+  const resolved = tokens.map(resolveWeekday);
+  const separator = lang === 'ar' ? '، ' : ', ';
+  if (resolved.every((day): day is WeekdayKey => day !== null)) {
+    const unique = new Set(resolved);
+    return WEEKDAYS.filter((day) => unique.has(day))
+      .map((day) => weekdayLabels[day][lang])
+      .join(separator);
+  }
+  return tokens
+    .map((token, index) => {
+      const day = resolved[index];
+      return day ? weekdayLabels[day][lang] : token;
+    })
+    .join(separator);
 }
 
 export const useLang = () => useContext(Ctx);

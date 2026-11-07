@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,12 +8,12 @@ import {
   flexRender, getCoreRowModel, getSortedRowModel, useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { ArrowUpDown, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowUpDown, CreditCard, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../../lib/api';
-import { localizeName, useLang } from '../../lib/i18n';
+import { adminApi, api, type AdminTeacherEntitlementsResponse, type Plan } from '../../lib/api';
+import { formatDateTime, localizeName, useLang } from '../../lib/i18n';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
-import { Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select } from '../../components/ui';
+import { Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Progress, Select, Sheet } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
 import { requireRole, useAdminPermissions } from '../../lib/session';
@@ -66,6 +66,7 @@ export default function AdminTeachers() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<TeacherRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeacherRow | null>(null);
+  const [entitlementsTeacher, setEntitlementsTeacher] = useState<TeacherRow | null>(null);
 
   const teachers = useQuery({
     queryKey: ['admin-teachers', debouncedName, debouncedPhone, subjectId, showDeleted, limit],
@@ -190,6 +191,13 @@ export default function AdminTeachers() {
                   title={t('edit')}
                 >
                   <Pencil className="inline" size={12} /> {t('edit')}
+                </button>
+                <button
+                  onClick={() => setEntitlementsTeacher(teacher)}
+                  className="rounded-full border border-primary/40 bg-primary-light/40 px-3 py-1 text-xs font-bold text-primary-dark hover:bg-primary-light"
+                  title={t('subscriptionAndEntitlements')}
+                >
+                  <CreditCard className="inline me-1" size={12} /> {t('subscriptionAndEntitlements')}
                 </button>
                 {canManageUsers && (
                   <>
@@ -334,6 +342,12 @@ export default function AdminTeachers() {
         destructive
         onConfirm={() => deleteTarget && deleteUser.mutate(deleteTarget.id)}
       />
+      {entitlementsTeacher && (
+        <TeacherEntitlementsDrawer
+          teacher={entitlementsTeacher}
+          onClose={() => setEntitlementsTeacher(null)}
+        />
+      )}
     </Page>
   );
 }
@@ -458,6 +472,569 @@ function EditTeacherDialog({
           {save.error && <ErrorBox error={save.error} />}
         </div>
       </form>
+    </Dialog>
+  );
+}
+
+function TeacherEntitlementsDrawer({
+  teacher,
+  onClose,
+}: {
+  teacher: TeacherRow;
+  onClose: () => void;
+}) {
+  const { t, lang } = useLang();
+
+  const entitlements = useQuery({
+    queryKey: ['admin-teacher-entitlements', teacher.id],
+    queryFn: () => adminApi.getTeacherEntitlements(teacher.id),
+  });
+
+  const plans = useQuery({
+    queryKey: ['admin-plans'],
+    queryFn: () => adminApi.getPlans(),
+  });
+
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [grantOpen, setGrantOpen] = useState(false);
+
+  return (
+    <Sheet
+      open={true}
+      onOpenChange={(v) => !v && onClose()}
+      title={teacher.name}
+      closeLabel={t('close')}
+      className="w-full sm:w-[580px] md:w-[720px]"
+    >
+      {entitlements.isLoading ? (
+        <Loading />
+      ) : entitlements.error ? (
+        <ErrorBox error={entitlements.error} />
+      ) : entitlements.data ? (
+        <div className="space-y-5 pb-8">
+          {/* Header Info */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+            <div className="text-sm">
+              <span className="font-semibold">{teacher.email}</span>
+              {teacher.phoneNumber && (
+                <span className="ms-3 text-ink-soft" dir="ltr">
+                  {teacher.phoneNumber}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge tone="neutral">{entitlements.data.country}</Badge>
+              <Badge tone="neutral">{entitlements.data.currency}</Badge>
+            </div>
+          </div>
+
+          {/* Active Plan Card */}
+          <div className="rounded-xl border border-line bg-surface-tint p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-semibold text-ink-soft">
+                  {t('activePlan')}
+                </div>
+                <div className="text-lg font-bold text-ink">
+                  {lang === 'ar'
+                    ? entitlements.data.activePlan.nameAr
+                    : entitlements.data.activePlan.nameEn}
+                </div>
+              </div>
+              <Badge
+                tone={
+                  entitlements.data.activePlan.status === 'ACTIVE'
+                    ? 'primary'
+                    : entitlements.data.activePlan.status === 'TRIAL'
+                      ? 'secondary'
+                      : 'neutral'
+                }
+              >
+                {entitlements.data.activePlan.status === 'ACTIVE'
+                  ? t('planStatusActive')
+                  : entitlements.data.activePlan.status === 'TRIAL'
+                    ? t('planStatusTrial')
+                    : entitlements.data.activePlan.status === 'FREE'
+                      ? t('planStatusFree')
+                      : t('planStatusExpired')}
+              </Badge>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+              <div>
+                <span className="text-ink-soft">{t('billingCycle')}: </span>
+                <span className="font-semibold">
+                  {entitlements.data.activePlan.billingCycle ?? '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-soft">{t('pricePaid')}: </span>
+                <span className="font-semibold">
+                  {entitlements.data.activePlan.pricePaid ?? 0}{' '}
+                  {entitlements.data.currency}
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-ink-soft">{t('expiresOn')}: </span>
+                <span className="font-semibold">
+                  {entitlements.data.activePlan.endsAt
+                    ? formatDateTime(entitlements.data.activePlan.endsAt, lang)
+                    : t('noExpiration')}
+                </span>
+              </div>
+            </div>
+
+            {entitlements.data.referral?.referralCode && (
+              <div className="mt-3 border-t border-line/50 pt-2 text-xs">
+                <span className="text-ink-soft">{t('yourReferralCode')}: </span>
+                <span className="font-mono font-bold text-primary">
+                  {entitlements.data.referral.referralCode}
+                </span>
+                <span className="ms-2 text-ink-soft">
+                  ({entitlements.data.referral.usedCount} /{' '}
+                  {entitlements.data.referral.maxReferrals})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Usage Meters */}
+          <div className="space-y-3 rounded-xl border border-line p-4">
+            <div className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+              {t('storageUsage')} & {t('activeStudentsUsage')}
+            </div>
+
+            <div>
+              <div className="mb-1 flex justify-between text-xs font-semibold">
+                <span>{t('activeStudentsUsage')}</span>
+                <span className="tabular-nums">
+                  {entitlements.data.usage.activeStudentCount} /{' '}
+                  {entitlements.data.activePlan.maxStudents ?? t('unlimited')}
+                </span>
+              </div>
+              <Progress
+                value={
+                  entitlements.data.activePlan.maxStudents
+                    ? Math.min(
+                        100,
+                        (entitlements.data.usage.activeStudentCount /
+                          entitlements.data.activePlan.maxStudents) *
+                          100,
+                      )
+                    : 0
+                }
+              />
+            </div>
+
+            <div>
+              <div className="mb-1 flex justify-between text-xs font-semibold">
+                <span>{t('storageUsage')}</span>
+                <span className="tabular-nums">
+                  {(
+                    entitlements.data.usage.usedStorageBytes /
+                    (1024 * 1024)
+                  ).toFixed(1)}{' '}
+                  MB /{' '}
+                  {entitlements.data.activePlan.maxStorageBytes
+                    ? `${(entitlements.data.activePlan.maxStorageBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+                    : t('unlimited')}
+                </span>
+              </div>
+              <Progress
+                value={
+                  entitlements.data.activePlan.maxStorageBytes
+                    ? Math.min(
+                        100,
+                        (entitlements.data.usage.usedStorageBytes /
+                          entitlements.data.activePlan.maxStorageBytes) *
+                          100,
+                      )
+                    : 0
+                }
+              />
+            </div>
+
+            <div className="text-xs text-ink-soft">
+              {t('groups')}:{' '}
+              <span className="font-semibold text-ink">
+                {entitlements.data.usage.activeGroupCount}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={() => setAssignOpen(true)}>
+              <CreditCard size={16} className="me-1.5" />
+              {t('assignPaidSubscription')}
+            </Button>
+            <Button variant="ghost" onClick={() => setGrantOpen(true)}>
+              <Sparkles size={16} className="me-1.5" />
+              {t('grantGiftDays')}
+            </Button>
+          </div>
+
+          {/* Saved Gifts Inventory */}
+          <div className="rounded-xl border border-line p-4">
+            <h3 className="mb-2 text-sm font-bold">
+              {t('savedGiftsInventory')} (
+              {entitlements.data.savedGifts.length}/3)
+            </h3>
+            {entitlements.data.savedGifts.length === 0 ? (
+              <p className="text-xs text-ink-soft">{t('noSavedGifts')}</p>
+            ) : (
+              <ul className="divide-y divide-line text-xs">
+                {entitlements.data.savedGifts.map((g) => (
+                  <li
+                    key={g.id}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <div>
+                      <span className="font-semibold">
+                        {lang === 'ar' ? g.planNameAr : g.planNameEn}
+                      </span>
+                      <span className="ms-2 text-ink-soft">({g.planSlug})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone="secondary">+{g.durationDays}d</Badge>
+                      <span className="text-ink-soft">{g.source}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Discount Ledger History */}
+          <div className="rounded-xl border border-line p-4">
+            <h3 className="mb-2 text-sm font-bold">
+              {t('discountLedger')} ({entitlements.data.discounts.length})
+            </h3>
+            {entitlements.data.discounts.length === 0 ? (
+              <p className="text-xs text-ink-soft">{t('noDiscountsRecorded')}</p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto">
+                <table className="w-full text-start text-xs">
+                  <thead className="sticky top-0 border-b border-line bg-surface text-ink-soft">
+                    <tr>
+                      <th className="p-2 text-start">{t('occasion')}</th>
+                      <th className="p-2 text-start">{t('activePlan')}</th>
+                      <th className="p-2 text-start">{t('note')}</th>
+                      <th className="p-2 text-end">{t('date')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {entitlements.data.discounts.map((d) => (
+                      <tr key={d.id} className="hover:bg-surface-tint">
+                        <td className="p-2">
+                          <Badge
+                            tone={
+                              d.occasion.startsWith('LIMIT_CROSS')
+                                ? 'primary'
+                                : 'neutral'
+                            }
+                          >
+                            {d.occasion}
+                          </Badge>
+                        </td>
+                        <td className="p-2 font-mono text-ink-soft">
+                          {d.planSlug}
+                        </td>
+                        <td className="p-2 text-ink">{d.description ?? '—'}</td>
+                        <td className="p-2 text-end tabular-nums text-ink-soft">
+                          {formatDateTime(d.createdAt, lang)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Modals */}
+      {assignOpen && plans.data && (
+        <AssignSubscriptionDialog
+          open={assignOpen}
+          teacherId={teacher.id}
+          country={entitlements.data?.country ?? 'OM'}
+          plans={plans.data}
+          onClose={() => setAssignOpen(false)}
+        />
+      )}
+      {grantOpen && plans.data && (
+        <GrantGiftDialog
+          open={grantOpen}
+          teacherId={teacher.id}
+          plans={plans.data}
+          onClose={() => setGrantOpen(false)}
+        />
+      )}
+    </Sheet>
+  );
+}
+
+function AssignSubscriptionDialog({
+  open,
+  teacherId,
+  country,
+  plans,
+  onClose,
+}: {
+  open: boolean;
+  teacherId: string;
+  country: 'OM' | 'EG';
+  plans: Plan[];
+  onClose: () => void;
+}) {
+  const { t, lang } = useLang();
+  const qc = useQueryClient();
+
+  const paidPlans = plans.filter((p) => p.slug !== 'free');
+  const [planId, setPlanId] = useState(paidPlans[0]?.id ?? plans[0]?.id ?? '');
+  const [currency, setCurrency] = useState<'OMR' | 'EGP'>(
+    country === 'EG' ? 'EGP' : 'OMR',
+  );
+  const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>(
+    'MONTHLY',
+  );
+  const [durationDays, setDurationDays] = useState(30);
+  const [pricePaid, setPricePaid] = useState<number>(0);
+  const [recordLimitCrossingDiscount, setRecordLimitCrossingDiscount] =
+    useState(false);
+
+  useEffect(() => {
+    const selected = plans.find((p) => p.id === planId);
+    if (!selected) return;
+    if (currency === 'OMR') {
+      setPricePaid(
+        billingCycle === 'YEARLY'
+          ? selected.yearlyMonthlyPriceOmr * 12
+          : selected.monthlyPriceOmr,
+      );
+    } else {
+      setPricePaid(
+        billingCycle === 'YEARLY'
+          ? selected.yearlyMonthlyPriceEgp * 12
+          : selected.monthlyPriceEgp,
+      );
+    }
+  }, [planId, currency, billingCycle, plans]);
+
+  const handleCycleChange = (cycle: 'MONTHLY' | 'YEARLY') => {
+    setBillingCycle(cycle);
+    setDurationDays(cycle === 'YEARLY' ? 365 : 30);
+  };
+
+  const assignMutation = useMutation({
+    mutationFn: () =>
+      adminApi.assignTeacherSubscription(teacherId, {
+        planId,
+        currency,
+        billingCycle,
+        durationDays: Number(durationDays),
+        pricePaid: Number(pricePaid),
+        recordLimitCrossingDiscount,
+      }),
+    onSuccess: () => {
+      toast.success(t('settingsSaved'));
+      qc.invalidateQueries({
+        queryKey: ['admin-teacher-entitlements', teacherId],
+      });
+      qc.invalidateQueries({ queryKey: ['admin-teachers'] });
+      onClose();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      title={t('assignPaidSubscription')}
+    >
+      <div className="space-y-4">
+        <Select
+          label={t('activePlan')}
+          value={planId}
+          onChange={(e) => setPlanId(e.target.value)}
+        >
+          {paidPlans.map((p) => (
+            <option key={p.id} value={p.id}>
+              {lang === 'ar' ? p.nameAr : p.nameEn} ({p.slug})
+            </option>
+          ))}
+        </Select>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select
+            label={t('currency')}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as 'OMR' | 'EGP')}
+          >
+            <option value="OMR">OMR (عُمان)</option>
+            <option value="EGP">EGP (مصر)</option>
+          </Select>
+
+          <Select
+            label={t('billingCycle')}
+            value={billingCycle}
+            onChange={(e) =>
+              handleCycleChange(e.target.value as 'MONTHLY' | 'YEARLY')
+            }
+          >
+            <option value="MONTHLY">{t('monthlyCycle')}</option>
+            <option value="YEARLY">{t('yearlyCycle')}</option>
+          </Select>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            label={t('durationDays')}
+            type="number"
+            min={1}
+            value={durationDays}
+            onChange={(e) => setDurationDays(Number(e.target.value))}
+            required
+          />
+          <Input
+            label={`${t('pricePaid')} (${currency})`}
+            type="number"
+            min={0}
+            value={pricePaid}
+            onChange={(e) => setPricePaid(Number(e.target.value))}
+            required
+          />
+        </div>
+
+        <label className="flex items-center gap-2 pt-2">
+          <input
+            type="checkbox"
+            checked={recordLimitCrossingDiscount}
+            onChange={(e) => setRecordLimitCrossingDiscount(e.target.checked)}
+            className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
+          />
+          <span className="text-sm font-semibold text-ink">
+            {t('recordLimitCrossingDiscount')}
+          </span>
+        </label>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={assignMutation.isPending}
+            onClick={() => assignMutation.mutate()}
+          >
+            {t('assignPaidSubscription')}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
+function GrantGiftDialog({
+  open,
+  teacherId,
+  plans,
+  onClose,
+}: {
+  open: boolean;
+  teacherId: string;
+  plans: Plan[];
+  onClose: () => void;
+}) {
+  const { t, lang } = useLang();
+  const qc = useQueryClient();
+
+  const [planId, setPlanId] = useState(plans[0]?.id ?? '');
+  const [durationDays, setDurationDays] = useState(7);
+  const [adminOverride, setAdminOverride] = useState(false);
+  const [note, setNote] = useState('');
+
+  const grantMutation = useMutation({
+    mutationFn: () =>
+      adminApi.grantTeacherGift(teacherId, {
+        planId,
+        durationDays: Number(durationDays),
+        adminOverride,
+        note: note.trim() || undefined,
+      }),
+    onSuccess: () => {
+      toast.success(t('settingsSaved'));
+      qc.invalidateQueries({
+        queryKey: ['admin-teacher-entitlements', teacherId],
+      });
+      onClose();
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      title={t('grantGiftDays')}
+    >
+      <div className="space-y-4">
+        <Select
+          label={t('activePlan')}
+          value={planId}
+          onChange={(e) => setPlanId(e.target.value)}
+        >
+          {plans.map((p) => (
+            <option key={p.id} value={p.id}>
+              {lang === 'ar' ? p.nameAr : p.nameEn} ({p.slug})
+            </option>
+          ))}
+        </Select>
+
+        <Input
+          label={t('durationDays')}
+          type="number"
+          min={1}
+          value={durationDays}
+          onChange={(e) => setDurationDays(Number(e.target.value))}
+          required
+        />
+
+        <Input
+          label={t('note')}
+          placeholder="Operational trial grant / VIP exception"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+
+        <label className="flex items-center gap-2 pt-2">
+          <input
+            type="checkbox"
+            checked={adminOverride}
+            onChange={(e) => setAdminOverride(e.target.checked)}
+            className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
+          />
+          <span className="text-sm font-semibold text-ink">
+            {t('adminOverride')}
+          </span>
+        </label>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={grantMutation.isPending}
+            onClick={() => grantMutation.mutate()}
+          >
+            {t('grantGiftDays')}
+          </Button>
+        </div>
+      </div>
     </Dialog>
   );
 }

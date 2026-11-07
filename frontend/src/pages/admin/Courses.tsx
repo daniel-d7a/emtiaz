@@ -408,25 +408,25 @@ function CourseDialog({
       <form id="course-form" onSubmit={handleSubmit((values) => save.mutate(values))} noValidate>
         <div className="flex flex-col gap-3">
           <Input label={t('name')} error={errors.title && t('requiredField')} {...register('title')} />
-          <Select label={t('teacher')} {...register('teacherId')}>
+          <Select label={t('teacher')} error={errors.teacherId && t('requiredField')} {...register('teacherId')}>
             <option value="">{t('choose')}</option>
             {teachers.map((teacher) => (
               <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
             ))}
           </Select>
-          <Select label={t('courseType')} {...register('courseType')}>
+          <Select label={t('courseType')} error={errors.courseType && t('requiredField')} {...register('courseType')}>
             <option value="ACADEMIC">{t('academic')}</option>
             <option value="GENERAL">{t('general')}</option>
           </Select>
           {courseType === 'ACADEMIC' ? (
-            <Select label={t('grade')} {...register('gradeId')}>
+            <Select key="gradeId" label={t('grade')} error={errors.gradeId && t('requiredField')} {...register('gradeId')}>
               <option value="">{t('choose')}</option>
               {grades.map((grade) => (
                 <option key={grade.id} value={grade.id}>{localizeName(grade.name, lang)}</option>
               ))}
             </Select>
           ) : (
-            <Select label={t('specialization')} {...register('categoryId')}>
+            <Select key="categoryId" label={t('specialization')} error={errors.categoryId && t('requiredField')} {...register('categoryId')}>
               <option value="">{t('choose')}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>{localizeName(category.name, lang)}</option>

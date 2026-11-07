@@ -11,7 +11,11 @@
     "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      // 2. Map your alias to the relative path of the shared package
+      "@shared/*": ["../shared/*"]
+    }
   },
   "include": ["src"]
 }

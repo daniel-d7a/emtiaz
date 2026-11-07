@@ -126,7 +126,7 @@ export default function StudentQuizPage() {
               {data.questions.map((q, i) => (
                 <Card key={q.id}>
                   <p className="mb-3 font-semibold">
-                    {i + 1}. {q.prompt} <span className="text-sm font-normal text-ink-soft">({q.questionType === 'WRITTEN' ? 10 : q.points})</span>
+                    {i + 1}. {q.prompt} <span className="text-sm font-normal text-ink-soft">({q.points})</span>
                   </p>
                   {q.imageUrl && (
                     <img src={q.imageUrl} alt="" className="mb-3 max-h-64 rounded-xl border border-line object-contain" />

@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BookOpen, Globe, GraduationCap, HeartHandshake, Home, LayoutDashboard, LogOut,
   ScrollText, Settings, UserRound, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { authApi } from '../lib/api';
+import { api, authApi } from '../lib/api';
 import { useLang, type Key } from '../lib/i18n';
 import { sessionQuery, useAdminPermissions } from '../lib/session';
 import type { AdminPermission, SessionUser } from '../../../shared/api';
 import { NotificationBell } from './NotificationBell';
+import { ReportProblemButton } from './ReportProblemButton';
 import { BrandMark } from './SiteBranding';
+import { UpgradeModal } from './UpgradeModal';
 
 type NavTarget =
   | '/student/dashboard'
@@ -123,6 +125,20 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   );
   const home = items[0]?.to ?? ROLE_HOME[user.role];
 
+  const { data: entitlements } = useQuery({
+    queryKey: ['teacher-entitlements'],
+    queryFn: () => api('/api/teacher/entitlements'),
+    enabled: user.role === 'TEACHER',
+  });
+
+  useEffect(() => {
+    if (user.role === 'TEACHER' && entitlements?.isLockedOut) {
+      if (pathname.startsWith('/teacher') && pathname !== '/teacher/upgrade-gate') {
+        navigate({ to: '/teacher/upgrade-gate' as any });
+      }
+    }
+  }, [user.role, entitlements?.isLockedOut, pathname, navigate]);
+
   useEffect(() => setMenuOpen(false), [pathname]);
 
   const logout = async () => {
@@ -150,6 +166,9 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
             </Link>
           ))}
         </nav>
+        <div className="border-t border-line p-3">
+          <ReportProblemButton user={user} className="w-full" />
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -158,6 +177,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
             <BrandMark />
           </Link>
           <div className="ms-auto flex items-center gap-1">
+            <ReportProblemButton user={user} compact className="hidden sm:inline-flex" />
             <NotificationBell />
             <button
               type="button"
@@ -218,6 +238,10 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
 
         <main id="main" className="min-w-0 flex-1 overflow-x-clip pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           {children}
+          <div className="mx-auto flex max-w-5xl justify-center px-4 py-6 lg:hidden">
+            <ReportProblemButton user={user} />
+          </div>
+          {user.role === 'TEACHER' && <UpgradeModal />}
         </main>
       </div>
 

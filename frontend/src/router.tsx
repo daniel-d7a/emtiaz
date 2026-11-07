@@ -1,8 +1,8 @@
 import { createRoute, createRouter, redirect } from '@tanstack/react-router';
 import { rootRoute } from './routes/__root';
 import { homeRoute } from './pages/Home';
-import { loginRoute } from './pages/Login';
-import { registerRoute } from './pages/Register';
+import { loginRoute, loginRoleRoute } from './pages/Login';
+import { registerIndexRoute, registerRoute } from './pages/Register';
 import { joinRoute } from './pages/Join';
 import { changePasswordRoute } from './pages/ChangePassword';
 import { profileRoute } from './pages/Profile';
@@ -18,6 +18,7 @@ import { teacherCourseGroupsRoute } from './pages/teacher/CourseGroups';
 import { teacherNewGroupRoute } from './pages/teacher/NewGroup';
 import { teacherCurriculumRoute } from './pages/teacher/Curriculum';
 import { teacherGroupRoute } from './pages/teacher/Group';
+import { teacherUpgradeGateRoute } from './pages/teacher/UpgradeGate';
 import { adminDashboardRoute } from './pages/admin/Dashboard';
 import { adminTeachersRoute } from './pages/admin/Teachers';
 import { adminStudentsRoute } from './pages/admin/Students';
@@ -41,6 +42,8 @@ const fallbackRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   homeRoute,
   loginRoute,
+  loginRoleRoute,
+  registerIndexRoute,
   registerRoute,
   joinRoute,
   changePasswordRoute,
@@ -57,6 +60,7 @@ const routeTree = rootRoute.addChildren([
   teacherNewGroupRoute,
   teacherCurriculumRoute,
   teacherGroupRoute,
+  teacherUpgradeGateRoute,
   adminDashboardRoute,
   adminTeachersRoute,
   adminStudentsRoute,

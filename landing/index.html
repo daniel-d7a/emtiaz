@@ -128,12 +128,12 @@
       <div class="wrap" style="padding:0">
         <div class="center">
           <span class="eyebrow" data-t="pri_badge">أسعار واضحة</span>
-          <h2 data-t="pri_h">خطط بسيطة، بلا مفاجآت</h2>
-          <p class="lead" data-t="pri_p">أسعار إطلاق مخططة بالريال العُماني شهريًا. لا يوجد دفع أو اشتراك الآن — التسجيل مجاني خلال فترة الإطلاق.</p>
+          <h2 data-t="pri_h">خطط بسيطة للمعلمين، والطلبة مجانًا دائمًا</h2>
+          <p class="lead" data-t="pri_p">الطلبة وأولياء الأمور ينضمون مجانًا بلا رسوم أو اشتراكات. الخطط للمعلمين فقط مع فترة تجربة مجانية.</p>
         </div>
         <div class="plans" id="plans"></div>
-        <div class="bundle">
-          <p><b data-t="bundle_h">عرض الأشقاء:</b> <span data-t="bundle_p">أضف أخًا أو أختًا إلى أي خطة طالب مقابل 1 ر.ع فقط شهريًا لكل طالب إضافي (حتى 4 طلاب).</span></p>
+        <div class="bundle" style="justify-content:center; text-align:center;">
+          <p><b data-t="free_guarantee_h">مجاني دائمًا:</b> <span data-t="free_guarantee_p">الطلبة وأولياء الأمور لا يدفعون أي اشتراك. فقط المعلم يختار خطته.</span></p>
         </div>
       </div>
     </section>
@@ -233,10 +233,10 @@
       phone_3: { ar: 'الواجب العملي', en: 'Practical assignment' },
       phone_4: { ar: 'الدروس المفتوحة', en: 'Unlocked lessons' },
       pri_badge: { ar: 'أسعار واضحة', en: 'Honest pricing' },
-      pri_h: { ar: 'خطط بسيطة، بلا مفاجآت', en: 'Simple plans, no surprises' },
-      pri_p: { ar: 'أسعار إطلاق مخططة بالريال العُماني شهريًا. سيتولى ثواني الدفع عند تفعيل الاشتراكات — التسجيل مجاني خلال فترة الإطلاق.', en: 'Planned launch prices in Omani Rial per month. Thawani will handle checkout when subscriptions launch — registration is free during launch.' },
-      bundle_h: { ar: 'عرض الأشقاء:', en: 'Sibling bundle:' },
-      bundle_p: { ar: 'أضف أخًا أو أختًا إلى أي خطة طالب مقابل 1 ر.ع فقط شهريًا لكل طالب إضافي (حتى 4 طلاب).', en: 'Add a sibling to any student plan for just 1 OMR/month per extra student (up to 4 students).' },
+      pri_h: { ar: 'خطط بسيطة للمعلمين، والطلبة مجانًا دائمًا', en: 'Simple plans for teachers, students always free' },
+      pri_p: { ar: 'الطلبة وأولياء الأمور ينضمون مجانًا بلا رسوم أو اشتراكات. الخطط للمعلمين فقط مع فترة تجربة مجانية.', en: 'Students and parents join for free with zero fees or subscriptions. Plans are for teachers only with a free trial.' },
+      free_guarantee_h: { ar: 'مجاني دائمًا للطلبة وأولياء الأمور:', en: 'Always free for students & parents:' },
+      free_guarantee_p: { ar: 'الطلبة وأولياء الأمور لا يدفعون أي اشتراك. فقط المعلم يشترك في الخطة التي تناسبه.', en: 'Students and parents never pay for a subscription. Only teachers choose their plan.' },
       final_h: { ar: 'جاهز تبدأ مجموعتك الأولى؟', en: 'Ready to start your first group?' },
       final_p: { ar: 'سجّل في دقيقة، أنشئ المجموعة، وشارك الرمز. الباقي علينا.', en: 'Sign up in a minute, create the group, share the code. We handle the rest.' },
       final_cta: { ar: 'أنشئ حساب المعلم', en: 'Create teacher account' },
@@ -256,23 +256,18 @@
     ];
 
     const plans = [
-      { name: { ar: 'الطالب', en: 'Student' }, price: { ar: '3', en: '3' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
-        { ar: 'انضم لجميع مجموعاتك', en: 'Join all your groups' },
-        { ar: 'دروس وملفات واختبارات', en: 'Lessons, files, and quizzes' },
-        { ar: 'درجاتك وتقدّمك في مكان واحد', en: 'Your marks and progress in one place' },
-      ], cta: { ar: 'أنشئ حساب طالب', en: 'Create student account' }, href: '/register/student' },
-      { name: { ar: 'المعلم', en: 'Teacher' }, price: { ar: '15', en: '15' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
-        { ar: 'حتى 5 مجموعات', en: 'Up to 5 groups' },
-        { ar: 'مقررات ووحدات ودروس غير محدودة', en: 'Unlimited courses, modules, lessons' },
-        { ar: 'اختبارات تُصحّح آليًا + سجل درجات', en: 'Auto-graded quizzes + gradebook' },
-        { ar: 'دعوات واتساب وتذكيرات', en: 'WhatsApp invites and reminders' },
-      ], cta: { ar: 'أنشئ حساب معلم', en: 'Create teacher account' }, href: '/register/teacher' },
-      { name: { ar: 'المعلم بلس', en: 'Teacher Plus' }, price: { ar: '25', en: '25' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
-        { ar: 'مجموعات وطلاب بلا حدود', en: 'Unlimited groups and students' },
-        { ar: 'كل مزايا خطة المعلم', en: 'Everything in Teacher' },
-        { ar: 'أولوية الوصول للمزايا الجديدة', en: 'Priority access to new features' },
-        { ar: 'دعم مباشر عبر واتساب', en: 'Direct WhatsApp support' },
-      ], cta: { ar: 'أنشئ حساب معلم', en: 'Create teacher account' }, href: '/register/teacher' },
+      { name: { ar: 'المجانية للمعلم', en: 'Free Teacher' }, price: { ar: '0', en: '0' }, per: { ar: 'ر.ع / دائمًا', en: 'OMR / forever' }, items: [
+        { ar: 'حتى 10 طلاب نشطين', en: 'Up to 10 active students' },
+        { ar: '1 جيجابايت سعة ملفات', en: '1 GB file storage' },
+        { ar: 'مقررات ودروس واختبارات كاملة', en: 'Full courses, lessons, quizzes' },
+        { ar: 'الطلبة ينضمون مجانًا دائمًا', en: 'Students join 100% free forever' },
+      ], cta: { ar: 'ابدأ مجانًا', en: 'Start free' }, href: '/register/teacher' },
+      { name: { ar: 'الانطلاقة المبكرة', en: 'Early Bird' }, price: { ar: '5', en: '5' }, per: { ar: 'ر.ع / شهريًا', en: 'OMR / month' }, items: [
+        { ar: 'تجربة مجانية كاملة 30 يومًا', en: 'Full 30-day free trial' },
+        { ar: 'حتى 500 طالب نشط', en: 'Up to 500 active students' },
+        { ar: '100 جيجابايت سعة ملفات', en: '100 GB file storage' },
+        { ar: 'دعوات وتنبيهات واتساب وتواصل مباشر', en: 'WhatsApp invites and direct support' },
+      ], cta: { ar: 'تفاصيل الخطة والتفعيل', en: 'Plan details & activation' }, href: './teachers#pricing' },
     ];
 
     let lang = 'ar';

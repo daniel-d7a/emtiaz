@@ -8,7 +8,8 @@ import { GraduationCap, Link2, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { formatDateTime, useLang } from '../../lib/i18n';
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorBox, Input, Loading, Page, Progress } from '../../components/ui';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorBox, InfoHint, Input, Loading, Page, Progress } from '../../components/ui';
+import { OnboardingGuide } from '../../components/OnboardingGuide';
 import type { ParentChild as Child, StudentGrades as Grades } from '../../../../shared/api';
 
 export default function ParentChildren() {
@@ -22,14 +23,18 @@ export default function ParentChildren() {
     queryFn: () => api<Child[]>('/api/parent/students'),
   });
   const schema = z.object({
-    phoneNumber: z.string().trim().min(8, t('phoneInvalid')).regex(/^[+\d\s()-]+$/, t('phoneInvalid')),
+    monitoringCode: z
+      .string()
+      .trim()
+      .length(8, t('monitoringCodeInvalid')),
   });
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<{ phoneNumber: string }>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<{ monitoringCode: string }>({
     resolver: zodResolver(schema),
-    defaultValues: { phoneNumber: '' },
+    defaultValues: { monitoringCode: '' },
   });
   const link = useMutation({
-    mutationFn: (phoneNumber: string) => api('/api/parent/link', { body: { phoneNumber } }),
+    mutationFn: (monitoringCode: string) =>
+      api('/api/parent/link', { body: { monitoringCode: monitoringCode.trim().toUpperCase() } }),
     onSuccess: () => {
       reset();
       toast.success(t('linked'));
@@ -47,22 +52,33 @@ export default function ParentChildren() {
 
   return (
     <Page title={t('myChildren')} right={<Badge>{t('readOnly')}</Badge>} wide>
+      <OnboardingGuide
+        role="PARENT"
+        completedSteps={[
+          (children.data?.length ?? 0) > 0,
+          Boolean(children.data?.some((c) => c.groups.length > 0 || c.reports.length > 0)),
+        ]}
+      />
       <Card className="mb-6">
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="text-base font-bold">{t('linkChild')}</h2>
+          <InfoHint title={t('hintParentLinkTitle')} hint={t('hintParentLinkBody')} />
+        </div>
         <form
-          onSubmit={handleSubmit(({ phoneNumber }) => link.mutate(phoneNumber.trim()))}
+          onSubmit={handleSubmit(({ monitoringCode }) => link.mutate(monitoringCode.trim().toUpperCase()))}
           noValidate
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <div className="grow">
               <Input
-                label={t('studentPhone')}
-                error={errors.phoneNumber?.message}
-                placeholder={t('phoneExample')}
+                label={t('studentMonitoringCode')}
+                error={errors.monitoringCode?.message}
+                placeholder={t('monitoringCodePlaceholder')}
                 dir="ltr"
-                maxLength={20}
-                {...register('phoneNumber')}
+                maxLength={8}
+                {...register('monitoringCode')}
               />
-              <p className="mt-1 text-xs text-ink-soft">{t('studentPhoneHint')}</p>
+              <p className="mt-1 text-xs text-ink-soft">{t('studentMonitoringCodeHint')}</p>
             </div>
             <Button type="submit" disabled={link.isPending}>
               <Link2 className="inline" size={18} /> {t('linkChild')}

@@ -162,6 +162,10 @@ html.has-site-logo .logo::before {
 .plan h3 { font-size: 17px; color: var(--ink-soft); font-weight: 700; }
 .price { font-size: 38px; font-weight: 700; color: var(--primary-dark); margin: 8px 0 2px; }
 .price span { font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.curr-toggle { display: inline-flex; background: rgba(255, 255, 255, 0.15); padding: 4px; border-radius: 9999px; margin-top: 18px; gap: 4px; }
+.curr-toggle button { background: transparent; border: none; color: var(--on-primary); padding: 6px 16px; border-radius: 9999px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s ease; }
+.curr-toggle button.active { background: #ffffff; color: var(--primary-dark); }
+.plan-pill { position: absolute; top: 14px; inset-inline-end: 14px; background: color-mix(in srgb, var(--secondary) 15%, transparent); color: var(--secondary); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; }
 .plan ul { list-style: none; padding: 0; margin: 18px 0 22px; display: grid; gap: 9px; font-size: 14px; color: var(--ink-soft); }
 .plan ul li::before { content: '✓'; color: var(--primary); font-weight: 700; margin-inline-end: 8px; }
 .plan .btn { margin-top: auto; }
