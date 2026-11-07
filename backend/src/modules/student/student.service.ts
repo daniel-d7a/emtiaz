@@ -33,6 +33,7 @@ import {
 import { joinGroupByCode } from '../../lib/group-join';
 import { StorageService } from '../storage/storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AdminService } from '../admin/admin.service';
 import {
   serializeCourse,
   serializeGroup,
@@ -59,6 +60,8 @@ export class StudentService {
     private readonly storage: StorageService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notifications: NotificationsService,
+    @Inject(forwardRef(() => AdminService))
+    private readonly admin: AdminService,
   ) {}
 
   private async signedBanner(key: string | null): Promise<string | null> {
@@ -286,7 +289,13 @@ export class StudentService {
 
   async joinByCode(studentId: string, joinCode: string, entryCode?: string) {
     const { group, course, enrolled } = await joinGroupByCode(studentId, joinCode, entryCode);
-    if (enrolled) await this.notifyEnrolled(studentId, group);
+    if (enrolled) {
+      await this.notifyEnrolled(studentId, group);
+      await this.admin.audit(studentId, 'student.enroll', 'group', group.id, {
+        courseId: course.id,
+        joinCode,
+      });
+    }
     return { group: serializeGroup(group), course: serializeCourse(course) };
   }
 
@@ -752,6 +761,12 @@ export class StudentService {
         .where(eq(homeworkSubmissions.id, existing.id))
         .returning();
 
+      await this.admin.audit(studentId, 'homework.submit', 'homework_submission', updated.id, {
+        homeworkId,
+        groupId,
+        isLate,
+      });
+
       return serializeHomeworkSubmission(updated, { maxScore: hw.maxScore });
     }
 
@@ -773,6 +788,12 @@ export class StudentService {
         submittedAt: now,
       })
       .returning();
+
+    await this.admin.audit(studentId, 'homework.submit', 'homework_submission', inserted.id, {
+      homeworkId,
+      groupId,
+      isLate,
+    });
 
     return serializeHomeworkSubmission(inserted, { maxScore: hw.maxScore });
   }
@@ -891,13 +912,24 @@ export class StudentService {
       };
     });
 
-    await db.insert(quizAttempts).values({
+    const [attempt] = await db
+      .insert(quizAttempts)
+      .values({
+        quizId,
+        studentId,
+        groupId,
+        score,
+        maxScore,
+        answersJson: answers,
+        pending,
+      })
+      .returning({ id: quizAttempts.id });
+
+    await this.admin.audit(studentId, 'quiz.submit', 'quiz_submission', attempt.id, {
       quizId,
-      studentId,
       groupId,
       score,
       maxScore,
-      answersJson: answers,
       pending,
     });
 

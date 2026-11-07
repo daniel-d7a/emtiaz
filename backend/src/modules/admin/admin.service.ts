@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
   type OnApplicationBootstrap,
@@ -43,6 +45,7 @@ import {
   users,
 } from '../../db/schema';
 import type { ResetUserPasswordResultDto } from '../../../../shared/api';
+import { type AuditCategory, getActionsForCategory } from '../../../../shared/audit-events';
 import type { AdminPermission } from '../../lib/admin-permissions';
 import {
   serializeAdminAuditEntry,
@@ -69,6 +72,7 @@ import {
 export class AdminService implements OnApplicationBootstrap {
   constructor(
     private readonly notifications: NotificationsService,
+    @Inject(forwardRef(() => TeacherEntitlementsService))
     private readonly entitlements: TeacherEntitlementsService,
   ) {}
 
@@ -253,6 +257,8 @@ export class AdminService implements OnApplicationBootstrap {
     filters: {
       action?: string;
       actorId?: string;
+      userId?: string;
+      category?: string;
       actor?: string;
       target?: string;
       actorRole?: string;
@@ -263,6 +269,22 @@ export class AdminService implements OnApplicationBootstrap {
     const conditions = [];
     if (filters.action) conditions.push(eq(auditLogs.action, filters.action));
     if (filters.actorId) conditions.push(eq(auditLogs.actorId, filters.actorId));
+    if (filters.userId) {
+      conditions.push(
+        or(
+          eq(auditLogs.actorId, filters.userId),
+          eq(auditLogs.targetId, filters.userId),
+        )!,
+      );
+    }
+    if (filters.category) {
+      const actions = getActionsForCategory(filters.category as AuditCategory);
+      if (actions.length > 0) {
+        conditions.push(inArray(auditLogs.action, actions));
+      } else {
+        conditions.push(sql`1 = 0`);
+      }
+    }
     if (filters.actorRole) conditions.push(eq(users.role, filters.actorRole as any));
     if (filters.actor) {
       conditions.push(

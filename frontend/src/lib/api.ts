@@ -295,3 +295,6 @@ export const adminApi = {
   resetUserPassword: (userId: string, body?: ResetUserPasswordDto) =>
     api<ResetUserPasswordResultDto>(`/api/admin/users/${userId}/reset-password`, { method: 'POST', body }),
 };
+
+export * from '../../../shared/audit-events';
+

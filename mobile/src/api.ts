@@ -336,3 +336,6 @@ export function normalizePhone(input: string, country?: Country): string {
   }
   return `+${digits}`;
 }
+
+export * from '../../shared/audit-events';
+

@@ -24,11 +24,13 @@ Produce `.scratch/platform-ops/spec.md` (and any required architecture/security 
 - [02: Legal Pages (Privacy Policy, Terms of Service) & In-App Routing](grilling/02-legal-pages-privacy-and-terms.md): Bilingual Privacy Policy & Terms of Service covering Omani and Egyptian digital educational law, minor protection, parent rights, and zero-data-selling guarantee; delivered via static HTML (`landing/privacy.html`, `landing/terms.html`) and in-app routes (`/privacy`, `/terms`).
 - [03: Comprehensive Domain Event Logging & Filterable Audit Dashboard](grilling/03-comprehensive-domain-event-logging.md): Centralized `shared/audit-events.ts` registry defining all domain actions across curriculum, quizzes, cohorts, homework, billing, and auth; mandatory user ID and timestamp; Admin Audit UI with search by User ID, category dropdown, action badges, and detail modal.
 
-## Implementation Tickets
+## Implementation Tickets (Completed)
 
-- [ ] [01: Admin Password Reset & Forgot Password WhatsApp Support](issues/01-admin-password-reset-and-login-support.md)
-- [ ] [02: Legal Pages (Privacy Policy, Terms of Service) & Multi-Surface Routing](issues/02-legal-pages-privacy-terms-and-routing.md)
-- [ ] [03: Centralized Audit Registry, Domain Event Logging & Admin Dashboard Upgrades](issues/03-audit-events-registry-domain-logging-and-dashboard.md)
+- [x] [01: Admin Password Reset & Forgot Password WhatsApp Support](issues/01-admin-password-reset-and-login-support.md)
+- [x] [02: Legal Pages (Privacy Policy, Terms of Service) & Multi-Surface Routing](issues/02-legal-pages-privacy-terms-and-routing.md)
+- [x] [03: Centralized Audit Registry, Domain Event Logging & Admin Dashboard Upgrades](issues/03-audit-events-registry-domain-logging-and-dashboard.md)
+
+## Status: Complete
 
 ## Out of scope
 

@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +14,7 @@ import { logger } from '../../lib/logger';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
 import { TeacherEntitlementsService } from './teacher-entitlements.service';
+import { AdminService } from '../admin/admin.service';
 import {
   serializeAttachment,
   serializeCourse,
@@ -86,6 +89,8 @@ export class TeacherService {
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
     private readonly entitlementsService: TeacherEntitlementsService,
+    @Inject(forwardRef(() => AdminService))
+    private readonly admin: AdminService,
   ) {}
 
   async homeStats(teacherId: string) {
@@ -511,6 +516,10 @@ export class TeacherService {
           Math.max(-1, ...existing.map((l) => l.displayOrder), unitQuiz?.displayOrder ?? -1) + 1,
       })
       .returning();
+    await this.admin.audit(user.id, 'lesson.create', 'lesson', lesson.id, {
+      moduleId,
+      title: lesson.title,
+    });
     return serializeLesson(lesson);
   }
 
@@ -533,6 +542,10 @@ export class TeacherService {
       .set(dto)
       .where(eq(lessons.id, lessonId))
       .returning();
+    await this.admin.audit(user.id, 'lesson.update', 'lesson', lessonId, {
+      moduleId: mod.id,
+      title: updated.title,
+    });
     return serializeLesson(updated);
   }
 
@@ -850,6 +863,10 @@ export class TeacherService {
       .values({ ...target, title: dto.title, displayOrder })
       .returning();
     const inserted = await this.insertQuizQuestions(quiz.id, dto.questions);
+    await this.admin.audit(user.id, 'quiz.create', 'quiz', quiz.id, {
+      courseId,
+      title: quiz.title,
+    });
     return {
       ...serializeQuiz(quiz),
       questions: inserted.map((q) => serializeTeacherQuizQuestion(q, null)),
@@ -875,6 +892,10 @@ export class TeacherService {
     await db.delete(quizQuestions).where(eq(quizQuestions.quizId, quizId));
     await db.delete(quizAttempts).where(eq(quizAttempts.quizId, quizId));
     const inserted = await this.insertQuizQuestions(quizId, payload.questions);
+    await this.admin.audit(user.id, 'quiz.update', 'quiz', quizId, {
+      courseId,
+      title: updated.title,
+    });
     return {
       ...serializeQuiz(updated),
       questions: inserted.map((q) => serializeTeacherQuizQuestion(q, null)),
@@ -888,6 +909,10 @@ export class TeacherService {
     if (!courseId) throw new NotFoundException('Course not found');
     await this.assertCourseAccess(user, courseId);
     await db.delete(quizzes).where(eq(quizzes.id, quizId));
+    await this.admin.audit(user.id, 'quiz.delete', 'quiz', quizId, {
+      courseId,
+      title: quiz.title,
+    });
     return { ok: true };
   }
 
@@ -1113,6 +1138,10 @@ export class TeacherService {
       .where(eq(modules.id, lesson.moduleId));
     await this.assertCourseAccess(user, mod.courseId);
     await db.delete(lessons).where(eq(lessons.id, lessonId));
+    await this.admin.audit(user.id, 'lesson.delete', 'lesson', lessonId, {
+      moduleId: mod.id,
+      title: lesson.title,
+    });
     return { ok: true };
   }
 
@@ -1225,6 +1254,11 @@ export class TeacherService {
       );
     }
 
+    await this.admin.audit(user.id, 'homework.create', 'homework', created.id, {
+      lessonId,
+      title: created.title,
+      maxScore: created.maxScore,
+    });
     return serializeHomework(created);
   }
 
@@ -1315,6 +1349,9 @@ export class TeacherService {
       }
     }
 
+    await this.admin.audit(user.id, 'homework.update', 'homework', homeworkId, {
+      title: updated.title,
+    });
     return serializeHomework(updated);
   }
 
@@ -1334,6 +1371,9 @@ export class TeacherService {
       }
     }
 
+    await this.admin.audit(user.id, 'homework.delete', 'homework', homeworkId, {
+      title: existing.title,
+    });
     return { success: true };
   }
 
@@ -1591,6 +1631,22 @@ export class TeacherService {
       .from(users)
       .where(eq(users.id, studentId));
 
+    if (dto.action === 'SAVE_GRADE') {
+      await this.admin.audit(user.id, 'homework.grade', 'homework_submission', sub.id, {
+        homeworkId,
+        studentId,
+        groupId,
+        score: dto.score,
+        maxScore: hw.maxScore,
+      });
+    } else {
+      await this.admin.audit(user.id, 'homework.revision_request', 'homework_submission', sub.id, {
+        homeworkId,
+        studentId,
+        groupId,
+      });
+    }
+
     return serializeHomeworkSubmission(updated, {
       studentName: studentUser?.name,
       maxScore: hw.maxScore,
@@ -1668,6 +1724,10 @@ export class TeacherService {
       .insert(groupEntryCodes)
       .values({ groupId, code, maxUses })
       .returning();
+    await this.admin.audit(user.id, 'entry_code.generate', 'group', groupId, {
+      code: created.code,
+      maxUses,
+    });
     return {
       group: serializeGroup(group),
       code: {
@@ -1772,6 +1832,10 @@ export class TeacherService {
         throw error;
       }
     }
+    await this.admin.audit(user.id, 'group.create', 'group', group.id, {
+      courseId,
+      name: group.name,
+    });
     return serializeGroup(group);
   }
 
@@ -1823,6 +1887,10 @@ export class TeacherService {
       .set(patch)
       .where(eq(groups.id, groupId))
       .returning();
+    await this.admin.audit(user.id, 'group.update', 'group', groupId, {
+      courseId: course.id,
+      name: updated.name,
+    });
     return serializeGroup(updated);
   }
 
@@ -2144,6 +2212,10 @@ export class TeacherService {
           markedAt: new Date(),
         },
       });
+    await this.admin.audit(user.id, 'attendance.mark', 'lesson_attendance', lessonId, {
+      groupId,
+      recordCount: records.length,
+    });
     return this.getAttendance(user, groupId, lessonId);
   }
 
@@ -2691,6 +2763,9 @@ export class TeacherService {
           eq(groupStudents.studentId, studentId),
         ),
       );
+    await this.admin.audit(user.id, 'student.remove', 'group', groupId, {
+      studentId,
+    });
     return { ok: true };
   }
 

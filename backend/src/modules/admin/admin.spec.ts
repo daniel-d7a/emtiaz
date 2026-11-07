@@ -268,6 +268,79 @@ describe('Phase 5: admin endpoints', () => {
     expect((await admin.get('/api/admin/audit?action=nope')).body).toHaveLength(0);
   });
 
+  it('filters audit logs by userId (actor or target) and by category', async () => {
+    const adminUser = await getUserByEmail(ADMIN.email);
+    const teacherUser = await getUserByEmail('t@teacher.om');
+
+    // Create an audit entry with teacherUser as targetId
+    await app.get(AdminService).audit(
+      adminUser.id,
+      'teacher.update',
+      'user',
+      teacherUser.id,
+      { note: 'test audit filter' },
+    );
+
+    // Filter by userId matching targetId
+    const byTargetUser = await admin.get(`/api/admin/audit?userId=${teacherUser.id}`);
+    expect(byTargetUser.status).toBe(200);
+    expect(byTargetUser.body.some((r: any) => r.targetId === teacherUser.id)).toBe(true);
+
+    // Filter by userId matching actorId
+    const byActorUser = await admin.get(`/api/admin/audit?userId=${adminUser.id}`);
+    expect(byActorUser.status).toBe(200);
+    expect(byActorUser.body.some((r: any) => r.actorName === ADMIN.name)).toBe(true);
+
+    // Filter by category USERS_AUTH
+    const usersAuthRes = await admin.get('/api/admin/audit?category=USERS_AUTH');
+    expect(usersAuthRes.status).toBe(200);
+    expect(usersAuthRes.body.length).toBeGreaterThanOrEqual(1);
+    expect(
+      usersAuthRes.body.every((r: any) =>
+        [
+          'user.password.reset',
+          'user.status',
+          'user.delete',
+          'user.restore',
+          'teacher.create',
+          'teacher.update',
+          'student.create',
+          'student.update',
+          'parent.create',
+          'parent.update',
+          'parent.link.create',
+          'parent.link.delete',
+          'parent.link.restore',
+          'role.create',
+          'role.update',
+          'role.assign',
+        ].includes(r.action),
+      ),
+    ).toBe(true);
+
+    // Filter by category CURRICULUM
+    const curriculumRes = await admin.get('/api/admin/audit?category=CURRICULUM');
+    expect(curriculumRes.status).toBe(200);
+    expect(
+      curriculumRes.body.every((r: any) =>
+        [
+          'course.create',
+          'course.update',
+          'course.delete',
+          'course.restore',
+          'lesson.create',
+          'lesson.update',
+          'lesson.delete',
+        ].includes(r.action),
+      ),
+    ).toBe(true);
+
+    // Filter by non-existent category returns empty
+    const invalidCat = await admin.get('/api/admin/audit?category=INVALID_CATEGORY');
+    expect(invalidCat.status).toBe(200);
+    expect(invalidCat.body).toHaveLength(0);
+  });
+
   it('logs mutating endpoint calls with actor, filters, and redacted data', async () => {
     const teacher = (await login(server, 't@teacher.om', 'Passw0rd!123')).session;
     expect(

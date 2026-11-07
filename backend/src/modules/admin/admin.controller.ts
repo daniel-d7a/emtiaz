@@ -444,6 +444,8 @@ export class AdminController {
     @Query('limit') limit?: string,
     @Query('action') action?: string,
     @Query('actorId') actorId?: string,
+    @Query('userId') userId?: string,
+    @Query('category') category?: string,
     @Query('actor') actor?: string,
     @Query('target') target?: string,
     @Query('actorRole') actorRole?: string,
@@ -453,6 +455,8 @@ export class AdminController {
     return this.admin.listAudit(Number(limit) || 100, {
       action,
       actorId,
+      userId,
+      category,
       actor,
       target,
       actorRole,
