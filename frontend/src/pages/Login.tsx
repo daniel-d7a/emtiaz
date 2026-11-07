@@ -61,7 +61,7 @@ export default function Login() {
     try {
       const res = await authApi.login(identifier, password);
       qc.clear();
-      qc.setQueryData(sessionQuery.queryKey, { user: res.user });
+      await qc.fetchQuery(sessionQuery);
       if (res.user.mustChangePassword) return navigate({ to: '/change-password' });
       go(res.user.role);
     } catch (e) {

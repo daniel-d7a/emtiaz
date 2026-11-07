@@ -236,9 +236,9 @@ export default function Register() {
       }
 
       const loginIdentifier = isTeacher && email.trim() ? email.trim() : phone.trim();
-      const res = await authApi.login(loginIdentifier, password);
+      await authApi.login(loginIdentifier, password);
       qc.clear();
-      qc.setQueryData(sessionQuery.queryKey, { user: res.user });
+      await qc.fetchQuery(sessionQuery);
 
       if (isStudent && joinCodeInput.trim()) {
         try {

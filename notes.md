@@ -16,8 +16,6 @@ checklist here.
 
 - the landing page needs some looking into
 
-- as an admin I have to refresh to see my sidebar items
-
 - convert paths to absolute imports using the @ or ~ as root
 - check monorepo config if needed
 

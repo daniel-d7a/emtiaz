@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSession } from '../lib/session';
+import { sessionQuery, useSession } from '../lib/session';
 import { api, authApi, onboardingApi } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorBox, Input, Loading } from '../components/ui';
@@ -49,6 +49,7 @@ export default function JoinPage() {
       await onboardingApi.registerStudent({ name, password, phoneNumber: phone });
       await authApi.login(phone.replace(/[^\d]/g, '') + '@phone.emtiaz.om', password);
       qc.clear();
+      await qc.fetchQuery(sessionQuery);
       await joinAndGo();
     } catch (e) {
       setError(e as Error);
