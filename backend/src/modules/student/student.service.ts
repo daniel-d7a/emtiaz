@@ -1126,6 +1126,19 @@ export class StudentService {
       .from(manualGradeValues)
       .where(and(eq(manualGradeValues.studentId, studentId)));
 
+    const questions = attempts.length
+      ? await db
+          .select()
+          .from(quizQuestions)
+          .where(inArray(quizQuestions.quizId, attempts.map((a) => a.quizId)))
+      : [];
+    const questionTotals: Record<string, number> = {};
+    for (const q of questions) {
+      questionTotals[q.quizId] =
+        (questionTotals[q.quizId] ?? 0) +
+        (q.points ?? (q.questionType === 'WRITTEN' ? 10 : 1));
+    }
+
     const studentQuizAttempts = new Map<string, (typeof attempts)[number][]>();
     for (const a of attempts.filter((row) => !hiddenQuizIds.has(row.quizId))) {
       const list = studentQuizAttempts.get(a.quizId) ?? [];
@@ -1153,30 +1166,156 @@ export class StudentService {
                 new Date(a.submittedAt).getTime(),
             )[0];
       if (best) {
+        const quizMax = questionTotals[best.quizId] ?? best.maxScore;
         quizGrades.push({
           quizId: best.quizId,
           title: best.quizTitle,
           unitTitle: best.moduleTitle ?? best.courseTitle ?? '—',
           lessonTitle: best.lessonTitle ?? '',
-          score: best.score,
-          maxScore: best.maxScore,
+          score: Math.min(best.score, quizMax),
+          maxScore: quizMax,
           pending: best.pending,
         });
       }
     }
 
+    const manualGrades = cols.map((c) => {
+      const v = vals.find((v) => v.columnId === c.id);
+      return {
+        columnId: c.id,
+        title: c.title,
+        maxScore: c.maxScore,
+        score: v?.score ?? null,
+        note: v?.teacherNote ?? null,
+      };
+    });
+
+    // Visible homework assignments for this group
+    const mods = await db.select().from(modules).where(eq(modules.courseId, group.courseId));
+    const rawLessons = mods.length
+      ? await db
+          .select()
+          .from(lessons)
+          .where(inArray(lessons.moduleId, mods.map((m) => m.id)))
+      : [];
+    const hiddenLessonRows = rawLessons.length
+      ? await db
+          .select({ lessonId: groupLessonAccess.lessonId })
+          .from(groupLessonAccess)
+          .where(
+            and(
+              eq(groupLessonAccess.groupId, groupId),
+              eq(groupLessonAccess.isHidden, true),
+              inArray(groupLessonAccess.lessonId, rawLessons.map((l) => l.id)),
+            ),
+          )
+      : [];
+    const hiddenLessonIds = new Set(hiddenLessonRows.map((r) => r.lessonId));
+    const lessonsInCourse = rawLessons.filter((l) => !hiddenLessonIds.has(l.id));
+    const lessonIds = lessonsInCourse.map((l) => l.id);
+
+    const homeworkRows = lessonIds.length
+      ? await db
+          .select()
+          .from(homework)
+          .where(
+            and(
+              inArray(homework.lessonId, lessonIds),
+              or(isNull(homework.groupId), eq(homework.groupId, groupId)),
+            ),
+          )
+          .orderBy(asc(homework.displayOrder), asc(homework.createdAt))
+      : [];
+
+    const hiddenHomeworkRows = homeworkRows.length
+      ? await db
+          .select()
+          .from(groupHomeworkAccess)
+          .where(
+            and(
+              eq(groupHomeworkAccess.groupId, groupId),
+              inArray(groupHomeworkAccess.homeworkId, homeworkRows.map((h) => h.id)),
+            ),
+          )
+      : [];
+    const homeworkAccessMap = new Map(hiddenHomeworkRows.map((a) => [a.homeworkId, a]));
+    const visibleHomeworkRows = homeworkRows.filter(
+      (h) => !homeworkAccessMap.get(h.id)?.isHidden,
+    );
+
+    const homeworkColumns = visibleHomeworkRows.map((h) => ({
+      id: h.id,
+      title: h.title,
+      maxScore: h.maxScore,
+      dueDate: homeworkAccessMap.get(h.id)?.dueDate?.toISOString() ?? null,
+    }));
+
+    const hwSubmissions = visibleHomeworkRows.length
+      ? await db
+          .select()
+          .from(homeworkSubmissions)
+          .where(
+            and(
+              eq(homeworkSubmissions.groupId, groupId),
+              eq(homeworkSubmissions.studentId, studentId),
+              inArray(homeworkSubmissions.homeworkId, visibleHomeworkRows.map((h) => h.id)),
+            ),
+          )
+      : [];
+    const hwSubMap = new Map(hwSubmissions.map((s) => [s.homeworkId, s]));
+
+    const homeworkGrades = visibleHomeworkRows.map((h) => {
+      const sub = hwSubMap.get(h.id);
+      const access = homeworkAccessMap.get(h.id);
+      return {
+        homeworkId: h.id,
+        title: h.title,
+        maxScore: h.maxScore,
+        dueDate: access?.dueDate?.toISOString() ?? null,
+        score: sub?.score ?? null,
+        status: sub?.status ?? 'NOT_SUBMITTED',
+        isLate: sub?.isLate ?? false,
+        teacherFeedback: sub?.teacherFeedback ?? null,
+      };
+    });
+
+    let earned = 0;
+    let studentMax = 0;
+
+    for (const q of quizGrades) {
+      if (!q.pending) {
+        earned += Math.min(q.score, q.maxScore);
+        studentMax += q.maxScore;
+      }
+    }
+
+    for (const m of manualGrades) {
+      if (m.score !== null) {
+        earned += m.score;
+        studentMax += m.maxScore;
+      }
+    }
+
+    for (const h of visibleHomeworkRows) {
+      const sub = hwSubMap.get(h.id);
+      if (sub && sub.status === 'GRADED' && sub.score !== null) {
+        earned += sub.score;
+        studentMax += h.maxScore;
+      }
+    }
+
+    const gradePercent = studentMax ? Math.round((earned / studentMax) * 100) : null;
+
     return {
+      gradePercent,
       quizzes: quizGrades,
-      manual: cols.map((c) => {
-        const v = vals.find((v) => v.columnId === c.id);
-        return {
-          columnId: c.id,
-          title: c.title,
-          maxScore: c.maxScore,
-          score: v?.score ?? null,
-          note: v?.teacherNote ?? null,
-        };
-      }),
+      manual: manualGrades,
+      homework: homeworkGrades,
+      homeworkColumns,
     };
+  }
+
+  async getGradebook(studentId: string, groupId: string) {
+    return this.myGrades(studentId, groupId);
   }
 }

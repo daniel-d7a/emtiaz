@@ -916,9 +916,31 @@ export type ManualGrade = {
   note: string | null;
 };
 
+export type StudentHomeworkGrade = {
+  homeworkId: string;
+  title: string;
+  maxScore: number;
+  dueDate: string | null;
+  score: number | null;
+  status: HomeworkSubmissionStatus | string;
+  isLate: boolean;
+  teacherFeedback: string | null;
+};
+
 export type StudentGrades = {
   quizzes: GradeQuiz[];
   manual: ManualGrade[];
+  homework?: StudentHomeworkGrade[];
+  homeworkColumns?: HomeworkColumn[];
+  gradePercent?: number | null;
+};
+
+export type StudentGradebook = {
+  gradePercent: number | null;
+  quizzes: GradeQuiz[];
+  manual: ManualGrade[];
+  homework: StudentHomeworkGrade[];
+  homeworkColumns: HomeworkColumn[];
 };
 
 export type TeacherStats = { curricula: number; groups: number; uniqueStudents: number };
@@ -1044,12 +1066,27 @@ export type GradebookStudent = {
   id: string;
   name: string;
   phoneNumber: string | null;
+  gradePercent?: number | null;
+  homework?: Record<string, HomeworkCell>;
 };
 
 export type QuizColumn = {
   quizId: string;
   lessonTitle: string;
   maxScore: number;
+};
+
+export type HomeworkColumn = {
+  id: string;
+  title: string;
+  maxScore: number;
+  dueDate: string | null;
+};
+
+export type HomeworkCell = {
+  score: number | null;
+  status: HomeworkSubmissionStatus | string;
+  isLate: boolean;
 };
 
 export type ManualGradeColumn = {
@@ -1076,6 +1113,8 @@ export type TeacherGradebook = {
   quizCells: Record<string, number>;
   manualColumns: ManualGradeColumn[];
   manualCells: ManualGradeCell[];
+  homeworkColumns?: HomeworkColumn[];
+  homeworkCells?: Record<string, HomeworkCell>;
 };
 
 export type ParentAttendance = { present: number; total: number; percent: number };
@@ -1242,4 +1281,23 @@ export interface GradeHomeworkSubmissionDto {
   score?: number | null;
   teacherFeedback?: string | null;
   action: 'SAVE_GRADE' | 'REQUEST_REVISION';
+}
+
+export interface ParentChildHomeworkSubmissionDto {
+  status: HomeworkSubmissionStatus | string;
+  score: number | null;
+  teacherFeedback: string | null;
+  submittedAt: string;
+  isLate: boolean;
+}
+
+export interface ParentChildHomeworkDto {
+  id: string;
+  title: string;
+  instructions: string | null;
+  maxScore: number;
+  groupName: string;
+  dueDate: string | null;
+  isUrgent: boolean;
+  submission: ParentChildHomeworkSubmissionDto | null;
 }

@@ -175,4 +175,78 @@ describe('parent role', () => {
       [world.group1, world.lesson2],
     );
   });
+
+  it('views child homework with urgency flag, grades, feedback, and enforces parent-child boundary', async () => {
+    const parent = (await login(server, PARENT.email, PARENT.password)).session;
+    const s1User = await getUserByEmail(STUDENT1.email);
+
+    // Ensure parent is linked to s1
+    await parent.post('/api/parent/link').send({ monitoringCode: s1User.monitoringCode });
+
+    // Create a homework assignment on world.lesson1
+    const hwRes = await testPool.query(
+      `INSERT INTO homework (lesson_id, title, instructions, max_score)
+       VALUES ($1, 'Science Project', 'Read chapter 4 and write summary', 10)
+       RETURNING id`,
+      [world.lesson1],
+    );
+    const hwId = hwRes.rows[0].id;
+
+    // Set due date to 10 hours from now (within 24 hours -> isUrgent = true)
+    const urgentDueDate = new Date(Date.now() + 10 * 60 * 60 * 1000);
+    await testPool.query(
+      `INSERT INTO group_homework_access (group_id, homework_id, due_date, is_hidden)
+       VALUES ($1, $2, $3, false)
+       ON CONFLICT (group_id, homework_id) DO UPDATE SET due_date = $3, is_hidden = false`,
+      [world.group1, hwId, urgentDueDate],
+    );
+
+    // Unlinked child access check: 403 Forbidden
+    const unlinkedRes = await parent.get(`/api/parent/children/${world.s2.id}/homework`);
+    expect(unlinkedRes.status).toBe(403);
+
+    // Linked child: returns homework with isUrgent = true, submission = null
+    const res1 = await parent.get(`/api/parent/children/${world.s1.id}/homework`);
+    expect(res1.status).toBe(200);
+    expect(Array.isArray(res1.body)).toBe(true);
+    const item1 = res1.body.find((h: any) => h.id === hwId);
+    expect(item1).toBeTruthy();
+    expect(item1.title).toBe('Science Project');
+    expect(item1.instructions).toBe('Read chapter 4 and write summary');
+    expect(item1.maxScore).toBe(10);
+    expect(item1.isUrgent).toBe(true);
+    expect(item1.submission).toBeNull();
+
+    // Now insert a graded submission with score and teacher feedback
+    await testPool.query(
+      `INSERT INTO homework_submissions (homework_id, group_id, student_id, status, score, teacher_feedback, is_late)
+       VALUES ($1, $2, $3, 'GRADED', 9, 'Well analyzed and summarized!', false)
+       ON CONFLICT (homework_id, group_id, student_id)
+       DO UPDATE SET status = 'GRADED', score = 9, teacher_feedback = 'Well analyzed and summarized!'`,
+      [hwId, world.group1, world.s1.id],
+    );
+
+    // Linked child: now submission is present, score is 9, isUrgent is false (because it's graded)
+    const res2 = await parent.get(`/api/parent/children/${world.s1.id}/homework`);
+    expect(res2.status).toBe(200);
+    const item2 = res2.body.find((h: any) => h.id === hwId);
+    expect(item2).toBeTruthy();
+    expect(item2.isUrgent).toBe(false);
+    expect(item2.submission).toEqual(
+      expect.objectContaining({
+        status: 'GRADED',
+        score: 9,
+        teacherFeedback: 'Well analyzed and summarized!',
+        isLate: false,
+      }),
+    );
+
+    // Also check alias route /api/parent/students/:studentId/homework
+    const aliasRes = await parent.get(`/api/parent/students/${world.s1.id}/homework`);
+    expect(aliasRes.status).toBe(200);
+    expect(aliasRes.body.find((h: any) => h.id === hwId)).toBeTruthy();
+
+    // Clean up
+    await testPool.query(`DELETE FROM homework WHERE id = $1`, [hwId]);
+  });
 });

@@ -36,4 +36,22 @@ export class ParentController {
   ) {
     return this.parents.grades(req.user!.id, studentId, groupId);
   }
+
+  @Get('api/parent/children/:studentId/homework')
+  @Roles('PARENT')
+  childHomework(
+    @Req() req: Request,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.parents.getChildHomework(req.user!.id, studentId);
+  }
+
+  @Get('api/parent/students/:studentId/homework')
+  @Roles('PARENT')
+  studentHomework(
+    @Req() req: Request,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.parents.getChildHomework(req.user!.id, studentId);
+  }
 }

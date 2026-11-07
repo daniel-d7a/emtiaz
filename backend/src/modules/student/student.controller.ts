@@ -138,4 +138,10 @@ export class StudentController {
   grades(@Req() req: Request, @Param('groupId') groupId: string) {
     return this.students.myGrades(req.user!.id, groupId);
   }
+
+  @Get('api/student/groups/:groupId/gradebook')
+  @Roles('STUDENT')
+  gradebook(@Req() req: Request, @Param('groupId') groupId: string) {
+    return this.students.getGradebook(req.user!.id, groupId);
+  }
 }

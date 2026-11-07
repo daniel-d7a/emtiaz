@@ -55,6 +55,11 @@ import type {
   StudentHomeworkDto,
   SubmitHomeworkDto,
   GradeHomeworkSubmissionDto,
+  ParentChildHomeworkSubmissionDto,
+  ParentChildHomeworkDto,
+  StudentGradebook,
+  HomeworkColumn,
+  HomeworkCell,
 } from '../../../shared/api';
 import { normalizePhone } from './phone';
 
@@ -116,6 +121,11 @@ export type {
   StudentHomeworkDto,
   SubmitHomeworkDto,
   GradeHomeworkSubmissionDto,
+  ParentChildHomeworkSubmissionDto,
+  ParentChildHomeworkDto,
+  StudentGradebook,
+  HomeworkColumn,
+  HomeworkCell,
 } from '../../../shared/api';
 
 export class ApiError extends Error {
@@ -234,6 +244,13 @@ export const studentApi = {
     api<StudentHomeworkDto[]>(`/api/student/groups/${groupId}/lessons/${lessonId}/homework`),
   submitHomework: (groupId: string, homeworkId: string, dto: SubmitHomeworkDto) =>
     api<HomeworkSubmissionDto>(`/api/student/groups/${groupId}/homework/${homeworkId}/submit`, { method: 'POST', body: dto }),
+  getGradebook: (groupId: string) =>
+    api<StudentGradebook>(`/api/student/groups/${groupId}/gradebook`),
+};
+
+export const parentApi = {
+  getChildHomework: (studentId: string) =>
+    api<ParentChildHomeworkDto[]>(`/api/parent/children/${studentId}/homework`),
 };
 
 export const onboardingApi = {

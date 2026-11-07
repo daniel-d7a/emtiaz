@@ -1232,6 +1232,80 @@ describe('Phase 4: teacher endpoints', () => {
         );
       }
     });
+
+    it('integrates homework columns and calculates student gradePercent factoring in homework marks', async () => {
+      const s1 = await getUserByEmail(STUDENT1.email);
+      const s1Session = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+
+      // Create a homework assignment on lesson1 with maxScore 20
+      const hwRes = await testPool.query(
+        `INSERT INTO homework (lesson_id, title, max_score, display_order)
+         VALUES ($1, 'Gradebook Homework Test', 20, 1)
+         RETURNING id, title, max_score`,
+        [world.lesson1],
+      );
+      const hw = hwRes.rows[0];
+
+      try {
+        // Teacher gradebook overview includes homeworkColumns and student homework mapping
+        const gbBefore = (await t.get(`/api/teacher/groups/${world.group1}/gradebook`)).body;
+        expect(gbBefore.homeworkColumns).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: hw.id, title: hw.title, maxScore: 20 }),
+          ]),
+        );
+        const s1Before = gbBefore.students.find((s: any) => s.id === s1.id);
+        expect(s1Before.homework[hw.id]).toMatchObject({
+          score: null,
+          status: 'NOT_SUBMITTED',
+        });
+        const initialGradePercent = s1Before.gradePercent;
+
+        // Student gradebook GET /api/student/groups/:groupId/gradebook
+        const studentGbBefore = (await s1Session.get(`/api/student/groups/${world.group1}/gradebook`)).body;
+        expect(studentGbBefore.gradePercent).toBe(initialGradePercent);
+        expect(studentGbBefore.homeworkColumns).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: hw.id, title: hw.title, maxScore: 20 }),
+          ]),
+        );
+
+        // Grade the homework for s1 with 16/20 (80%)
+        await testPool.query(
+          `INSERT INTO homework_submissions (homework_id, group_id, student_id, status, score, teacher_feedback, is_late)
+           VALUES ($1, $2, $3, 'GRADED', 16, 'Great work', false)
+           ON CONFLICT (homework_id, group_id, student_id)
+           DO UPDATE SET status = 'GRADED', score = 16, teacher_feedback = 'Great work'`,
+          [hw.id, world.group1, s1.id],
+        );
+
+        // Teacher gradebook overview after grading
+        const gbAfter = (await t.get(`/api/teacher/groups/${world.group1}/gradebook`)).body;
+        expect(gbAfter.homeworkCells[`${s1.id}:${hw.id}`]).toMatchObject({
+          score: 16,
+          status: 'GRADED',
+          isLate: false,
+        });
+        const s1After = gbAfter.students.find((s: any) => s.id === s1.id);
+        expect(s1After.homework[hw.id]).toMatchObject({
+          score: 16,
+          status: 'GRADED',
+        });
+        expect(typeof s1After.gradePercent).toBe('number');
+
+        // Student gradebook overview after grading reflects homework
+        const studentGbAfter = (await s1Session.get(`/api/student/groups/${world.group1}/gradebook`)).body;
+        expect(studentGbAfter.gradePercent).toBe(s1After.gradePercent);
+        const sHw = studentGbAfter.homework.find((h: any) => h.homeworkId === hw.id);
+        expect(sHw).toMatchObject({
+          score: 16,
+          status: 'GRADED',
+          teacherFeedback: 'Great work',
+        });
+      } finally {
+        await testPool.query(`DELETE FROM homework WHERE id = $1`, [hw.id]);
+      }
+    });
   });
 
   describe('storage', () => {

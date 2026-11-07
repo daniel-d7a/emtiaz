@@ -2329,6 +2329,57 @@ export class TeacherService {
           )
       : [];
 
+    const homeworkRows = lessonIds.length
+      ? await db
+          .select()
+          .from(homework)
+          .where(
+            and(
+              inArray(homework.lessonId, lessonIds),
+              or(isNull(homework.groupId), eq(homework.groupId, groupId)),
+            ),
+          )
+          .orderBy(asc(homework.displayOrder), asc(homework.createdAt))
+      : [];
+    const groupHwAccessRows = homeworkRows.length
+      ? await db
+          .select()
+          .from(groupHomeworkAccess)
+          .where(
+            and(
+              eq(groupHomeworkAccess.groupId, groupId),
+              inArray(groupHomeworkAccess.homeworkId, homeworkRows.map((h) => h.id)),
+            ),
+          )
+      : [];
+    const homeworkAccessMap = new Map(groupHwAccessRows.map((a) => [a.homeworkId, a]));
+    const visibleHomeworkRows = homeworkRows.filter(
+      (h) => !homeworkAccessMap.get(h.id)?.isHidden,
+    );
+    const hwSubmissions =
+      roster.length && visibleHomeworkRows.length
+        ? await db
+            .select()
+            .from(homeworkSubmissions)
+            .where(
+              and(
+                eq(homeworkSubmissions.groupId, groupId),
+                inArray(
+                  homeworkSubmissions.studentId,
+                  roster.map((r) => r.id),
+                ),
+                inArray(
+                  homeworkSubmissions.homeworkId,
+                  visibleHomeworkRows.map((h) => h.id),
+                ),
+              ),
+            )
+        : [];
+    const hwSubMap = new Map<string, (typeof hwSubmissions)[number]>();
+    for (const sub of hwSubmissions) {
+      hwSubMap.set(`${sub.studentId}:${sub.homeworkId}`, sub);
+    }
+
     const students = roster.map((student) => {
       let earned = 0;
       let studentMax = 0;
@@ -2347,6 +2398,13 @@ export class TeacherService {
         if (val && val.score !== null) {
           earned += val.score;
           studentMax += col.maxScore;
+        }
+      }
+      for (const hw of visibleHomeworkRows) {
+        const sub = hwSubMap.get(`${student.id}:${hw.id}`);
+        if (sub && sub.status === 'GRADED' && sub.score !== null) {
+          earned += sub.score;
+          studentMax += hw.maxScore;
         }
       }
       const gradePercent = studentMax ? Math.round((earned / studentMax) * 100) : null;
@@ -2784,9 +2842,130 @@ export class TeacherService {
           .where(inArray(manualGradeValues.columnId, manualCols.map((c) => c.id)))
       : [];
 
+    const lessonIds = lessonsInCourse.map((l) => l.id);
+    const homeworkRows = lessonIds.length
+      ? await db
+          .select()
+          .from(homework)
+          .where(
+            and(
+              inArray(homework.lessonId, lessonIds),
+              or(isNull(homework.groupId), eq(homework.groupId, groupId)),
+            ),
+          )
+          .orderBy(asc(homework.displayOrder), asc(homework.createdAt))
+      : [];
+
+    const groupHwAccessRows = homeworkRows.length
+      ? await db
+          .select()
+          .from(groupHomeworkAccess)
+          .where(
+            and(
+              eq(groupHomeworkAccess.groupId, groupId),
+              inArray(groupHomeworkAccess.homeworkId, homeworkRows.map((h) => h.id)),
+            ),
+          )
+      : [];
+    const homeworkAccessMap = new Map(groupHwAccessRows.map((a) => [a.homeworkId, a]));
+    const visibleHomeworkRows = homeworkRows.filter(
+      (h) => !homeworkAccessMap.get(h.id)?.isHidden,
+    );
+
+    const homeworkColumns = visibleHomeworkRows.map((h) => ({
+      id: h.id,
+      title: h.title,
+      maxScore: h.maxScore,
+      dueDate: homeworkAccessMap.get(h.id)?.dueDate?.toISOString() ?? null,
+    }));
+
+    const hwSubmissions =
+      roster.length && visibleHomeworkRows.length
+        ? await db
+            .select()
+            .from(homeworkSubmissions)
+            .where(
+              and(
+                eq(homeworkSubmissions.groupId, groupId),
+                inArray(
+                  homeworkSubmissions.studentId,
+                  roster.map((r) => r.id),
+                ),
+                inArray(
+                  homeworkSubmissions.homeworkId,
+                  visibleHomeworkRows.map((h) => h.id),
+                ),
+              ),
+            )
+        : [];
+    const hwSubMap = new Map<string, (typeof hwSubmissions)[number]>();
+    for (const sub of hwSubmissions) {
+      hwSubMap.set(`${sub.studentId}:${sub.homeworkId}`, sub);
+    }
+
+    const homeworkCells: Record<string, { score: number | null; status: string; isLate: boolean }> = {};
+    for (const s of roster) {
+      for (const hw of visibleHomeworkRows) {
+        const sub = hwSubMap.get(`${s.id}:${hw.id}`);
+        homeworkCells[`${s.id}:${hw.id}`] = {
+          score: sub?.score ?? null,
+          status: sub?.status ?? 'NOT_SUBMITTED',
+          isLate: sub?.isLate ?? false,
+        };
+      }
+    }
+
+    const students = roster.map((student) => {
+      let earned = 0;
+      let studentMax = 0;
+
+      for (const quiz of visibleQuizRows) {
+        const studentAttempts = (studentQuizAttempts.get(`${student.id}:${quiz.id}`) ?? []).filter((a) => !a.pending);
+        if (studentAttempts.length) {
+          studentAttempts.sort((a, b) => b.score - a.score);
+          const max = questionTotals[quiz.id] ?? 0;
+          earned += Math.min(studentAttempts[0].score, max);
+          studentMax += max;
+        }
+      }
+
+      for (const col of manualCols) {
+        const val = manualVals.find(
+          (v) => v.studentId === student.id && v.columnId === col.id,
+        );
+        if (val && val.score !== null) {
+          earned += val.score;
+          studentMax += col.maxScore;
+        }
+      }
+
+      for (const hw of visibleHomeworkRows) {
+        const sub = hwSubMap.get(`${student.id}:${hw.id}`);
+        if (sub && sub.status === 'GRADED' && sub.score !== null) {
+          earned += sub.score;
+          studentMax += hw.maxScore;
+        }
+      }
+
+      const gradePercent = studentMax ? Math.round((earned / studentMax) * 100) : null;
+
+      const studentHomework: Record<string, { score: number | null; status: string; isLate: boolean }> = {};
+      for (const hw of visibleHomeworkRows) {
+        studentHomework[hw.id] = homeworkCells[`${student.id}:${hw.id}`];
+      }
+
+      return {
+        id: student.id,
+        name: student.name,
+        phoneNumber: student.phoneNumber,
+        gradePercent,
+        homework: studentHomework,
+      };
+    });
+
     return {
       group: serializeGroup(group),
-      students: roster,
+      students,
       attendance,
       quizColumns,
       quizCells: cells,
@@ -2797,7 +2976,13 @@ export class TeacherService {
         score: v.score,
         note: v.teacherNote,
       })),
+      homeworkColumns,
+      homeworkCells,
     };
+  }
+
+  async getGradebookOverview(user: { id: string; role: string }, groupId: string) {
+    return this.gradebook(user, groupId);
   }
 
   async addGradeColumn(

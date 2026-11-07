@@ -1,8 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '../../db';
 import {
+  groupHomeworkAccess,
   groupLessonAccess,
+  groupStudents,
+  groups,
+  homework,
+  homeworkSubmissions,
   lessonAttendance,
   lessons,
   modules,
@@ -11,6 +16,7 @@ import {
   users,
 } from '../../db/schema';
 import { StudentService } from '../student/student.service';
+import type { ParentChildHomeworkDto } from '../../../../shared/api';
 
 @Injectable()
 export class ParentService {
@@ -192,6 +198,141 @@ export class ParentService {
   async grades(parentId: string, studentId: string, groupId: string) {
     await this.assertLinked(parentId, studentId);
     return this.students.myGrades(studentId, groupId);
+  }
+
+  async getChildHomework(parentId: string, studentId: string): Promise<ParentChildHomeworkDto[]> {
+    await this.assertLinked(parentId, studentId);
+
+    const studentGroups = await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        courseId: groups.courseId,
+      })
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groups.isActive, true),
+          isNull(groups.deletedAt),
+        ),
+      );
+
+    if (!studentGroups.length) {
+      return [];
+    }
+
+    const results: ParentChildHomeworkDto[] = [];
+    const now = new Date();
+
+    for (const group of studentGroups) {
+      const mods = await db.select().from(modules).where(eq(modules.courseId, group.courseId));
+      if (!mods.length) continue;
+
+      const rawLessons = await db
+        .select()
+        .from(lessons)
+        .where(inArray(lessons.moduleId, mods.map((m) => m.id)));
+      if (!rawLessons.length) continue;
+
+      const hiddenLessonRows = await db
+        .select({ lessonId: groupLessonAccess.lessonId })
+        .from(groupLessonAccess)
+        .where(
+          and(
+            eq(groupLessonAccess.groupId, group.id),
+            eq(groupLessonAccess.isHidden, true),
+            inArray(groupLessonAccess.lessonId, rawLessons.map((l) => l.id)),
+          ),
+        );
+      const hiddenLessonIds = new Set(hiddenLessonRows.map((r) => r.lessonId));
+      const visibleLessons = rawLessons.filter((l) => !hiddenLessonIds.has(l.id));
+      if (!visibleLessons.length) continue;
+      const lessonIds = visibleLessons.map((l) => l.id);
+
+      const homeworkRows = await db
+        .select()
+        .from(homework)
+        .where(
+          and(
+            inArray(homework.lessonId, lessonIds),
+            or(isNull(homework.groupId), eq(homework.groupId, group.id)),
+          ),
+        )
+        .orderBy(asc(homework.displayOrder), asc(homework.createdAt));
+      if (!homeworkRows.length) continue;
+
+      const accessRows = await db
+        .select()
+        .from(groupHomeworkAccess)
+        .where(
+          and(
+            eq(groupHomeworkAccess.groupId, group.id),
+            inArray(groupHomeworkAccess.homeworkId, homeworkRows.map((h) => h.id)),
+          ),
+        );
+      const accessMap = new Map(accessRows.map((a) => [a.homeworkId, a]));
+      const visibleHomework = homeworkRows.filter((h) => !accessMap.get(h.id)?.isHidden);
+      if (!visibleHomework.length) continue;
+
+      const submissionRows = await db
+        .select()
+        .from(homeworkSubmissions)
+        .where(
+          and(
+            eq(homeworkSubmissions.groupId, group.id),
+            eq(homeworkSubmissions.studentId, studentId),
+            inArray(homeworkSubmissions.homeworkId, visibleHomework.map((h) => h.id)),
+          ),
+        );
+      const submissionMap = new Map(submissionRows.map((s) => [s.homeworkId, s]));
+
+      for (const hw of visibleHomework) {
+        const access = accessMap.get(hw.id);
+        const sub = submissionMap.get(hw.id);
+        const due = access?.dueDate ? new Date(access.dueDate) : null;
+        let isUrgent = false;
+        if ((!sub || sub.status !== 'GRADED') && due) {
+          if (now.getTime() > due.getTime() || due.getTime() - now.getTime() <= 24 * 60 * 60 * 1000) {
+            isUrgent = true;
+          }
+        }
+
+        results.push({
+          id: hw.id,
+          title: hw.title,
+          instructions: hw.instructions ?? null,
+          maxScore: hw.maxScore,
+          groupName: group.name,
+          dueDate: due ? due.toISOString() : null,
+          isUrgent,
+          submission: sub
+            ? {
+                status: sub.status,
+                score: sub.score ?? null,
+                teacherFeedback: sub.teacherFeedback ?? null,
+                submittedAt: sub.submittedAt.toISOString(),
+                isLate: sub.isLate,
+              }
+            : null,
+        });
+      }
+    }
+
+    results.sort((a, b) => {
+      if (a.isUrgent !== b.isUrgent) return a.isUrgent ? -1 : 1;
+      if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      if (a.dueDate && !b.dueDate) return -1;
+      if (!a.dueDate && b.dueDate) return 1;
+      return a.title.localeCompare(b.title);
+    });
+
+    return results;
+  }
+
+  async assertParentChildLink(parentId: string, studentId: string) {
+    return this.assertLinked(parentId, studentId);
   }
 
   private async assertLinked(parentId: string, studentId: string) {
