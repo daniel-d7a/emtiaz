@@ -153,6 +153,7 @@ export class StudentService {
           subject: categories.name,
           theme: users.landingTheme,
           banner: users.landingBanner,
+          isTopTeacher: users.isTopTeacher,
         },
       })
       .from(groupStudents)
@@ -233,6 +234,7 @@ export class StudentService {
           subject: teacher.subject,
           theme: teacher.theme,
           bannerUrl: teacher.banner ? bannerUrls.get(teacher.banner) ?? null : null,
+          isTopTeacher: teacher.isTopTeacher,
         },
         joinedAt: r.joinedAt.toISOString(),
         progress: total === 0 ? 0 : Math.round((done / total) * 100),
@@ -412,6 +414,7 @@ export class StudentService {
         avatar: users.image,
         slug: users.landingSlug,
         published: users.landingPublished,
+        isTopTeacher: users.isTopTeacher,
       })
       .from(users)
       .where(eq(users.id, course.teacherId));
@@ -424,6 +427,7 @@ export class StudentService {
         bannerUrl: await this.signedBanner(teacher?.banner ?? null),
         avatarUrl: await this.signedAvatar(teacher?.avatar ?? null),
         slug: teacher?.published ? teacher.slug : null,
+        isTopTeacher: teacher?.isTopTeacher ?? false,
       },
       group: { id: group.id, name: group.name, joinCode: group.joinCode },
       quizzes: visibleQuizzes

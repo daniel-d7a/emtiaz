@@ -175,12 +175,14 @@ export const UpdateTeacherDto = z
       .transform((v) => normalizePhone(v))
       .optional(),
     subjectId: uuid.nullable().optional(),
+    isTopTeacher: z.boolean().optional(),
   })
   .refine(
     (dto) =>
       dto.name !== undefined ||
       dto.phoneNumber !== undefined ||
-      dto.subjectId !== undefined,
+      dto.subjectId !== undefined ||
+      dto.isTopTeacher !== undefined,
     { message: 'nothing to update' },
   );
 
@@ -302,7 +304,7 @@ export const AddGroupDto = z.object({
     )
     .max(60)
     .optional(),
-  requiresEntryCode: z.boolean().optional(),
+  requiresEntryCode: z.boolean().default(true).optional(),
 });
 export const UpdateGroupDto = z.object({
   name: z.string().trim().max(120).optional(),

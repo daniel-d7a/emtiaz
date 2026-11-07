@@ -1,6 +1,8 @@
 import {
   serializeInboxItem,
+  serializePublicTeacher,
   serializeStudentAttachment,
+  serializeTeacherSummary,
   serializeUser,
 } from './serializers';
 
@@ -24,6 +26,7 @@ describe('response serializers', () => {
       landingBanner: 'banners/u1/x.png',
       landingTheme: null,
       landingPublished: false,
+      isTopTeacher: true,
       isActive: true,
       monitoringCode: 'ABCDEFGH',
       dateOfBirth: null,
@@ -36,6 +39,7 @@ describe('response serializers', () => {
 
     expect(user.createdAt).toBe(date.toISOString());
     expect(user.monitoringCode).toBe('ABCDEFGH');
+    expect(user.isTopTeacher).toBe(true);
     expect(user).not.toHaveProperty('adminRoleId');
     expect(user).not.toHaveProperty('image');
     expect(user).not.toHaveProperty('landingBanner');
@@ -73,5 +77,40 @@ describe('response serializers', () => {
       createdAt: date.toISOString(),
     });
     expect(item).not.toHaveProperty('userId');
+  });
+
+  it('serializes public teacher and teacher summary with isTopTeacher', () => {
+    const pub = serializePublicTeacher({
+      name: 'Salim',
+      email: 'salim@test.om',
+      phoneNumber: '+96890000001',
+      bio: 'Physics guru',
+      subject: 'Physics',
+      avatarUrl: '/api/public/teachers/salim/avatar',
+      theme: null,
+      bannerUrl: null,
+      isTopTeacher: true,
+    });
+    expect(pub.isTopTeacher).toBe(true);
+    expect(pub.name).toBe('Salim');
+
+    const summary = serializeTeacherSummary({
+      id: 't1',
+      name: 'Salim',
+      landingSlug: 'salim-physics',
+      image: '/api/public/teachers/salim-physics/avatar',
+      subject: 'Physics',
+      landingBio: 'Bio',
+      isTopTeacher: true,
+    });
+    expect(summary).toEqual({
+      id: 't1',
+      name: 'Salim',
+      landingSlug: 'salim-physics',
+      image: '/api/public/teachers/salim-physics/avatar',
+      subject: 'Physics',
+      landingBio: 'Bio',
+      isTopTeacher: true,
+    });
   });
 });

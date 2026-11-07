@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { getWeekdayOptions, serializeDays, useLang, type WeekdayKey } from '../../lib/i18n';
 import { normalizePhone } from '../../lib/phone';
-import { Button, Card, ErrorBox, Input, Page } from '../../components/ui';
+import { Button, Card, ErrorBox, InfoHint, Input, Page } from '../../components/ui';
 import type { Group } from '../../../../shared/api';
 import { teacherCoursesQuery } from './Dashboard';
 import { requireRole } from '../../lib/session';
@@ -22,6 +22,7 @@ export default function NewGroup() {
   const [name, setName] = useState('');
   const [time, setTime] = useState('');
   const [days, setDays] = useState<WeekdayKey[]>([]);
+  const [requiresEntryCode, setRequiresEntryCode] = useState(true);
   const [students, setStudents] = useState<StudentRow[]>([{ name: '', phone: '' }]);
   const [error, setError] = useState<Error | null>(null);
 
@@ -51,6 +52,7 @@ export default function NewGroup() {
           name,
           time: time.trim() || null,
           days: serializeDays(days),
+          requiresEntryCode,
           students: rows.map((student) => ({
             name: student.name.trim(),
             phoneNumber: normalizePhone(student.phone),
@@ -109,6 +111,23 @@ export default function NewGroup() {
               ))}
             </div>
           </fieldset>
+          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-ink-soft">
+            <input
+              type="checkbox"
+              checked={requiresEntryCode}
+              onChange={(e) => setRequiresEntryCode(e.target.checked)}
+              className="size-4 accent-primary"
+            />
+            <span>{t('requiresEntryCode')}</span>
+            <InfoHint
+              title={t('hintEntryCodesTitle')}
+              steps={[
+                { title: t('hintEntryCodesStep1Title'), body: t('hintEntryCodesStep1Body') },
+                { title: t('hintEntryCodesStep2Title'), body: t('hintEntryCodesStep2Body') },
+                { title: t('hintEntryCodesStep3Title'), body: t('hintEntryCodesStep3Body') },
+              ]}
+            />
+          </label>
         </Card>
 
         <Card>

@@ -94,17 +94,25 @@ describe('Phase 5: admin endpoints', () => {
 
     const edited = await admin
       .patch(`/api/admin/teachers/${id}`)
-      .send({ name: 'Edited Teacher', phoneNumber: '+96895550002' });
+      .send({ name: 'Edited Teacher', phoneNumber: '+96895550002', isTopTeacher: true });
     expect(edited.status).toBe(200);
     expect(edited.body.name).toBe('Edited Teacher');
     expect(edited.body.phoneNumber).toBe('+96895550002');
+    expect(edited.body.isTopTeacher).toBe(true);
     expect(edited.body).not.toHaveProperty('adminRoleId');
     expect(edited.body).not.toHaveProperty('image');
     expect(edited.body).not.toHaveProperty('landingBanner');
     const filtered = await admin.get('/api/admin/teachers?name=Edited');
     expect(filtered.body).toHaveLength(1);
+    expect(filtered.body[0].isTopTeacher).toBe(true);
     const audit = await admin.get('/api/admin/audit?action=teacher.update');
-    expect(audit.body.some((r: any) => r.targetId === id)).toBe(true);
+    expect(audit.body.some((r: any) => r.targetId === id && r.metadata?.isTopTeacher === true)).toBe(true);
+
+    const toggledOff = await admin
+      .patch(`/api/admin/teachers/${id}`)
+      .send({ isTopTeacher: false });
+    expect(toggledOff.status).toBe(200);
+    expect(toggledOff.body.isTopTeacher).toBe(false);
   });
 
   it('student directory filters, profile, create/edit, and group moves', async () => {

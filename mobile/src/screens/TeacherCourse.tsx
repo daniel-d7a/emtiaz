@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, Share, View } from 'react-native';
+import { Image, ScrollView, Share, Switch, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +29,7 @@ export default function TeacherCourse({
   const [description, setDescription] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [groupName, setGroupName] = useState('');
+  const [requiresEntryCode, setRequiresEntryCode] = useState(true);
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<Error | null>(null);
@@ -75,10 +76,11 @@ export default function TeacherCourse({
   const addGroup = useMutation({
     mutationFn: () =>
       api(`/api/teacher/courses/${courseId}/groups`, {
-        body: { name: groupName.trim() },
+        body: { name: groupName.trim(), requiresEntryCode },
       }),
     onSuccess: () => {
       setGroupName('');
+      setRequiresEntryCode(true);
       setShowGroupForm(false);
       invalidate();
     },
@@ -258,6 +260,26 @@ export default function TeacherCourse({
       {showGroupForm && (
         <Card>
           <Field label="اسم المجموعة" value={groupName} onChange={setGroupName} />
+          <View style={[s.row, { marginVertical: 8 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+              <Text style={{ fontWeight: '700' }}>يتطلب رمز دخول</Text>
+              <InfoHint
+                title="اشتراط رمز الدخول"
+                steps={[
+                  {
+                    title: '١. الانضمام برمز دخول',
+                    body: 'عند تفعيل هذا الخيار، يجب على الطالب إدخال رمز دخول خاص بجانب رمز المجموعة.',
+                  },
+                ]}
+              />
+            </View>
+            <Switch
+              value={requiresEntryCode}
+              onValueChange={setRequiresEntryCode}
+              trackColor={{ false: c.line, true: c.primary }}
+              ios_backgroundColor={c.line}
+            />
+          </View>
           <Btn
             label="إضافة"
             onPress={() => addGroup.mutate()}

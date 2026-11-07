@@ -241,7 +241,7 @@ describe('Phase 2: auth & onboarding', () => {
     );
     const courseId = courseRows[0].id;
     await pool.query(
-      `INSERT INTO groups (course_id, name, join_code) VALUES ('${courseId}', 'Batch A', 'OM123456')`,
+      `INSERT INTO groups (course_id, name, join_code, requires_entry_code) VALUES ('${courseId}', 'Batch A', 'OM123456', false)`,
     );
 
     const s = request.agent(server);
@@ -298,7 +298,7 @@ describe('Phase 2: auth & onboarding', () => {
       `INSERT INTO courses (title, teacher_id) SELECT 'Chem', id FROM "user" WHERE email='salim@teacher.om' RETURNING id`,
     );
     await pool.query(
-      `INSERT INTO groups (course_id, name, join_code) VALUES ('${courseRows[0].id}', 'Batch B', 'OM777777')`,
+      `INSERT INTO groups (course_id, name, join_code, requires_entry_code) VALUES ('${courseRows[0].id}', 'Batch B', 'OM777777', false)`,
     );
     const s = request.agent(server);
     await s

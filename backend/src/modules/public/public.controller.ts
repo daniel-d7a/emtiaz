@@ -6,13 +6,14 @@ import { db } from '../../db';
 import { StorageService } from '../storage/storage.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
 import { categories, courses, grades, lessons, modules, plans, users } from '../../db/schema';
-import type { PublicPlansResponse } from '../../../shared/api';
+import type { PublicPlansResponse, TeacherSummary } from '../../../shared/api';
 import {
   serializePublicCourseCard,
   serializePublicCourseDetail,
   serializePublicPlan,
   serializePublicSupport,
   serializePublicTeacher,
+  serializeTeacherSummary,
 } from '../../lib/serializers';
 
 @Controller()
@@ -34,6 +35,7 @@ export class PublicController {
         image: users.image,
         theme: users.landingTheme,
         banner: users.landingBanner,
+        isTopTeacher: users.isTopTeacher,
       })
       .from(users)
       .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
@@ -66,6 +68,7 @@ export class PublicController {
     const isSyntheticEmail = email?.endsWith('@phone.emtiaz.om');
     return serializePublicTeacher({
       ...rest,
+      isTopTeacher: teacher.isTopTeacher,
       email: isSyntheticEmail ? null : email,
       avatarUrl: image ? `/api/public/teachers/${slug}/avatar` : null,
       bannerUrl: await this.signed(banner),
@@ -120,6 +123,44 @@ export class PublicController {
       yearlyPlanDiscountEnabled: settings.yearlyPlanDiscountEnabled,
       supportWhatsapp: settings.supportWhatsapp,
     };
+  }
+
+  @Public()
+  @Get('api/public/top-teachers')
+  async topTeachers(): Promise<TeacherSummary[]> {
+    const rows = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        landingSlug: users.landingSlug,
+        image: users.image,
+        subject: categories.name,
+        landingBio: users.landingBio,
+        isTopTeacher: users.isTopTeacher,
+      })
+      .from(users)
+      .leftJoin(categories, eq(users.subjectCategoryId, categories.id))
+      .where(
+        and(
+          eq(users.role, 'TEACHER'),
+          eq(users.isTopTeacher, true),
+          eq(users.landingPublished, true),
+          eq(users.isActive, true),
+          isNull(users.deletedAt),
+        ),
+      )
+      .orderBy(asc(users.name));
+
+    return rows.map((row) =>
+      serializeTeacherSummary({
+        ...row,
+        image: row.image
+          ? (row.image.startsWith('http') || row.image.startsWith('/')
+              ? row.image
+              : (row.landingSlug ? `/api/public/teachers/${row.landingSlug}/avatar` : row.image))
+          : null,
+      }),
+    );
   }
 
   @Public()
@@ -226,6 +267,7 @@ export class PublicController {
         teacherName: users.name,
         teacherSlug: users.landingSlug,
         teacherTheme: users.landingTheme,
+        teacherIsTopTeacher: users.isTopTeacher,
         subject: categories.name,
         grade: grades.name,
       })
@@ -265,13 +307,19 @@ export class PublicController {
 
     return {
       courses: await Promise.all(
-        rows.map(async ({ image, teacherId, teacherName, teacherSlug, teacherTheme, ...course }) => ({
+        rows.map(async ({ image, teacherId, teacherName, teacherSlug, teacherTheme, teacherIsTopTeacher, ...course }) => ({
           id: course.id,
           title: course.title,
           description: course.description,
           courseType: course.courseType,
           semester: course.semester,
-          teacher: { id: teacherId, name: teacherName, slug: teacherSlug!, theme: teacherTheme },
+          teacher: {
+            id: teacherId,
+            name: teacherName,
+            slug: teacherSlug!,
+            theme: teacherTheme,
+            isTopTeacher: teacherIsTopTeacher,
+          },
           subject: course.subject,
           grade: course.grade,
           imageUrl: await this.signed(image),

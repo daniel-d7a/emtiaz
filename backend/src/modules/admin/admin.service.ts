@@ -157,6 +157,7 @@ export class AdminService implements OnApplicationBootstrap {
         deletedAt: users.deletedAt,
         landingSlug: users.landingSlug,
         landingPublished: users.landingPublished,
+        isTopTeacher: users.isTopTeacher,
         subjectCategoryId: users.subjectCategoryId,
         subject: { id: categories.id, name: categories.name },
       })
@@ -353,7 +354,7 @@ export class AdminService implements OnApplicationBootstrap {
 
   async updateTeacher(
     teacherId: string,
-    dto: { name?: string; phoneNumber?: string; subjectId?: string | null },
+    dto: { name?: string; phoneNumber?: string; subjectId?: string | null; isTopTeacher?: boolean },
   ) {
     const [teacher] = await db
       .select()
@@ -370,6 +371,7 @@ export class AdminService implements OnApplicationBootstrap {
       }
     }
     if (dto.subjectId !== undefined) patch.subjectCategoryId = dto.subjectId;
+    if (dto.isTopTeacher !== undefined) patch.isTopTeacher = dto.isTopTeacher;
     const [updated] = await db
       .update(users)
       .set({ ...patch, updatedAt: new Date() })

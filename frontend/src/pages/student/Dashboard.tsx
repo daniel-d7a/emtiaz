@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, createRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, BookOpen, Plus } from 'lucide-react';
+import { Bell, BookOpen, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { formatDateTime, localizeName, useLang } from '../../lib/i18n';
@@ -74,9 +74,18 @@ export default function StudentDashboard() {
                       <span className="text-xs font-semibold uppercase tracking-wide">{e.group.name}</span>
                     </div>
                     <h3 className="text-lg font-bold">{e.course.title}</h3>
-                    <p className="mb-3 text-sm text-ink-soft">
-                      {e.teacher.name}{e.teacher.subject ? ` · ${localizeName(e.teacher.subject, lang)}` : ''}
-                    </p>
+                    <div className="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-ink-soft">
+                      <span>{e.teacher.name}{e.teacher.subject ? ` · ${localizeName(e.teacher.subject, lang)}` : ''}</span>
+                      {e.teacher.isTopTeacher && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-600 border border-amber-500/20"
+                          title={t('topTeacher')}
+                        >
+                          <Sparkles size={11} className="text-amber-500" />
+                          {t('topTeacher')}
+                        </span>
+                      )}
+                    </div>
                     <Progress value={e.progress} />
                     <p className="mt-1 text-xs text-ink-soft">{t('progress')}: <span className="tabular-nums">{e.progress}%</span></p>
                   </Card>

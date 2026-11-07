@@ -628,6 +628,22 @@ describe('Phase 4: teacher endpoints', () => {
         }
       });
 
+      it('defaults requiresEntryCode to true when omitted on new group creation', async () => {
+        const defaultGroup = await t
+          .post(`/api/teacher/courses/${world.courseId}/groups`)
+          .send({ name: 'Default protected batch' });
+        expect(defaultGroup.status).toBe(201);
+        expect(defaultGroup.body.requiresEntryCode).toBe(true);
+        createdGroups.push(defaultGroup.body.id);
+
+        const openGroup = await t
+          .post(`/api/teacher/courses/${world.courseId}/groups`)
+          .send({ name: 'Explicitly open batch', requiresEntryCode: false });
+        expect(openGroup.status).toBe(201);
+        expect(openGroup.body.requiresEntryCode).toBe(false);
+        createdGroups.push(openGroup.body.id);
+      });
+
       it('requires a valid entry code when the group is protected', async () => {
         const created = await t
           .post(`/api/teacher/courses/${world.courseId}/groups`)

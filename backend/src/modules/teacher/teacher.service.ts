@@ -1274,7 +1274,7 @@ export class TeacherService {
         days: dto.days?.trim() || null,
         time: dto.time?.trim() || null,
         joinCode,
-        requiresEntryCode: dto.requiresEntryCode ?? false,
+        requiresEntryCode: dto.requiresEntryCode ?? true,
       })
       .returning();
     if (dto.students?.length) {

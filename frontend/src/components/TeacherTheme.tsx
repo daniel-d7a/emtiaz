@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { Sparkles } from 'lucide-react';
 import type { TeacherTheme } from '../../../shared/api';
 import { normalizeTheme, themeStyle } from '../lib/theme';
 import { useLang } from '../lib/i18n';
@@ -72,6 +73,7 @@ export function ThemeHero({
   subject,
   bio,
   avatarUrl,
+  isTopTeacher,
   showMarquee = true,
   children,
 }: {
@@ -81,9 +83,11 @@ export function ThemeHero({
   subject?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
+  isTopTeacher?: boolean;
   showMarquee?: boolean;
   children?: ReactNode;
 }) {
+  const { lang } = useLang();
   const t = normalizeTheme(theme);
   const background = { background: `linear-gradient(135deg, ${t.primary}, ${t.secondary})` };
   return (
@@ -107,7 +111,18 @@ export function ThemeHero({
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold">{name}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold">{name}</h1>
+                {isTopTeacher && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-yellow-500/15 px-2.5 py-0.5 text-xs font-bold text-amber-700 shadow-sm"
+                    title={lang === 'ar' ? 'معلّم متميّز' : 'Top Teacher'}
+                  >
+                    <Sparkles size={13} className="text-amber-500 fill-amber-400" />
+                    {lang === 'ar' ? 'معلّم متميّز' : 'Top Teacher'}
+                  </span>
+                )}
+              </div>
               {subject && <p className="text-sm font-semibold text-primary">{subject}</p>}
             </div>
           </div>

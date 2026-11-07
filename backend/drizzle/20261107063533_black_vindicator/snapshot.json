@@ -1,0 +1,47 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ef74a581-fa0c-4500-bf30-d32a1689a3ca",
+  "prevIds": [
+    "0a414250-05b7-4137-9426-f4dbbfd41adb"
+  ],
+  "footprints": [
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "user",
+        "is_top_teacher"
+      ],
+      "writes": [
+        "s|col|public.user.is_top_teacher",
+        "n|col|public.user.is_top_teacher",
+        "e|col|public.user.is_top_teacher"
+      ],
+      "reads": [
+        "n|tbl|public.user",
+        "n|sch|public"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user",
+        "name": "is_top_teacher",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    }
+  ]
+}

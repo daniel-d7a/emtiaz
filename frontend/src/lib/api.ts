@@ -41,6 +41,7 @@ import type {
   CheckAvailabilityDto,
   CheckAvailabilityResponse,
   PublicSupport,
+  TeacherSummary,
   CourseType,
 } from '../../../shared/api';
 import { normalizePhone } from './phone';
@@ -58,6 +59,7 @@ export type {
   CheckAvailabilityDto,
   CheckAvailabilityResponse,
   PublicSupport,
+  TeacherSummary,
   CourseType,
   Session,
   SessionUser,
@@ -176,6 +178,7 @@ export const authApi = {
 export const publicApi = {
   plans: () => api<PublicPlansResponse>('/api/public/plans'),
   support: () => api<PublicSupport>('/api/public/support'),
+  topTeachers: () => api<TeacherSummary[]>('/api/public/top-teachers'),
 };
 
 export const teacherApi = {

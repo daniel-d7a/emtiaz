@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoute, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, KeyRound, Link2, Lock, MessageCircle, NotebookPen, Plus, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Copy, Download, Eye, EyeOff, KeyRound, Link2, Lock, MessageCircle, NotebookPen, Plus, Printer, Trash2, Unlock, Users } from 'lucide-react';
 import QRCode from 'qrcode';
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel,
@@ -14,7 +14,9 @@ import { Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ErrorBox, IconB
 import { toCsv } from '../../lib/csv';
 import type {
   Group,
+  GroupEntryCode,
   TeacherAttendance,
+  TeacherCourse,
   TeacherEntryCodes,
   TeacherGradebook as Gradebook,
   TeacherGroupStats,
@@ -1105,10 +1107,16 @@ export function EntryCodesTab({ groupId }: { groupId: string }) {
   const { t, lang } = useLang();
   const qc = useQueryClient();
   const [maxUses, setMaxUses] = useState('10');
+  const [printModalOpen, setPrintModalOpen] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ['entry-codes', groupId],
     queryFn: () => api<TeacherEntryCodes>(`/api/teacher/groups/${groupId}/entry-codes`),
   });
+  const courses = useQuery({
+    queryKey: ['teacher-courses'],
+    queryFn: () => api<TeacherCourse[]>('/api/teacher/courses'),
+  });
+  const courseTitle = courses.data?.find((c) => c.groups.some((g) => g.id === groupId))?.title;
   const create = useMutation({
     mutationFn: () =>
       api(`/api/teacher/groups/${groupId}/entry-codes`, {
@@ -1164,6 +1172,13 @@ export function EntryCodesTab({ groupId }: { groupId: string }) {
           >
             <Plus className="inline" size={16} /> {t('generateCode')}
           </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setPrintModalOpen(true)}
+            disabled={data.codes.length === 0}
+          >
+            <Printer className="inline" size={16} /> {t('printQrCodes')}
+          </Button>
         </div>
         {create.error && <div className="mt-3"><ErrorBox error={create.error} /></div>}
       </Card>
@@ -1215,6 +1230,220 @@ export function EntryCodesTab({ groupId }: { groupId: string }) {
           );
         })
       )}
+
+      <PrintQrCodesDialog
+        open={printModalOpen}
+        onOpenChange={setPrintModalOpen}
+        group={data.group}
+        courseTitle={courseTitle}
+        codes={data.codes}
+      />
+    </div>
+  );
+}
+
+export function PrintQrCodesDialog({
+  open,
+  onOpenChange,
+  group,
+  courseTitle,
+  codes,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  group: Group;
+  courseTitle?: string;
+  codes: GroupEntryCode[];
+}) {
+  const { t } = useLang();
+  const [filter, setFilter] = useState<'available' | 'all'>('available');
+
+  const filteredCodes = useMemo(() => {
+    if (filter === 'available') {
+      const active = codes.filter((c) => !c.usedUp);
+      return active.length > 0 ? active : codes;
+    }
+    return codes;
+  }, [codes, filter]);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('printQrCodes')}
+      className="max-w-4xl"
+    >
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .printable-sheet,
+          .printable-sheet * {
+            visibility: visible;
+          }
+          .printable-sheet {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background: #fff !important;
+            z-index: 999999;
+          }
+          .printable-cards-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+          .printable-code-card {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            border: 2px dashed #444 !important;
+            border-radius: 12px !important;
+            padding: 16px !important;
+            background: #fff !important;
+            color: #000 !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-ink-soft">
+            {t('status')}:
+          </label>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as 'available' | 'all')}
+            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink focus:border-primary focus:outline-none"
+          >
+            <option value="available">{t('printFilterActiveOnly')}</option>
+            <option value="all">{t('printFilterAll')}</option>
+          </select>
+          <span className="text-xs text-ink-soft">
+            ({filteredCodes.length})
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => window.print()}
+            disabled={filteredCodes.length === 0}
+          >
+            <Printer className="inline" size={16} /> {t('print')}
+          </Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            {t('close')}
+          </Button>
+        </div>
+      </div>
+
+      <div className="printable-sheet max-h-[70vh] overflow-y-auto p-1">
+        {filteredCodes.length === 0 ? (
+          <p className="text-center text-sm text-ink-soft py-8">{t('noEntryCodes')}</p>
+        ) : (
+          <div className="printable-cards-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {filteredCodes.map((code) => {
+              const joinUrl = `${window.location.origin}/join/${group.joinCode}?entry=${encodeURIComponent(code.code)}`;
+              const remaining = Math.max(0, code.maxUses - code.usedCount);
+              return (
+                <PrintableEntryCard
+                  key={code.id}
+                  groupName={group.name}
+                  courseTitle={courseTitle}
+                  joinCode={group.joinCode}
+                  entryCode={code.code}
+                  joinUrl={joinUrl}
+                  maxUses={code.maxUses}
+                  remainingUses={remaining}
+                  usedUp={code.usedUp}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Dialog>
+  );
+}
+
+export function PrintableEntryCard({
+  groupName,
+  courseTitle,
+  joinCode,
+  entryCode,
+  joinUrl,
+  maxUses,
+  remainingUses,
+}: {
+  groupName: string;
+  courseTitle?: string;
+  joinCode: string;
+  entryCode: string;
+  joinUrl: string;
+  maxUses: number;
+  remainingUses: number;
+  usedUp: boolean;
+}) {
+  const { t } = useLang();
+  const [qrSrc, setQrSrc] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    QRCode.toDataURL(joinUrl, { width: 180, margin: 1, errorCorrectionLevel: 'M' })
+      .then((url) => active && setQrSrc(url))
+      .catch(() => active && setQrSrc(''));
+    return () => {
+      active = false;
+    };
+  }, [joinUrl]);
+
+  return (
+    <div className="printable-code-card flex flex-col items-center justify-between rounded-xl border-2 border-dashed border-line bg-surface p-4 text-center">
+      <div className="w-full border-b border-line pb-2 mb-2">
+        {courseTitle && (
+          <p className="text-xs font-semibold text-primary truncate">{courseTitle}</p>
+        )}
+        <h4 className="text-base font-bold text-ink truncate">{groupName}</h4>
+      </div>
+
+      <div className="my-1 flex items-center justify-center">
+        {qrSrc ? (
+          <img
+            src={qrSrc}
+            width={160}
+            height={160}
+            alt={entryCode}
+            className="size-36 rounded-lg border border-line bg-white p-1 object-contain"
+          />
+        ) : (
+          <div className="size-36 rounded-lg border border-line bg-background animate-pulse" />
+        )}
+      </div>
+
+      <div className="my-1 w-full">
+        <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">{t('entryCodes')}</p>
+        <p dir="ltr" className="font-mono text-2xl font-black tracking-widest text-primary-dark">
+          {entryCode}
+        </p>
+        <p className="mt-1 text-xs text-ink-soft">
+          {t('groupJoinCode')}: <span dir="ltr" className="font-mono font-bold text-ink">{joinCode}</span>
+        </p>
+      </div>
+
+      <div className="mt-2 w-full border-t border-line pt-2 text-xs text-ink-soft">
+        <div className="flex items-center justify-center gap-1 font-semibold">
+          <span>{t('remainingUses')}:</span>
+          <span className="tabular-nums font-bold text-ink">{remainingUses}</span>
+          <span>/</span>
+          <span className="tabular-nums">{maxUses}</span>
+        </div>
+        <p className="mt-1 text-[11px] font-medium leading-tight text-ink-soft">
+          {t('scanOrEnterCodeHint')}
+        </p>
+      </div>
     </div>
   );
 }

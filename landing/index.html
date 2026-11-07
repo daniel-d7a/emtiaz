@@ -35,6 +35,7 @@
       </button>
       <div class="nav-links" id="nav-links">
         <a class="navlink" href="#features" data-t="nav_features">المزايا</a>
+        <a class="navlink" href="#top-teachers" data-t="nav_top_teachers">معلّمون متميّزون</a>
         <a class="navlink" href="#parents" data-t="nav_parents">لأولياء الأمور</a>
         <a class="navlink" href="#pricing" data-t="nav_pricing">الأسعار</a>
         <a class="navlink" href="./teachers" data-t="nav_teachers">للمعلمين</a>
@@ -99,6 +100,15 @@
         <div class="step reveal"><span class="n">2</span><h3 data-t="step2_h">شارك الرمز</h3><p data-t="step2_p">أرسله على واتساب — الطالب ينضم في خطوة واحدة دون تنزيل تطبيق.</p></div>
         <div class="step reveal"><span class="n">3</span><h3 data-t="step3_h">افتح الدرس وابدأ</h3><p data-t="step3_p">تحكّم في الإيقاع، أرفق الملفات، وأطلق الاختبارات القصيرة.</p></div>
       </div>
+    </section>
+
+    <section id="top-teachers">
+      <div class="center">
+        <span class="eyebrow" data-t="top_teachers_badge">نخبة المعلمين · سلطنة عُمان</span>
+        <h2 data-t="top_teachers_h">معلّمون متميّزون يصنعون الفارق</h2>
+        <p class="lead" data-t="top_teachers_p">تعرّف على نخبة المعلمين المعتمدين والمتميّزين في منصة امتياز، وتصفّح صفحاتهم ومقرراتهم.</p>
+      </div>
+      <div class="grid grid-3" id="top-teachers-grid" style="margin-top:38px"></div>
     </section>
 
     <section id="parents">
@@ -183,12 +193,24 @@
     const dict = {
       logo: { ar: 'امتياز<span>.</span>', en: 'Emtiaz<span>.</span>' },
       nav_features: { ar: 'المزايا', en: 'Features' },
+      nav_top_teachers: { ar: 'معلّمون متميّزون', en: 'Top Teachers' },
       nav_parents: { ar: 'لأولياء الأمور', en: 'For parents' },
       nav_menu: { ar: 'القائمة', en: 'Menu' },
       nav_pricing: { ar: 'الأسعار', en: 'Pricing' },
       nav_teachers: { ar: 'للمعلمين', en: 'For teachers' },
       cta_login: { ar: 'تسجيل الدخول', en: 'Log in' },
       cta_register: { ar: 'ابدأ مجانًا', en: 'Start free' },
+      top_teachers_badge: { ar: 'نخبة المعلمين · سلطنة عُمان', en: 'Featured Teachers · Sultanate of Oman' },
+      top_teachers_h: { ar: 'معلّمون متميّزون يصنعون الفارق', en: 'Distinguished teachers making a difference' },
+      top_teachers_p: {
+        ar: 'تعرّف على نخبة المعلمين المعتمدين والمتميّزين في منصة امتياز، وتصفّح صفحاتهم ومقرراتهم.',
+        en: 'Discover certified top teachers on Emtiaz and explore their courses and groups.',
+      },
+      top_teachers_empty: {
+        ar: 'انضم كمعلم متميز وشارك معرفتك مع طلابك في سلطنة عُمان.',
+        en: 'Join as a distinguished teacher and share your knowledge across Oman.',
+      },
+      view_storefront: { ar: 'تصفّح المقررات', en: 'View teacher page' },
       hero_badge: { ar: 'منصة تعلّم عُمانية · سلطنة عُمان', en: 'Omani learning platform · Sultanate of Oman' },
       h1: { ar: 'علّم مجموعاتك. <em>صحّح آليًا.</em> استعد وقتك.', en: 'Teach your groups. <em>Grade automatically.</em> Reclaim your time.' },
       hero_p: { ar: 'أنشئ مجموعة، شارك رمزها على واتساب، وتحكّم فيما يفتحه طلابك — دروس وملفات واختبارات تُصحّح لحظيًا، وسجل درجات جاهز. بلا تعقيد.', en: 'Create a group, share its code on WhatsApp, and control what your students unlock — lessons, files, instantly graded quizzes, and a ready gradebook. No complexity.' },
@@ -273,9 +295,69 @@
     let lang = 'ar';
     const pick = (obj) => obj[lang];
 
+    let topTeachers = [];
+
+    async function fetchTopTeachers() {
+      try {
+        const res = await fetch('/api/public/top-teachers');
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            topTeachers = list;
+            renderTopTeachers();
+          }
+        }
+      } catch {
+        // progressive enhancement
+      }
+    }
+
+    function renderTopTeachers() {
+      const container = document.getElementById('top-teachers-grid');
+      if (!container) return;
+      if (!topTeachers.length) {
+        container.innerHTML = `
+          <div class="card reveal" style="grid-column: 1 / -1; text-align: center; padding: 36px 20px;">
+            <p style="margin: 0; color: var(--ink-soft);">${dict.top_teachers_empty[lang]}</p>
+          </div>`;
+        observeReveals();
+        return;
+      }
+      container.innerHTML = topTeachers.map((t) => {
+        const initial = (t.name || 'م').slice(0, 1);
+        const avatarHtml = t.image
+          ? `<img src="${t.image}" alt="${t.name}">`
+          : initial;
+        const link = t.landingSlug ? `${APP_URL}/t/${encodeURIComponent(t.landingSlug)}` : '#';
+        const badgeText = lang === 'ar' ? '⭐ معلّم متميّز' : '⭐ Top Teacher';
+        const btnText = dict.view_storefront[lang];
+        return `
+          <div class="top-teacher-card card reveal">
+            <div>
+              <div class="top-teacher-header">
+                <div class="top-teacher-avatar">${avatarHtml}</div>
+                <div class="top-teacher-info">
+                  <div class="top-teacher-badge">${badgeText}</div>
+                  <h3 class="top-teacher-name">${t.name}</h3>
+                  ${t.subject ? `<p class="top-teacher-subject">${t.subject}</p>` : ''}
+                </div>
+              </div>
+              ${t.landingBio ? `<p class="top-teacher-bio">${t.landingBio}</p>` : ''}
+            </div>
+            <div class="top-teacher-footer">
+              <a class="btn btn-outline" href="${link}">${btnText}</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+      observeReveals();
+    }
+
     function render() {
       document.getElementById('features-grid').innerHTML = features.map((f) => `
         <div class="card reveal"><div class="icon">${icons[f.icon]}</div><h3>${pick(f.h)}</h3><p>${pick(f.p)}</p></div>`).join('');
+
+      renderTopTeachers();
 
       document.getElementById('plans').innerHTML = plans.map((p) => `
         <div class="plan">
@@ -334,6 +416,7 @@
     }, { passive: true });
 
     render();
+    fetchTopTeachers();
   </script>
   <script src="./branding.js" defer></script>
 </body>

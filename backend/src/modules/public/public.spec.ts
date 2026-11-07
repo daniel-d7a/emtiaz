@@ -171,4 +171,42 @@ describe('public teacher landing', () => {
       expect(earlyBird.trialDays).toBe(30);
     });
   });
+
+  describe('GET /api/public/top-teachers', () => {
+    it('returns only published active teachers who hold the isTopTeacher badge', async () => {
+      const teacherUser = await getUserByEmail(TEACHER.email);
+      const initial = await request(server).get('/api/public/top-teachers');
+      expect(initial.status).toBe(200);
+      expect(initial.body.some((t: any) => t.id === teacherUser.id)).toBe(false);
+
+      await testPool.query(
+        `UPDATE "user" SET is_top_teacher = true, landing_published = true, landing_slug = 'salim-top', landing_bio = 'Top physics teacher' WHERE id = $1`,
+        [teacherUser.id],
+      );
+
+      const res = await request(server).get('/api/public/top-teachers');
+      expect(res.status).toBe(200);
+      const top = res.body.find((t: any) => t.id === teacherUser.id);
+      expect(top).toBeDefined();
+      expect(top.name).toBe(TEACHER.name);
+      expect(top.landingSlug).toBe('salim-top');
+      expect(top.landingBio).toBe('Top physics teacher');
+      expect(top.isTopTeacher).toBe(true);
+      expect(top).toHaveProperty('image');
+      expect(top).toHaveProperty('subject');
+
+      const storefront = await request(server).get('/api/public/teachers/salim-top');
+      expect(storefront.status).toBe(200);
+      expect(storefront.body.teacher.isTopTeacher).toBe(true);
+
+      await testPool.query(`UPDATE "user" SET landing_published = false WHERE id = $1`, [teacherUser.id]);
+      const unpub = await request(server).get('/api/public/top-teachers');
+      expect(unpub.body.some((t: any) => t.id === teacherUser.id)).toBe(false);
+
+      await testPool.query(
+        `UPDATE "user" SET is_top_teacher = false, landing_published = false WHERE id = $1`,
+        [teacherUser.id],
+      );
+    });
+  });
 });

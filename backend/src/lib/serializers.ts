@@ -36,6 +36,7 @@ import type {
   StudentAttachment,
   TaughtGrade,
   TeacherQuizQuestion,
+  TeacherSummary,
   User,
 } from '../../shared/api';
 import { normalizeDays } from './days';
@@ -96,6 +97,7 @@ export function serializeUser(row: UserRow, taughtGrades?: TaughtGrade[]): User 
     landingBio: row.landingBio,
     landingTheme: row.landingTheme,
     landingPublished: row.landingPublished,
+    isTopTeacher: row.isTopTeacher,
     isActive: row.isActive,
     mustChangePassword: row.mustChangePassword,
     dateOfBirth: row.dateOfBirth,
@@ -360,6 +362,7 @@ export function serializeAdminTeacherRow(row: {
   deletedAt: Date | null;
   landingSlug: string | null;
   landingPublished: boolean;
+  isTopTeacher: boolean;
   subjectCategoryId: string | null;
   subject: { id: string | null; name: string | null } | null;
   courseCount: number;
@@ -533,8 +536,29 @@ export function serializePublicTeacher(row: {
   avatarUrl: string | null;
   theme: PublicTeacher['theme'];
   bannerUrl: string | null;
+  isTopTeacher: boolean;
 }): PublicTeacher {
   return row;
+}
+
+export function serializeTeacherSummary(row: {
+  id: string;
+  name: string;
+  landingSlug: string | null;
+  image: string | null;
+  subject: string | null;
+  landingBio: string | null;
+  isTopTeacher: boolean;
+}): TeacherSummary {
+  return {
+    id: row.id,
+    name: row.name,
+    landingSlug: row.landingSlug,
+    image: row.image,
+    subject: row.subject,
+    landingBio: row.landingBio,
+    isTopTeacher: row.isTopTeacher,
+  };
 }
 
 export function serializePublicCourseCard(

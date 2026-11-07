@@ -111,4 +111,11 @@ describe('Phase 1: database schema', () => {
       ),
     ).rejects.toThrow(/attempt_score_sane_chk/);
   });
+
+  it('defaults groups.requires_entry_code to true', async () => {
+    const { rows } = await pool.query<{ column_default: string }>(
+      `SELECT column_default FROM information_schema.columns WHERE table_name = 'groups' AND column_name = 'requires_entry_code'`,
+    );
+    expect(rows[0].column_default).toBe('true');
+  });
 });

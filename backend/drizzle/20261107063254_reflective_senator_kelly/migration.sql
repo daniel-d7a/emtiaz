@@ -1,0 +1,1 @@
+ALTER TABLE "groups" ALTER COLUMN "requires_entry_code" SET DEFAULT true;

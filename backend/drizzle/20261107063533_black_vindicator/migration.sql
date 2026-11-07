@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "is_top_teacher" boolean DEFAULT false NOT NULL;

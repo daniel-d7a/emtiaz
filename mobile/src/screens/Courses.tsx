@@ -81,9 +81,16 @@ export default function Courses({
       {home.data.latestCourses.map((g) => (
         <Card key={g.group.id}>
           <Text style={s.h2}>{g.course.title}</Text>
-          <Text style={{ color: c.inkSoft, marginBottom: 4 }}>
-            {g.group.name} · {g.teacher.name}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            <Text style={{ color: c.inkSoft }}>
+              {g.group.name} · {g.teacher.name}
+            </Text>
+            {g.teacher.isTopTeacher && (
+              <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' }}>
+                <Text style={{ color: '#D97706', fontSize: 10, fontWeight: '700' }}>⭐ معلّم متميّز</Text>
+              </View>
+            )}
+          </View>
           <View style={s.progress}>
             <View
               style={[s.progressFill, { width: `${Math.min(100, Math.max(0, g.progress))}%` }]}
@@ -148,7 +155,16 @@ export default function Courses({
       {groups.data.map((g) => (
         <Card key={g.group.id}>
           <Text style={s.h2}>{g.course.title}</Text>
-          <Text style={{ color: c.inkSoft, marginBottom: 4 }}>{g.group.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            <Text style={{ color: c.inkSoft }}>
+              {g.group.name} · {g.teacher.name}
+            </Text>
+            {g.teacher.isTopTeacher && (
+              <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' }}>
+                <Text style={{ color: '#D97706', fontSize: 10, fontWeight: '700' }}>⭐ معلّم متميّز</Text>
+              </View>
+            )}
+          </View>
           <View style={s.progress}>
             <View
               style={[s.progressFill, { width: `${Math.min(100, Math.max(0, g.progress))}%` }]}

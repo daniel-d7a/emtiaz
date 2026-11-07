@@ -52,6 +52,7 @@ export default function TeacherLanding() {
         subject={data.teacher.subject ? localizeName(data.teacher.subject, lang) : null}
         bio={data.teacher.bio}
         avatarUrl={data.teacher.avatarUrl}
+        isTopTeacher={data.teacher.isTopTeacher}
       >
         <Link
           to="/register/$role"

@@ -1,6 +1,6 @@
 import { Link, createRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Sparkles } from 'lucide-react';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
 import { Card, EmptyState, ErrorBox, Loading, Page, Progress } from '../../components/ui';
@@ -27,9 +27,18 @@ export default function StudentMyCourses() {
                   <span className="text-xs font-semibold uppercase tracking-wide">{e.group.name}</span>
                 </div>
                 <h2 className="text-lg font-bold">{e.course.title}</h2>
-                <p className="mb-3 text-sm text-ink-soft">
-                  {e.teacher.name}{e.teacher.subject ? ` · ${localizeName(e.teacher.subject, lang)}` : ''}
-                </p>
+                <div className="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-ink-soft">
+                  <span>{e.teacher.name}{e.teacher.subject ? ` · ${localizeName(e.teacher.subject, lang)}` : ''}</span>
+                  {e.teacher.isTopTeacher && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-600 border border-amber-500/20"
+                      title={t('topTeacher')}
+                    >
+                      <Sparkles size={11} className="text-amber-500" />
+                      {t('topTeacher')}
+                    </span>
+                  )}
+                </div>
                 <Progress value={e.progress} />
                 <p className="mt-1 text-xs text-ink-soft">
                   {t('progress')}: <span className="tabular-nums">{e.progress}% · {e.completedLessons}/{e.totalLessons}</span>

@@ -28,6 +28,7 @@ type TeacherRow = {
   deletedAt: string | null;
   landingSlug: string | null;
   landingPublished: boolean;
+  isTopTeacher: boolean;
   subjectCategoryId: string | null;
   subject: { id: string | null; name: string | null } | null;
   courseCount: number;
@@ -48,6 +49,7 @@ const editSchema = z.object({
   name: z.string().trim().min(1),
   phoneNumber: z.string().trim(),
   subjectId: z.string(),
+  isTopTeacher: z.boolean().default(false),
 });
 type EditValues = z.infer<typeof editSchema>;
 
@@ -97,6 +99,14 @@ export default function AdminTeachers() {
       invalidate();
     },
   });
+  const toggleTopTeacher = useMutation({
+    mutationFn: ({ id, isTopTeacher }: { id: string; isTopTeacher: boolean }) =>
+      api(`/api/admin/teachers/${id}`, { method: 'PATCH', body: { isTopTeacher } }),
+    onSuccess: () => {
+      toast.success(t('saved'));
+      invalidate();
+    },
+  });
   const restoreUser = useMutation({
     mutationFn: (id: string) => api(`/api/admin/users/${id}/restore`, { method: 'POST' }),
     onSuccess: () => {
@@ -118,8 +128,17 @@ export default function AdminTeachers() {
       accessorKey: 'name',
       header: ({ column }) => <SortHeader label={t('name')} onClick={column.getToggleSortingHandler()} />,
       cell: ({ row }) => (
-        <div className="font-semibold">
-          {row.original.name}
+        <div className="flex items-center gap-1.5 font-semibold">
+          <span>{row.original.name}</span>
+          {row.original.isTopTeacher && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-bold text-amber-600 border border-amber-500/20 shadow-sm"
+              title={t('topTeacher')}
+            >
+              <Sparkles size={12} className="text-amber-500" />
+              {t('topTeacher')}
+            </span>
+          )}
           {row.original.deletedAt && <span className="ms-2 text-xs font-bold text-secondary">{t('deleted')}</span>}
         </div>
       ),
@@ -185,6 +204,19 @@ export default function AdminTeachers() {
               </button>
             ) : (
               <>
+                <button
+                  type="button"
+                  onClick={() => toggleTopTeacher.mutate({ id: teacher.id, isTopTeacher: !teacher.isTopTeacher })}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold transition inline-flex items-center gap-1 ${
+                    teacher.isTopTeacher
+                      ? 'border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                      : 'border-line text-ink-soft hover:border-amber-400 hover:text-amber-600'
+                  }`}
+                  title={t('topTeacherToggle')}
+                >
+                  <Sparkles size={12} className={teacher.isTopTeacher ? 'text-amber-500' : 'text-ink-soft'} />
+                  {teacher.isTopTeacher ? t('topTeacher') : t('topTeacherToggle')}
+                </button>
                 <button
                   onClick={() => setEditing(teacher)}
                   className="rounded-full border border-line px-3 py-1 text-xs font-bold"
@@ -429,6 +461,7 @@ function EditTeacherDialog({
       name: teacher.name,
       phoneNumber: teacher.phoneNumber ?? '',
       subjectId: teacher.subjectCategoryId ?? '',
+      isTopTeacher: teacher.isTopTeacher ?? false,
     },
   });
   const save = useMutation({
@@ -438,6 +471,7 @@ function EditTeacherDialog({
         name: values.name,
         phoneNumber: values.phoneNumber,
         subjectId: values.subjectId || null,
+        isTopTeacher: values.isTopTeacher,
       },
     }),
     onSuccess: () => {
@@ -469,6 +503,17 @@ function EditTeacherDialog({
               <option key={category.id} value={category.id}>{localizeName(category.name, lang)}</option>
             ))}
           </Select>
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm font-semibold rounded-lg border border-line p-2.5 hover:bg-surface-subtle">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-line text-primary focus:ring-primary"
+              {...register('isTopTeacher')}
+            />
+            <span className="flex items-center gap-1.5 text-ink">
+              <Sparkles size={16} className="text-amber-500" />
+              {t('topTeacherToggle')}
+            </span>
+          </label>
           {save.error && <ErrorBox error={save.error} />}
         </div>
       </form>

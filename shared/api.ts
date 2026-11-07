@@ -63,6 +63,7 @@ export type User = {
   landingBio: string | null;
   landingTheme: TeacherTheme | null;
   landingPublished: boolean;
+  isTopTeacher: boolean;
   isActive: boolean;
   mustChangePassword: boolean;
   dateOfBirth: string | null;
@@ -132,6 +133,7 @@ export type AdminTeacherRow = {
   deletedAt: string | null;
   landingSlug: string | null;
   landingPublished: boolean;
+  isTopTeacher: boolean;
   subjectCategoryId: string | null;
   subject: { id: string | null; name: string | null } | null;
   courseCount: number;
@@ -613,6 +615,16 @@ export type AdminGrantGiftDto = {
   note?: string;
 };
 
+export type TeacherSummary = {
+  id: string;
+  name: string;
+  landingSlug: string | null;
+  image: string | null;
+  subject: string | null;
+  landingBio: string | null;
+  isTopTeacher: boolean;
+};
+
 export type PublicTeacher = {
   name: string;
   email: string | null;
@@ -622,6 +634,7 @@ export type PublicTeacher = {
   avatarUrl: string | null;
   theme: TeacherTheme | null;
   bannerUrl: string | null;
+  isTopTeacher: boolean;
 };
 
 export type PublicCourseCard = Pick<
@@ -640,6 +653,7 @@ export type CatalogueTeacher = {
   name: string;
   slug: string;
   theme: TeacherTheme | null;
+  isTopTeacher?: boolean;
 };
 
 export type CatalogueCourse = Pick<
@@ -786,6 +800,7 @@ export type StudentGroup = {
     subject: string | null;
     theme: TeacherTheme | null;
     bannerUrl: string | null;
+    isTopTeacher?: boolean;
   };
   progress: number;
   completedLessons: number;
@@ -819,6 +834,7 @@ export type StudentCurriculum = {
     bannerUrl: string | null;
     avatarUrl: string | null;
     slug: string | null;
+    isTopTeacher?: boolean;
   };
   group: Pick<Group, 'id' | 'name' | 'joinCode'>;
   quizzes: QuizWithAttempt[];

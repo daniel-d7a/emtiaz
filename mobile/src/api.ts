@@ -44,6 +44,7 @@ import type {
   CheckAvailabilityDto,
   CheckAvailabilityResponse,
   PublicSupport,
+  TeacherSummary,
   CourseType,
 } from '../../shared/api';
 
@@ -60,6 +61,7 @@ export type {
   CheckAvailabilityDto,
   CheckAvailabilityResponse,
   PublicSupport,
+  TeacherSummary,
   CourseType,
   Country,
   Currency,
@@ -207,6 +209,7 @@ export const authApi = {
 export const publicApi = {
   plans: () => api<PublicPlansResponse>('/api/public/plans'),
   support: () => api<PublicSupport>('/api/public/support'),
+  topTeachers: () => api<TeacherSummary[]>('/api/public/top-teachers'),
   grades: (country?: Country) =>
     api<GradeItem[]>(`/api/onboarding/grades${country ? `?country=${country}` : ''}`),
   categories: () => api<CategoryItem[]>('/api/onboarding/categories'),

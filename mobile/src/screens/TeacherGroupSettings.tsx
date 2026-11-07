@@ -14,7 +14,7 @@ export default function TeacherGroupSettings({ groupId }: { groupId: string }) {
   const [joinCode, setJoinCode] = useState('');
   const [whatsappMessage, setWhatsappMessage] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [requiresEntryCode, setRequiresEntryCode] = useState(false);
+  const [requiresEntryCode, setRequiresEntryCode] = useState(true);
   const [columnTitle, setColumnTitle] = useState('');
   const pacing = useQuery({
     queryKey: ['teacher-pacing', groupId],
