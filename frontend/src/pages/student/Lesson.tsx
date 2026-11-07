@@ -10,6 +10,7 @@ import { useLang } from '../../lib/i18n';
 import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, Loading, Page } from '../../components/ui';
 import { ThemeSurface } from '../../components/TeacherTheme';
 import { StudentQuiz, studentCurriculumQuery } from './Group';
+import { LessonHomeworkCard } from './LessonHomeworkCard';
 import type { StudentLessonView } from '../../../../shared/api';
 
 export default function StudentLesson() {
@@ -74,6 +75,8 @@ export default function StudentLesson() {
                   )}
                 </div>
               </Card>
+
+              <LessonHomeworkCard groupId={groupId} lessonId={lessonId} />
 
               {data.hasQuiz && <StudentQuiz lessonId={lessonId} groupId={groupId} />}
             </main>

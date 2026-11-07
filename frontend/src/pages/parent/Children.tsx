@@ -4,13 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GraduationCap, Link2, Unlink } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, FileText, GraduationCap, Link2, MessageSquare, RotateCcw, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '../../lib/api';
+import { api, parentApi } from '../../lib/api';
 import { formatDateTime, useLang } from '../../lib/i18n';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorBox, InfoHint, Input, Loading, Page, Progress } from '../../components/ui';
 import { OnboardingGuide } from '../../components/OnboardingGuide';
-import type { ParentChild as Child, StudentGrades as Grades } from '../../../../shared/api';
+import type { ParentChild as Child, ParentChildHomeworkDto, StudentGrades as Grades } from '../../../../shared/api';
 
 export default function ParentChildren() {
   const { t, lang } = useLang();
@@ -133,6 +133,10 @@ export default function ParentChildren() {
                 })}
               </div>
               <div className="mt-4 border-t border-line pt-3">
+                <ChildHomeworkSection studentId={child.id} />
+              </div>
+
+              <div className="mt-4 border-t border-line pt-3">
                 <h3 className="mb-2 text-sm font-bold">{t('deliveredReports')}</h3>
                 {child.reports.length === 0 ? (
                   <p className="text-sm text-ink-soft">{t('noReports')}</p>
@@ -210,6 +214,141 @@ function ChildGrades({ studentId, groupId }: { studentId: string; groupId: strin
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+export function ChildHomeworkSection({ studentId }: { studentId: string }) {
+  const { t, lang } = useLang();
+  const homework = useQuery({
+    queryKey: ['parent-homework', studentId],
+    queryFn: () => parentApi.getChildHomework(studentId),
+  });
+
+  return (
+    <div data-testid={`child-homework-section-${studentId}`}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText size={16} className="text-primary" />
+          <h3 className="text-sm font-bold">{t('childHomework')}</h3>
+        </div>
+        {homework.data && homework.data.length > 0 && (
+          <span className="rounded-full bg-primary-light/60 px-2 py-0.5 text-xs font-bold text-primary-dark">
+            {homework.data.length}
+          </span>
+        )}
+      </div>
+
+      {homework.isLoading ? (
+        <Loading />
+      ) : homework.error ? (
+        <ErrorBox error={homework.error} />
+      ) : !homework.data || homework.data.length === 0 ? (
+        <p className="text-sm text-ink-soft">{t('noChildHomework')}</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {homework.data.map((hw: ParentChildHomeworkDto) => {
+            const sub = hw.submission;
+            const isGraded = sub?.status === 'GRADED';
+            const isRevisionRequested = sub?.status === 'REVISION_REQUESTED';
+            const isLate = sub?.isLate;
+
+            return (
+              <div
+                key={hw.id}
+                data-testid={`parent-homework-item-${hw.id}`}
+                className={`rounded-xl border p-3 text-sm transition-colors ${
+                  hw.isUrgent
+                    ? 'border-rose-300 bg-rose-50/30'
+                    : 'border-line bg-background/50'
+                }`}
+              >
+                {/* Urgent warning pill */}
+                {hw.isUrgent && (
+                  <div
+                    data-testid="urgent-homework-warning"
+                    className="mb-2 inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-100/90 px-2.5 py-0.5 text-xs font-bold text-rose-800"
+                  >
+                    <AlertTriangle size={12} />
+                    <span>{t('urgentHomeworkWarning')}</span>
+                  </div>
+                )}
+
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
+                  <span className="text-xs font-medium text-ink-soft">{hw.groupName}</span>
+                  <span className="rounded-md bg-line/60 px-2 py-0.5 text-xs font-semibold tabular-nums text-ink-soft">
+                    {hw.maxScore} {t('points')}
+                  </span>
+                </div>
+
+                <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                  <h4 className="font-bold text-ink">{hw.title}</h4>
+
+                  {/* Status badge */}
+                  <div>
+                    {!sub ? (
+                      <Badge tone="neutral">{t('notSubmitted')}</Badge>
+                    ) : isGraded ? (
+                      <Badge className="border-emerald-300 bg-emerald-50 text-emerald-800 font-bold">
+                        <CheckCircle2 size={12} className="inline ltr:mr-1 rtl:ml-1" />
+                        {t('gradedWithScore')} ({sub.score ?? 0}/{hw.maxScore})
+                      </Badge>
+                    ) : isRevisionRequested ? (
+                      <Badge tone="danger">
+                        <RotateCcw size={12} className="inline ltr:mr-1 rtl:ml-1" />
+                        {t('revisionRequested')}
+                      </Badge>
+                    ) : isLate ? (
+                      <Badge className="border-amber-300 bg-amber-50 text-amber-800 font-bold">
+                        <AlertTriangle size={12} className="inline ltr:mr-1 rtl:ml-1" />
+                        {t('submittedLate')}
+                      </Badge>
+                    ) : (
+                      <Badge tone="primary">
+                        <CheckCircle2 size={12} className="inline ltr:mr-1 rtl:ml-1" />
+                        {t('submitted')}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {hw.instructions && (
+                  <p className="mb-2 whitespace-pre-wrap text-xs text-ink-soft leading-relaxed">
+                    {hw.instructions}
+                  </p>
+                )}
+
+                {/* Due date */}
+                {hw.dueDate && (
+                  <div className="flex items-center gap-1 text-xs text-ink-soft">
+                    <Clock size={12} />
+                    <span>{t('dueDate')}:</span>
+                    <span className="font-medium">{formatDateTime(hw.dueDate, lang)}</span>
+                  </div>
+                )}
+
+                {/* Score if graded */}
+                {isGraded && (
+                  <p className="mt-1.5 text-xs font-bold text-emerald-700">
+                    {t('earnedScore')}: {sub?.score ?? 0} {lang === 'ar' ? 'من' : 'out of'} {hw.maxScore}
+                  </p>
+                )}
+
+                {/* Teacher feedback */}
+                {sub?.teacherFeedback && (
+                  <div className="mt-2.5 rounded-lg border border-amber-300 bg-amber-50/90 p-2.5 text-xs text-amber-900">
+                    <div className="mb-1 flex items-center gap-1 font-bold text-amber-950">
+                      <MessageSquare size={14} className="text-amber-700" />
+                      <span>{t('teacherFeedback')}:</span>
+                    </div>
+                    <p className="whitespace-pre-wrap leading-relaxed">{sub.teacherFeedback}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

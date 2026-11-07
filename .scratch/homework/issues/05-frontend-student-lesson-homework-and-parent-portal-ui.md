@@ -4,11 +4,11 @@
 
 **Blocked by:** [02: Student Submission Lifecycle, Revision Requests & Teacher Grading Engine](02-student-submission-revisions-and-grading-engine.md), [03: Gradebook Integration & Parent Portal Homework Backend](03-gradebook-and-parent-portal-homework-backend.md).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Create `<LessonHomeworkCard />` in the Student Lesson view displaying homework title, instructions, reference file / link, due date countdown, and max score.
-- [ ] Add 3-way submission form (text input, URL input, or file upload with client-side 10MB validation).
-- [ ] Render live status badges (`Not Submitted`, `Submitted`, `Late`, `Graded`, `Revision Requested`) and show teacher feedback with a prominent "Resubmit" button when revision is requested.
-- [ ] Create Parent Portal Homework tab (`/parent`) displaying all homework assignments for each linked child with scores, teacher feedback, and urgent deadline warning pills.
-- [ ] Add all bilingual Arabic & English i18n keys to `frontend/src/lib/i18n.tsx`.
-- [ ] Verify with unit/component tests in `frontend/src/`.
+- [x] Create `<LessonHomeworkCard />` in the Student Lesson view displaying homework title, instructions, reference file / link, due date countdown, and max score.
+- [x] Add 3-way submission form (text input, URL input, or file upload with client-side 10MB validation).
+- [x] Render live status badges (`Not Submitted`, `Submitted`, `Late`, `Graded`, `Revision Requested`) and show teacher feedback with a prominent "Resubmit" button when revision is requested.
+- [x] Create Parent Portal Homework tab (`/parent`) displaying all homework assignments for each linked child with scores, teacher feedback, and urgent deadline warning pills.
+- [x] Add all bilingual Arabic & English i18n keys to `frontend/src/lib/i18n.tsx`.
+- [x] Verify with unit/component tests in `frontend/src/`.
