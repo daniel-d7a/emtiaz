@@ -30,6 +30,8 @@ import { parentChildrenRoute } from './pages/parent/Children';
 import { teacherLandingRoute } from './pages/public/Teacher';
 import { publicCourseRoute } from './pages/public/Course';
 import { publicCoursesRoute } from './pages/public/Courses';
+import { privacyRoute } from './pages/public/Privacy';
+import { termsRoute } from './pages/public/Terms';
 
 const fallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -72,6 +74,8 @@ const routeTree = rootRoute.addChildren([
   teacherLandingRoute,
   publicCourseRoute,
   publicCoursesRoute,
+  privacyRoute,
+  termsRoute,
   fallbackRoute,
 ]);
 

@@ -60,6 +60,8 @@ import type {
   GradeHomeworkSubmissionDto,
   ParentChildHomeworkSubmissionDto,
   ParentChildHomeworkDto,
+  ResetUserPasswordDto,
+  ResetUserPasswordResultDto,
   StudentGradebook,
   HomeworkColumn,
   HomeworkCell,
@@ -123,6 +125,8 @@ export type {
   GradeHomeworkSubmissionDto,
   ParentChildHomeworkSubmissionDto,
   ParentChildHomeworkDto,
+  ResetUserPasswordDto,
+  ResetUserPasswordResultDto,
   StudentGradebook,
   HomeworkColumn,
   HomeworkCell,
@@ -304,6 +308,11 @@ export const studentApi = {
 export const parentApi = {
   getChildHomework: (studentId: string) =>
     api<ParentChildHomeworkDto[]>(`/api/parent/children/${studentId}/homework`),
+};
+
+export const adminApi = {
+  resetUserPassword: (userId: string, dto?: ResetUserPasswordDto) =>
+    api<ResetUserPasswordResultDto>(`/api/admin/users/${userId}/reset-password`, { method: 'POST', body: dto }),
 };
 
 export function normalizePhone(input: string, country?: Country): string {

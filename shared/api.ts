@@ -1301,3 +1301,16 @@ export interface ParentChildHomeworkDto {
   isUrgent: boolean;
   submission: ParentChildHomeworkSubmissionDto | null;
 }
+
+export interface ResetUserPasswordDto {
+  password?: string;
+}
+
+export interface ResetUserPasswordResultDto {
+  success: boolean;
+  temporaryPassword: string;
+  userId: string;
+  userName: string;
+  userPhone: string | null;
+}
+

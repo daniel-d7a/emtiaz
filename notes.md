@@ -18,9 +18,9 @@ checklist here.
 
 - buy a domain
 - connect an email provider
+
 - add reset password flow for user + from admin
 - add legal pages
-
 - check event logs, I want every event to be logged (creation, update, delete, enroll, ...etc) (courses, groups, quizes, ...etc)
 
 ### just some ideas that shouldn't be implemented now

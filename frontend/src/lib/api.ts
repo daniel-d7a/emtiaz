@@ -57,6 +57,8 @@ import type {
   GradeHomeworkSubmissionDto,
   ParentChildHomeworkSubmissionDto,
   ParentChildHomeworkDto,
+  ResetUserPasswordDto,
+  ResetUserPasswordResultDto,
   StudentGradebook,
   HomeworkColumn,
   HomeworkCell,
@@ -123,6 +125,8 @@ export type {
   GradeHomeworkSubmissionDto,
   ParentChildHomeworkSubmissionDto,
   ParentChildHomeworkDto,
+  ResetUserPasswordDto,
+  ResetUserPasswordResultDto,
   StudentGradebook,
   HomeworkColumn,
   HomeworkCell,
@@ -288,4 +292,6 @@ export const adminApi = {
     api<any>(`/api/admin/teachers/${teacherId}/subscription`, { method: 'POST', body }),
   grantTeacherGift: (teacherId: string, body: AdminGrantGiftDto) =>
     api<any>(`/api/admin/teachers/${teacherId}/gift`, { method: 'POST', body }),
+  resetUserPassword: (userId: string, body?: ResetUserPasswordDto) =>
+    api<ResetUserPasswordResultDto>(`/api/admin/users/${userId}/reset-password`, { method: 'POST', body }),
 };

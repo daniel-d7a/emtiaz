@@ -1064,5 +1064,55 @@ describe('Phase 5: admin endpoints', () => {
       expect(patchCatRes.body.nameAr).toBe('تصميم وتطوير الألعاب');
       expect(patchCatRes.body.nameEn).toBe('Game Design & Development');
     });
+
+    it('handles admin password reset with auto-generated and custom credentials, enforcing mustChangePassword and audit logging', async () => {
+      // 1. Rejects non-admin
+      const studentSession = (await login(server, STUDENT1.email, STUDENT1.password)).session;
+      const nonAdminRes = await studentSession.post(`/api/admin/users/${world.s1.id}/reset-password`).send({});
+      expect([403, 500]).toContain(nonAdminRes.status);
+
+      // 2. Returns 404 for non-existent user
+      const notFoundRes = await admin.post('/api/admin/users/00000000-0000-0000-0000-000000000000/reset-password').send({});
+      expect(notFoundRes.status).toBe(404);
+
+      // 3. Reset student1 with auto-generated password
+      const autoResetRes = await admin.post(`/api/admin/users/${world.s1.id}/reset-password`).send({});
+      expect(autoResetRes.status).toBe(201);
+      expect(autoResetRes.body.success).toBe(true);
+      expect(autoResetRes.body.userId).toBe(world.s1.id);
+      expect(autoResetRes.body.userName).toBe(STUDENT1.name);
+      expect(autoResetRes.body.temporaryPassword).toMatch(/^Emtiaz#[a-zA-Z0-9]{4}$/);
+
+      // Verify mustChangePassword is true in DB
+      const { rows } = await testPool.query(
+        `SELECT must_change_password AS "mustChangePassword" FROM "user" WHERE id = $1`,
+        [world.s1.id],
+      );
+      expect(rows[0]?.mustChangePassword).toBe(true);
+
+      // Verify audit log has user.password.reset with forcedChange: true
+      const auditRes = await admin.get(`/api/admin/audit?action=user.password.reset`);
+      expect(auditRes.status).toBe(200);
+      const auditEntry = auditRes.body.find((a: any) => a.targetId === world.s1.id);
+      expect(auditEntry).toBeDefined();
+      expect(auditEntry.metadata?.forcedChange).toBe(true);
+
+      // Verify the student can log in with the new auto-generated password
+      const loginAuto = await login(server, STUDENT1.email, autoResetRes.body.temporaryPassword);
+      expect(loginAuto.status).toBe(200);
+
+      // 4. Reset with custom password (min 8 chars)
+      const customPassword = 'CustomSecretPass#2026';
+      const customResetRes = await admin
+        .post(`/api/admin/users/${world.s1.id}/reset-password`)
+        .send({ password: customPassword });
+      expect(customResetRes.status).toBe(201);
+      expect(customResetRes.body.success).toBe(true);
+      expect(customResetRes.body.temporaryPassword).toBe(customPassword);
+
+      // Verify student can log in with custom password
+      const loginCustom = await login(server, STUDENT1.email, customPassword);
+      expect(loginCustom.status).toBe(200);
+    });
   });
 });

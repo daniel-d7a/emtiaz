@@ -36,6 +36,7 @@ import {
   GradeCreateDto,
   GradeUpdateDto,
   NotificationSettingsDto,
+  ResetUserPasswordDto,
   SetUserStatusDto,
   TaxonomyCreateDto,
   TaxonomyUpdateDto,
@@ -316,6 +317,18 @@ export class AdminController {
   @RequirePermission('parents')
   parentLinks(@Query() q: { deleted?: string }) {
     return this.admin.listParentLinks(q);
+  }
+
+  @Post('api/admin/users/:id/reset-password')
+  @Roles('ADMIN')
+  @RequirePermission('users')
+  async resetUserPassword(
+    @Req() req: Request,
+    @Param('id') userId: string,
+    @Body(new ZodBodyPipe(ResetUserPasswordDto))
+    dto: z.infer<typeof ResetUserPasswordDto>,
+  ) {
+    return this.admin.resetUserPassword(req.user!.id, userId, dto);
   }
 
   @Patch('api/admin/users/:userId/status')

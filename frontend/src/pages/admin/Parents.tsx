@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
+import { KeyRound, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
@@ -12,6 +12,7 @@ import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
   Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
 } from '../../components/ui';
+import { ResetPasswordModal, type ResetTargetUser } from '../../components/ResetPasswordModal';
 import { rootRoute } from '../../routes/__root';
 import { requireRole, useAdminPermissions } from '../../lib/session';
 
@@ -87,6 +88,7 @@ export default function AdminParents() {
   const [profileId, setProfileId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<ParentLink | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<ResetTargetUser | null>(null);
 
   const parents = useQuery({
     queryKey: ['admin-parents', debouncedName, debouncedPhone, showDeleted, limit],
@@ -242,6 +244,15 @@ export default function AdminParents() {
                               {canManageUsers && (
                                 <>
                                   <button
+                                    type="button"
+                                    onClick={() => setResetPasswordTarget({ id: parent.id, name: parent.name, phoneNumber: parent.phoneNumber })}
+                                    className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
+                                    title={t('resetPassword')}
+                                  >
+                                    <KeyRound className="inline me-1" size={12} />
+                                    {t('resetPassword')}
+                                  </button>
+                                  <button
                                     onClick={() => setStatus.mutate({ id: parent.id, isActive: !parent.isActive })}
                                     className={`rounded-full px-3 py-1 text-xs font-bold ${parent.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
                                   >
@@ -316,6 +327,7 @@ export default function AdminParents() {
           parentId={profileId}
           onClose={() => setProfileId(null)}
           onChanged={invalidate}
+          onResetPassword={(parent) => setResetPasswordTarget(parent)}
         />
       )}
       <ConfirmDialog
@@ -336,6 +348,10 @@ export default function AdminParents() {
         onConfirm={() => restoreTarget && restoreLink.mutate(restoreTarget)}
       />
       {restoreLink.error && <ErrorBox error={restoreLink.error} />}
+      <ResetPasswordModal
+        user={resetPasswordTarget}
+        onClose={() => setResetPasswordTarget(null)}
+      />
     </Page>
   );
 }
@@ -445,11 +461,12 @@ function EditParentDialog({
 }
 
 function ParentProfileDialog({
-  parentId, onClose, onChanged,
+  parentId, onClose, onChanged, onResetPassword,
 }: {
   parentId: string;
   onClose: () => void;
   onChanged: () => void;
+  onResetPassword?: (parent: ResetTargetUser) => void;
 }) {
   const { t, lang } = useLang();
   const qc = useQueryClient();
@@ -497,7 +514,25 @@ function ParentProfileDialog({
     >
       {profile.isLoading ? <Loading /> : profile.error ? <ErrorBox error={profile.error} /> : profile.data && (
         <div className="max-h-[65vh] overflow-y-auto pe-1">
-          <p className="text-sm text-ink-soft" dir="ltr">{profile.data.email} · {profile.data.phoneNumber ?? '—'}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+            <p className="text-sm text-ink-soft" dir="ltr">{profile.data.email} · {profile.data.phoneNumber ?? '—'}</p>
+            {canManageUsers && onResetPassword && (
+              <button
+                type="button"
+                className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
+                onClick={() =>
+                  onResetPassword({
+                    id: profile.data!.id,
+                    name: profile.data!.name,
+                    phoneNumber: profile.data!.phoneNumber,
+                  })
+                }
+              >
+                <KeyRound className="inline me-1" size={12} />
+                {t('resetPassword')}
+              </button>
+            )}
+          </div>
 
           <section className="mt-4">
             <h3 className="mb-2 font-bold">{t('linkedChildren')}</h3>

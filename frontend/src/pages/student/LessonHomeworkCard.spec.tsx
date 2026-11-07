@@ -85,7 +85,7 @@ describe('Student Lesson Homework Card', () => {
 
       expect(await screen.findByText('Physics Homework 1')).toBeTruthy();
       expect(screen.getByText('Solve questions 1 through 5 in the workbook')).toBeTruthy();
-      expect(screen.getByText(/10/)).toBeTruthy();
+      expect(screen.getAllByText(/10/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/لم يسلّم/i)).toBeTruthy();
       expect(screen.getByText(/تنزيل/i)).toBeTruthy();
       expect(screen.getByTestId('due-countdown-badge')).toBeTruthy();

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { Mail, MessageCircle, Phone } from 'lucide-react';
 import { useLang } from '../lib/i18n';
 import type { PublicSupport } from '../../../shared/api';
@@ -73,6 +74,17 @@ export function PublicFooter({
           <ContactRows contact={support} />
         </section>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-xs text-ink-soft sm:col-span-2">
+        <span>{t('appName')}</span>
+        <div className="flex items-center gap-4">
+          <Link to="/terms" className="font-semibold text-primary hover:underline">
+            {t('termsOfService')}
+          </Link>
+          <Link to="/privacy" className="font-semibold text-primary hover:underline">
+            {t('privacyPolicy')}
+          </Link>
+        </div>
+      </div>
     </footer>
   );
 }

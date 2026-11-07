@@ -391,6 +391,16 @@ export default function Register() {
             <Button type="submit" disabled={busy}>
               {busy ? t('checkingAvailability') : t('next')}
             </Button>
+            <p className="text-center text-xs text-ink-soft">
+              {t('byRegisteringAgree')}{' '}
+              <Link to="/terms" target="_blank" className="font-semibold text-primary underline">
+                {t('termsOfService')}
+              </Link>{' '}
+              {t('and')}{' '}
+              <Link to="/privacy" target="_blank" className="font-semibold text-primary underline">
+                {t('privacyPolicy')}
+              </Link>
+            </p>
           </form>
         )}
 
@@ -617,6 +627,16 @@ export default function Register() {
                 {busy ? t('loading') : t('completeRegistration')}
               </Button>
             </div>
+            <p className="text-center text-xs text-ink-soft">
+              {t('byRegisteringAgree')}{' '}
+              <Link to="/terms" target="_blank" className="font-semibold text-primary underline">
+                {t('termsOfService')}
+              </Link>{' '}
+              {t('and')}{' '}
+              <Link to="/privacy" target="_blank" className="font-semibold text-primary underline">
+                {t('privacyPolicy')}
+              </Link>
+            </p>
           </form>
         )}
 

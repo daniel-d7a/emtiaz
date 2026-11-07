@@ -544,6 +544,13 @@ export const ParentLinkDto = z.object({
 });
 
 // ---------- admin ----------
+export const ResetUserPasswordDto = z
+  .object({
+    password: z.string().min(8).max(200).optional(),
+  })
+  .default({});
+export type ResetUserPasswordDto = z.infer<typeof ResetUserPasswordDto>;
+
 export const SetUserStatusDto = z
   .object({ isActive: z.boolean(), revokeSessions: z.boolean().optional() });
 export const TaxonomyCreateDto = z

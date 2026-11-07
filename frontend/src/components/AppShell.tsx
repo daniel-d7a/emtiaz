@@ -168,6 +168,15 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
         </nav>
         <div className="border-t border-line p-3">
           <ReportProblemButton user={user} className="w-full" />
+          <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-ink-soft">
+            <Link to="/terms" className="hover:text-primary hover:underline">
+              {t('termsOfService')}
+            </Link>
+            <span>·</span>
+            <Link to="/privacy" className="hover:text-primary hover:underline">
+              {t('privacyPolicy')}
+            </Link>
+          </div>
         </div>
       </aside>
 
@@ -238,8 +247,17 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
 
         <main id="main" className="min-w-0 flex-1 overflow-x-clip pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           {children}
-          <div className="mx-auto flex max-w-5xl justify-center px-4 py-6 lg:hidden">
+          <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 px-4 py-6 lg:hidden">
             <ReportProblemButton user={user} />
+            <div className="flex items-center gap-2 text-xs text-ink-soft">
+              <Link to="/terms" className="hover:text-primary hover:underline">
+                {t('termsOfService')}
+              </Link>
+              <span>·</span>
+              <Link to="/privacy" className="hover:text-primary hover:underline">
+                {t('privacyPolicy')}
+              </Link>
+            </div>
           </div>
           {user.role === 'TEACHER' && <UpgradeModal />}
         </main>

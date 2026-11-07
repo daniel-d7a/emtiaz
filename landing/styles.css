@@ -247,3 +247,26 @@ footer { border-top: 1px solid var(--line); padding: 30px 0 54px; color: var(--i
   .stats { gap: 18px; }
   .cta .btn { width: 100%; }
 }
+
+/* ---------- legal pages ---------- */
+.legal-header { padding: 48px 0 28px; text-align: center; }
+.legal-header h1 { font-size: clamp(28px, 4vw, 42px); margin-bottom: 12px; }
+.legal-meta { font-size: 14px; color: var(--ink-soft); }
+.legal-container { max-width: 880px; margin: 0 auto; padding-bottom: 72px; }
+.legal-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 32px 36px; margin-bottom: 24px;
+}
+.legal-card h2 { font-size: 20px; margin-bottom: 12px; color: var(--primary-dark); }
+.legal-card p { font-size: 15px; color: var(--ink); line-height: 1.8; margin-bottom: 12px; }
+.legal-card p:last-child { margin-bottom: 0; }
+.legal-card ul { padding-inline-start: 22px; margin: 12px 0 16px; display: grid; gap: 8px; }
+.legal-card li { font-size: 14.5px; color: var(--ink); line-height: 1.7; }
+.legal-highlight {
+  background: var(--primary-light); border-inline-start: 4px solid var(--primary);
+  padding: 16px 20px; border-radius: 12px; margin: 16px 0; font-size: 14.5px; color: var(--primary-dark);
+}
+@media (max-width: 640px) {
+  .legal-card { padding: 24px 18px; }
+}
+

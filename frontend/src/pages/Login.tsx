@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearch, createRoute } from '@tanstack/react-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { GraduationCap, HeartHandshake, Users } from 'lucide-react';
-import { authApi } from '../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { GraduationCap, HeartHandshake, MessageCircle, Users } from 'lucide-react';
+import { authApi, publicApi } from '../lib/api';
 import { sessionQuery } from '../lib/session';
 import { useLang } from '../lib/i18n';
-import { Button, Card, ErrorBox, Input } from '../components/ui';
+import { Button, Card, Dialog, ErrorBox, Input } from '../components/ui';
 import { ReportProblemButton } from '../components/ReportProblemButton';
 import { rootRoute } from '../routes/__root';
 
@@ -17,7 +17,7 @@ function normalizeRoleSlug(raw?: string, hasJoin?: boolean): AuthRoleSlug {
 }
 
 export default function Login() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const params = useParams({ strict: false }) as { role?: string };
   const search = useSearch({ strict: false }) as { join?: string; entry?: string };
   const join = typeof search?.join === 'string' ? search.join : undefined;
@@ -39,6 +39,17 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+
+  const { data: support } = useQuery({
+    queryKey: ['public-support'],
+    queryFn: () => publicApi.support(),
+    staleTime: 60_000,
+  });
+  const rawSupportPhone = support?.supportWhatsapp || support?.whatsapp || '+96890000000';
+  const cleanSupportPhone = rawSupportPhone.replace(/\D/g, '');
+  const forgotMessage = 'مرحباً، أود إعادة تعيين كلمة المرور لحسابي في منصة امتياز';
+  const whatsappUrl = `https://wa.me/${cleanSupportPhone}?text=${encodeURIComponent(forgotMessage)}`;
 
   const selectRole = (role: AuthRoleSlug) => {
     setActiveRole(role);
@@ -156,6 +167,15 @@ export default function Login() {
             type="password"
             required
           />
+          <div className="flex justify-end -mt-2">
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              {t('forgotPassword')}
+            </button>
+          </div>
           {error && <ErrorBox error={error} />}
           <Button type="submit" disabled={busy}>
             {t('login')}
@@ -178,6 +198,36 @@ export default function Login() {
           <ReportProblemButton context={`login-${activeRole}`} />
         </div>
       </Card>
+
+      <Dialog
+        open={forgotOpen}
+        onOpenChange={setForgotOpen}
+        title={t('forgotPasswordTitle')}
+        description={t('forgotPasswordDesc')}
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setForgotOpen(false)}>
+              {t('close')}
+            </Button>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition"
+            >
+              <MessageCircle size={16} className="me-1.5" />
+              <span>{t('contactSupportViaWhatsapp')}</span>
+            </a>
+          </>
+        }
+      >
+        <p className="text-sm text-ink-soft leading-relaxed">
+          {lang === 'ar'
+            ? 'للحفاظ على أمان حسابك، يتم التحقق من الهوية وإعادة تعيين كلمة المرور بالتواصل المباشر مع الدعم الفني للإدارة.'
+            : 'For account security, password resets are verified and processed directly through platform administrative support.'}
+        </p>
+      </Dialog>
     </div>
   );
 }

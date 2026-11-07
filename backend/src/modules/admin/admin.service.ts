@@ -5,6 +5,8 @@ import {
   NotFoundException,
   type OnApplicationBootstrap,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { hashPassword } from 'better-auth/crypto';
 import { and, asc, count, countDistinct, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, or, sql, sum } from 'drizzle-orm';
 import { open } from 'fs/promises';
 import { logger } from '../../lib/logger';
@@ -16,6 +18,7 @@ import {
   TeacherEntitlementsService,
 } from '../teacher/teacher-entitlements.service';
 import {
+  accounts,
   adminRoles,
   auditLogs,
   categories,
@@ -39,6 +42,7 @@ import {
   teacherSubscriptions,
   users,
 } from '../../db/schema';
+import type { ResetUserPasswordResultDto } from '../../../../shared/api';
 import type { AdminPermission } from '../../lib/admin-permissions';
 import {
   serializeAdminAuditEntry,
@@ -323,6 +327,62 @@ export class AdminService implements OnApplicationBootstrap {
       if (error?.code === 'ENOENT') return { file, lines: [] };
       throw error;
     }
+  }
+
+  async resetUserPassword(
+    adminId: string,
+    userId: string,
+    dto?: { password?: string },
+  ): Promise<ResetUserPasswordResultDto> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new NotFoundException('User not found');
+
+    const passwordToSet =
+      dto?.password && dto.password.trim().length >= 8
+        ? dto.password.trim()
+        : generateTemporaryPassword();
+
+    const hashedPassword = await hashPassword(passwordToSet);
+
+    const existingAccount = await db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')))
+      .limit(1);
+
+    if (existingAccount.length > 0) {
+      await db
+        .update(accounts)
+        .set({ password: hashedPassword, updatedAt: new Date() })
+        .where(eq(accounts.id, existingAccount[0].id));
+    } else {
+      await db.insert(accounts).values({
+        id: randomUUID(),
+        accountId: user.email || user.phoneNumber || user.id,
+        providerId: 'credential',
+        userId: user.id,
+        password: hashedPassword,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    await db
+      .update(users)
+      .set({ mustChangePassword: true, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+
+    await this.audit(adminId, 'user.password.reset', 'user', userId, {
+      forcedChange: true,
+    });
+
+    return {
+      success: true,
+      temporaryPassword: passwordToSet,
+      userId: user.id,
+      userName: user.name,
+      userPhone: user.phoneNumber ?? null,
+    };
   }
 
   async setUserStatus(
@@ -1989,3 +2049,13 @@ export class AdminService implements OnApplicationBootstrap {
     return result;
   }
 }
+
+function generateTemporaryPassword(): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let rand = '';
+  for (let i = 0; i < 4; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `Emtiaz#${rand}`;
+}
+

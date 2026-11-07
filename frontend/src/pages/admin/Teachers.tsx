@@ -8,12 +8,13 @@ import {
   flexRender, getCoreRowModel, getSortedRowModel, useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { ArrowUpDown, CreditCard, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowUpDown, CreditCard, KeyRound, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi, api, type AdminTeacherEntitlementsResponse, type Plan } from '../../lib/api';
 import { formatDateTime, localizeName, useLang } from '../../lib/i18n';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import { Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Progress, Select, Sheet } from '../../components/ui';
+import { ResetPasswordModal, type ResetTargetUser } from '../../components/ResetPasswordModal';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
 import { requireRole, useAdminPermissions } from '../../lib/session';
@@ -69,6 +70,7 @@ export default function AdminTeachers() {
   const [editing, setEditing] = useState<TeacherRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeacherRow | null>(null);
   const [entitlementsTeacher, setEntitlementsTeacher] = useState<TeacherRow | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<ResetTargetUser | null>(null);
 
   const teachers = useQuery({
     queryKey: ['admin-teachers', debouncedName, debouncedPhone, subjectId, showDeleted, limit],
@@ -234,6 +236,15 @@ export default function AdminTeachers() {
                 {canManageUsers && (
                   <>
                     <button
+                      type="button"
+                      onClick={() => setResetPasswordTarget({ id: teacher.id, name: teacher.name, phoneNumber: teacher.phoneNumber })}
+                      className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
+                      title={t('resetPassword')}
+                    >
+                      <KeyRound className="inline me-1" size={12} />
+                      {t('resetPassword')}
+                    </button>
+                    <button
                       onClick={() => setStatus.mutate({ id: teacher.id, isActive: !teacher.isActive })}
                       className={`rounded-full px-3 py-1 text-xs font-bold ${teacher.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
                     >
@@ -378,8 +389,19 @@ export default function AdminTeachers() {
         <TeacherEntitlementsDrawer
           teacher={entitlementsTeacher}
           onClose={() => setEntitlementsTeacher(null)}
+          onResetPassword={() =>
+            setResetPasswordTarget({
+              id: entitlementsTeacher.id,
+              name: entitlementsTeacher.name,
+              phoneNumber: entitlementsTeacher.phoneNumber,
+            })
+          }
         />
       )}
+      <ResetPasswordModal
+        user={resetPasswordTarget}
+        onClose={() => setResetPasswordTarget(null)}
+      />
     </Page>
   );
 }
@@ -524,11 +546,14 @@ function EditTeacherDialog({
 function TeacherEntitlementsDrawer({
   teacher,
   onClose,
+  onResetPassword,
 }: {
   teacher: TeacherRow;
   onClose: () => void;
+  onResetPassword?: () => void;
 }) {
   const { t, lang } = useLang();
+  const canManageUsers = useAdminPermissions()('users');
 
   const entitlements = useQuery({
     queryKey: ['admin-teacher-entitlements', teacher.id],
@@ -570,6 +595,17 @@ function TeacherEntitlementsDrawer({
             <div className="flex items-center gap-2">
               <Badge tone="neutral">{entitlements.data.country}</Badge>
               <Badge tone="neutral">{entitlements.data.currency}</Badge>
+              {canManageUsers && onResetPassword && (
+                <button
+                  type="button"
+                  onClick={onResetPassword}
+                  className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
+                  title={t('resetPassword')}
+                >
+                  <KeyRound className="inline me-1" size={12} />
+                  {t('resetPassword')}
+                </button>
+              )}
             </div>
           </div>
 
