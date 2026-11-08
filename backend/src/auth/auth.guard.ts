@@ -13,7 +13,12 @@ import { toWebHeaders } from './web-headers';
 type AuthSession =
   | {
       session: Record<string, any>;
-      user: { id: string; role: string; isActive: boolean } & Record<string, any>;
+      user: {
+        id: string;
+        role: string;
+        isActive: boolean;
+        mustChangePassword?: boolean;
+      } & Record<string, any>;
     }
   | null;
 
@@ -38,6 +43,20 @@ export class AuthGuard implements CanActivate {
     if (session) {
       if (!session.user.isActive) {
         throw new ForbiddenException('Account suspended');
+      }
+      if (session.user.mustChangePassword) {
+        const path = (request.path || request.url?.split('?')[0] || '').replace(/\/+$/, '');
+        const allowedPaths = [
+          '/api/me/change-password',
+          '/api/me',
+          '/api/auth/sign-out',
+        ];
+        const isAllowed =
+          isPublic ||
+          (allowedPaths.includes(path) && (path !== '/api/me' || request.method === 'GET'));
+        if (!isAllowed) {
+          throw new ForbiddenException('Password change required');
+        }
       }
       request.user = session.user;
       request.session = session.session;

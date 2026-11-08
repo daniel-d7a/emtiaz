@@ -1197,6 +1197,15 @@ export class TeacherService {
   ) {
     const { course } = await this.assertOwnsLesson(user, lessonId);
 
+    if (dto.r2ObjectKey) {
+      const trimmedKey = dto.r2ObjectKey.trim();
+      const validPrefix1 = `courses/${course.id}/lessons/${lessonId}/`;
+      const validPrefix2 = `courses/${course.id}/`;
+      if (!trimmedKey.startsWith(validPrefix1) && !trimmedKey.startsWith(validPrefix2)) {
+        throw new ForbiddenException('Invalid storage key prefix');
+      }
+    }
+
     if (dto.groupId) {
       const { group } = await this.assertOwnsGroup(user, dto.groupId);
       if (group.courseId !== course.id) {
@@ -1310,7 +1319,16 @@ export class TeacherService {
     homeworkId: string,
     dto: UpdateHomeworkDto,
   ) {
-    const { homework: existing } = await this.assertOwnsHomework(user, homeworkId);
+    const { homework: existing, course, lesson } = await this.assertOwnsHomework(user, homeworkId);
+
+    if (dto.r2ObjectKey) {
+      const trimmedKey = dto.r2ObjectKey.trim();
+      const validPrefix1 = `courses/${course.id}/lessons/${lesson.id}/`;
+      const validPrefix2 = `courses/${course.id}/`;
+      if (!trimmedKey.startsWith(validPrefix1) && !trimmedKey.startsWith(validPrefix2)) {
+        throw new ForbiddenException('Invalid storage key prefix');
+      }
+    }
 
     if (dto.fileSizeBytes !== undefined && dto.fileSizeBytes !== null) {
       const existingBytes = existing.fileSizeBytes ?? 0;
@@ -1342,10 +1360,12 @@ export class TeacherService {
       patch.r2ObjectKey !== undefined &&
       existing.r2ObjectKey !== patch.r2ObjectKey
     ) {
-      try {
-        await this.storage.deleteObject(existing.r2ObjectKey);
-      } catch (err) {
-        logger.warn({ err, key: existing.r2ObjectKey }, 'failed to delete old homework attachment');
+      if (existing.r2ObjectKey.startsWith(`courses/${course.id}/`)) {
+        try {
+          await this.storage.deleteObject(existing.r2ObjectKey);
+        } catch (err) {
+          logger.warn({ err, key: existing.r2ObjectKey }, 'failed to delete old homework attachment');
+        }
       }
     }
 
@@ -1359,11 +1379,11 @@ export class TeacherService {
     user: { id: string; role: string },
     homeworkId: string,
   ) {
-    const { homework: existing } = await this.assertOwnsHomework(user, homeworkId);
+    const { homework: existing, course } = await this.assertOwnsHomework(user, homeworkId);
 
     await db.delete(homework).where(eq(homework.id, homeworkId));
 
-    if (existing.r2ObjectKey) {
+    if (existing.r2ObjectKey && existing.r2ObjectKey.startsWith(`courses/${course.id}/`)) {
       try {
         await this.storage.deleteObject(existing.r2ObjectKey);
       } catch (err) {

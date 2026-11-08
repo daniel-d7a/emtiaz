@@ -7,7 +7,7 @@ import {
   NotFoundException,
   type OnApplicationBootstrap,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { hashPassword } from 'better-auth/crypto';
 import { and, asc, count, countDistinct, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, or, sql, sum } from 'drizzle-orm';
 import { open } from 'fs/promises';
@@ -393,6 +393,9 @@ export class AdminService implements OnApplicationBootstrap {
       .update(users)
       .set({ mustChangePassword: true, updatedAt: new Date() })
       .where(eq(users.id, userId));
+
+    // Revoke all active sessions immediately so an attacker with a stolen cookie cannot persist
+    await db.execute(sql`DELETE FROM session WHERE user_id = ${userId}`);
 
     await this.audit(adminId, 'user.password.reset', 'user', userId, {
       forcedChange: true,
@@ -2073,10 +2076,12 @@ export class AdminService implements OnApplicationBootstrap {
 }
 
 function generateTemporaryPassword(): string {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  // 64-char set (alphanumeric + safe symbols) provides exactly 6 bits per character.
+  // 10 chars = 60 bits of CSPRNG entropy, preceded by 'Emtiaz#'.
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
   let rand = '';
-  for (let i = 0; i < 4; i++) {
-    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < 10; i++) {
+    rand += chars[randomInt(0, chars.length)];
   }
   return `Emtiaz#${rand}`;
 }

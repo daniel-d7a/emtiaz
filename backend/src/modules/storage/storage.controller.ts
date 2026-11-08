@@ -6,6 +6,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '../../db';
 import {
   courses,
+  groupHomeworkAccess,
   groupLessonAccess,
   groupStudents,
   groups,
@@ -14,6 +15,7 @@ import {
   lessonAttachments,
   lessons,
   modules,
+  parentStudents,
 } from '../../db/schema';
 import { Roles } from '../../auth/roles.decorator';
 import { StorageService } from './storage.service';
@@ -214,12 +216,12 @@ export class StorageController {
   @Roles('STUDENT', 'TEACHER', 'ADMIN', 'PARENT')
   @Get('api/storage/homework/:id/file')
   async homeworkFile(
+    @Req() req: Request,
     @Param('id') id: string,
     @Query('download') download: string | undefined,
     @Res() res: Response,
   ) {
-    const [row] = await db.select().from(homework).where(eq(homework.id, id));
-    if (!row) throw new NotFoundException('Homework not found');
+    const row = await this.readableHomework(req.user!, id);
     if (!row.r2ObjectKey) throw new NotFoundException('Homework has no file');
     res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey, download ? row.title : undefined));
   }
@@ -227,14 +229,206 @@ export class StorageController {
   @Roles('STUDENT', 'TEACHER', 'ADMIN', 'PARENT')
   @Get('api/storage/homework-submissions/:id/file')
   async submissionFile(
+    @Req() req: Request,
     @Param('id') id: string,
     @Query('download') download: string | undefined,
     @Res() res: Response,
   ) {
-    const [row] = await db.select().from(homeworkSubmissions).where(eq(homeworkSubmissions.id, id));
-    if (!row) throw new NotFoundException('Submission not found');
+    const row = await this.readableSubmission(req.user!, id);
     if (!row.r2ObjectKey) throw new NotFoundException('Submission has no file');
     res.redirect(302, await this.storage.presignedGet(row.r2ObjectKey, download ? 'submission' : undefined));
+  }
+
+  private async readableHomework(user: { id: string; role: string }, homeworkId: string) {
+    const [row] = await db
+      .select({
+        homework,
+        lesson: lessons,
+        module: modules,
+        course: courses,
+      })
+      .from(homework)
+      .innerJoin(lessons, eq(homework.lessonId, lessons.id))
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .innerJoin(courses, eq(modules.courseId, courses.id))
+      .where(and(eq(homework.id, homeworkId), isNull(courses.deletedAt)));
+    if (!row) throw new NotFoundException('Homework not found');
+
+    if (user.role === 'ADMIN') {
+      return row.homework;
+    }
+
+    if (user.role === 'TEACHER') {
+      if (row.course.teacherId !== user.id) {
+        throw new ForbiddenException('Not your course');
+      }
+      return row.homework;
+    }
+
+    if (user.role === 'STUDENT') {
+      await this.assertStudentCanReadHomework(user.id, row.homework, row.course.id);
+      return row.homework;
+    }
+
+    if (user.role === 'PARENT') {
+      await this.assertParentCanReadHomework(user.id, row.homework, row.course.id);
+      return row.homework;
+    }
+
+    throw new ForbiddenException('Access denied');
+  }
+
+  private async assertStudentCanReadHomework(
+    studentId: string,
+    hw: typeof homework.$inferSelect,
+    courseId: string,
+  ) {
+    const enrollments = await db
+      .select({ group: groups })
+      .from(groupStudents)
+      .innerJoin(groups, eq(groupStudents.groupId, groups.id))
+      .where(
+        and(
+          eq(groupStudents.studentId, studentId),
+          eq(groups.courseId, courseId),
+          eq(groups.isActive, true),
+          isNull(groups.deletedAt),
+        ),
+      );
+
+    const relevant = hw.groupId
+      ? enrollments.filter((e) => e.group.id === hw.groupId)
+      : enrollments;
+    if (!relevant.length) throw new ForbiddenException('Homework not for your group');
+
+    const overrides = await db
+      .select()
+      .from(groupLessonAccess)
+      .where(
+        and(
+          eq(groupLessonAccess.lessonId, hw.lessonId),
+          inArray(groupLessonAccess.groupId, relevant.map((e) => e.group.id)),
+        ),
+      );
+
+    const visibleLessonGroups = relevant.filter(
+      (enrollment) =>
+        !overrides.find(
+          (override) =>
+            override.groupId === enrollment.group.id && override.isHidden,
+        ),
+    );
+    if (!visibleLessonGroups.length) throw new ForbiddenException('Lesson is hidden for your group');
+
+    const unlockedGroups = visibleLessonGroups.filter(
+      (e) =>
+        overrides.find((o) => o.groupId === e.group.id)?.isUnlocked ??
+        e.group.unlockAllByDefault,
+    );
+    if (!unlockedGroups.length) throw new ForbiddenException('Lesson is locked for your group');
+
+    const hwAccessList = await db
+      .select()
+      .from(groupHomeworkAccess)
+      .where(
+        and(
+          eq(groupHomeworkAccess.homeworkId, hw.id),
+          inArray(groupHomeworkAccess.groupId, unlockedGroups.map((e) => e.group.id)),
+        ),
+      );
+
+    const visibleHwGroups = unlockedGroups.filter((e) => {
+      const access = hwAccessList.find((a) => a.groupId === e.group.id);
+      return !access?.isHidden;
+    });
+
+    if (!visibleHwGroups.length) throw new ForbiddenException('Homework is hidden for your group');
+  }
+
+  private async assertParentCanReadHomework(
+    parentId: string,
+    hw: typeof homework.$inferSelect,
+    courseId: string,
+  ) {
+    const links = await db
+      .select({ studentId: parentStudents.studentId })
+      .from(parentStudents)
+      .where(
+        and(
+          eq(parentStudents.parentId, parentId),
+          isNull(parentStudents.deletedAt),
+        ),
+      );
+
+    if (!links.length) throw new ForbiddenException('No active student link');
+
+    let allowed = false;
+    for (const link of links) {
+      try {
+        await this.assertStudentCanReadHomework(link.studentId, hw, courseId);
+        allowed = true;
+        break;
+      } catch {
+        // try next linked student
+      }
+    }
+    if (!allowed) throw new ForbiddenException('Access denied');
+  }
+
+  private async readableSubmission(user: { id: string; role: string }, submissionId: string) {
+    const [row] = await db
+      .select({
+        submission: homeworkSubmissions,
+        homework,
+        lesson: lessons,
+        module: modules,
+        course: courses,
+      })
+      .from(homeworkSubmissions)
+      .innerJoin(homework, eq(homeworkSubmissions.homeworkId, homework.id))
+      .innerJoin(lessons, eq(homework.lessonId, lessons.id))
+      .innerJoin(modules, eq(lessons.moduleId, modules.id))
+      .innerJoin(courses, eq(modules.courseId, courses.id))
+      .where(and(eq(homeworkSubmissions.id, submissionId), isNull(courses.deletedAt)));
+
+    if (!row) throw new NotFoundException('Submission not found');
+
+    if (user.role === 'ADMIN') {
+      return row.submission;
+    }
+
+    if (user.role === 'STUDENT') {
+      if (row.submission.studentId !== user.id) {
+        throw new ForbiddenException('Not your submission');
+      }
+      return row.submission;
+    }
+
+    if (user.role === 'TEACHER') {
+      if (row.course.teacherId !== user.id) {
+        throw new ForbiddenException('Not your course');
+      }
+      return row.submission;
+    }
+
+    if (user.role === 'PARENT') {
+      const [link] = await db
+        .select()
+        .from(parentStudents)
+        .where(
+          and(
+            eq(parentStudents.parentId, user.id),
+            eq(parentStudents.studentId, row.submission.studentId),
+            isNull(parentStudents.deletedAt),
+          ),
+        );
+      if (!link) {
+        throw new ForbiddenException('Not your child');
+      }
+      return row.submission;
+    }
+
+    throw new ForbiddenException('Access denied');
   }
 
   private async readableAttachment(user: { id: string; role: string }, id: string) {

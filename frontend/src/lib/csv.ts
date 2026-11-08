@@ -6,7 +6,8 @@ export function toCsv(rows: unknown[][]): string {
         .map((value) => {
           const text = value == null ? '' : String(value);
           // stop spreadsheet formula execution from user-supplied names/phones
-          const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+          const trimmed = text.trimStart();
+          const safe = /^[=+\-@\t\r|]/.test(trimmed) ? `'${text}` : text;
           return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
         })
         .join(','),

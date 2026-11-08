@@ -679,6 +679,14 @@ export class StudentService {
       }
     }
 
+    if (dto.r2ObjectKey) {
+      const trimmedKey = dto.r2ObjectKey.trim();
+      const validPrefix = `submissions/${homeworkId}/`;
+      if (!trimmedKey.startsWith(validPrefix)) {
+        throw new ForbiddenException('Invalid storage key prefix');
+      }
+    }
+
     const { group } = await this.assertEnrolled(studentId, groupId);
     if (!group.isActive) {
       throw new BadRequestException('Group is inactive');
@@ -735,7 +743,8 @@ export class StudentService {
       if (
         existing.r2ObjectKey &&
         dto.r2ObjectKey &&
-        existing.r2ObjectKey !== dto.r2ObjectKey
+        existing.r2ObjectKey !== dto.r2ObjectKey &&
+        existing.r2ObjectKey.startsWith(`submissions/${homeworkId}/`)
       ) {
         try {
           await this.storage.deleteObject(existing.r2ObjectKey);

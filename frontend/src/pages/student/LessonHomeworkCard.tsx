@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentApi } from '../../lib/api';
-import { homeworkFileUrl, submissionFileUrl } from '../../lib/attachment';
+import { homeworkFileUrl, isSafeHttpUrl, submissionFileUrl } from '../../lib/attachment';
 import { formatDateTime, useLang } from '../../lib/i18n';
 import { Badge, Button, Card, ErrorBox, Input, Loading } from '../../components/ui';
 import type { HomeworkAttachmentType, StudentHomeworkDto, SubmitHomeworkDto } from '../../../../shared/api';
@@ -311,15 +311,22 @@ export function HomeworkItemCard({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-ink-soft">{t('referenceAttachment')}:</span>
           {hw.url && (
-            <a
-              href={hw.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-background px-3 py-1.5 text-xs font-semibold text-primary hover:bg-line/40"
-            >
-              <ExternalLink size={14} />
-              <span>{t('openStudentLink')}</span>
-            </a>
+            isSafeHttpUrl(hw.url) ? (
+              <a
+                href={hw.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-background px-3 py-1.5 text-xs font-semibold text-primary hover:bg-line/40"
+              >
+                <ExternalLink size={14} />
+                <span>{t('openStudentLink')}</span>
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-background px-3 py-1.5 text-xs text-ink-soft">
+                <ExternalLink size={14} />
+                <span className="truncate font-mono text-xs">{hw.url}</span>
+              </span>
+            )
           )}
           {hw.r2ObjectKey && (
             <a
@@ -375,15 +382,22 @@ export function HomeworkItemCard({
 
           <div className="flex flex-wrap items-center gap-2">
             {sub.url && (
-              <a
-                href={sub.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-line/40"
-              >
-                <Link2 size={13} />
-                <span>{t('openSubmittedLink')}</span>
-              </a>
+              isSafeHttpUrl(sub.url) ? (
+                <a
+                  href={sub.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-line/40"
+                >
+                  <Link2 size={13} />
+                  <span>{t('openSubmittedLink')}</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1 text-xs text-ink-soft">
+                  <Link2 size={13} />
+                  <span className="truncate font-mono text-xs">{sub.url}</span>
+                </span>
+              )
             )}
             {sub.r2ObjectKey && (
               <a

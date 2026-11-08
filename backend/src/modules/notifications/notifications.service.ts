@@ -48,12 +48,13 @@ export class NotificationsService {
   }
 
   async inbox(userId: string, limit = 30) {
+    const clampedLimit = Math.max(1, Math.min(limit, 100));
     const rows = await db
       .select()
       .from(inboxNotifications)
       .where(eq(inboxNotifications.userId, userId))
       .orderBy(desc(inboxNotifications.createdAt))
-      .limit(Math.min(limit, 100));
+      .limit(clampedLimit);
     return rows.map(serializeInboxItem);
   }
 

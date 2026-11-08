@@ -8,7 +8,7 @@ export class InboxController {
 
   @Get('api/notifications')
   list(@Req() req: Request, @Query('limit') limit?: string) {
-    return this.notifications.inbox(req.user!.id, Number(limit) || 30);
+    return this.notifications.inbox(req.user!.id, Math.max(1, Math.min(Number(limit) || 30, 100)));
   }
 
   @Get('api/notifications/unread-count')

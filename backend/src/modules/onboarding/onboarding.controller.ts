@@ -86,11 +86,21 @@ export class OnboardingController {
 
   @Post('api/me/change-password')
   @Roles('TEACHER', 'STUDENT', 'ADMIN', 'PARENT')
-  changePassword(
+  async changePassword(
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
     @Body(new ZodBodyPipe(ChangePasswordDto)) dto: z.infer<typeof ChangePasswordDto>,
   ) {
-    return this.onboarding.changePassword(req.user!.id, dto, toWebHeaders(req.headers));
+    const result = await this.onboarding.changePassword(
+      req.user!.id,
+      dto,
+      toWebHeaders(req.headers),
+    );
+    const cookies = result.headers?.getSetCookie?.() ?? result.headers?.get('set-cookie');
+    if (cookies) {
+      res.setHeader('set-cookie', cookies);
+    }
+    return { ok: true };
   }
 
   /** Redirects to a fresh signed URL for the caller's avatar. */

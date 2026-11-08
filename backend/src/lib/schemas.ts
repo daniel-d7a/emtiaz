@@ -31,6 +31,11 @@ const phoneNumber = z
 const phone = phoneNumber.optional();
 const safeText = (max = 300) => z.string().trim().min(1).max(max);
 const optText = (max = 2000) => z.string().trim().max(max).optional();
+export const safeHttpUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .regex(/^https?:\/\//i, { message: 'Must be an http or https URL' });
 const themeColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #RRGGBB colour');
 const TeacherThemeDto = z.object({
   layout: z.enum(['banner', 'split']),
@@ -262,7 +267,7 @@ export const CreateHomeworkDto = z.object({
   instructions: optText(20000).nullable(),
   attachmentType: HomeworkAttachmentTypeEnum.optional().default('NONE'),
   r2ObjectKey: z.string().trim().max(1000).optional().nullable(),
-  url: z.string().trim().max(2000).optional().nullable(),
+  url: safeHttpUrl.optional().nullable(),
   fileSizeBytes: z.number().int().nonnegative().optional().nullable(),
   mimeType: z.string().trim().max(200).optional().nullable(),
   maxScore: z.number().int().min(1).max(1000).optional().default(10),
@@ -276,7 +281,7 @@ export const UpdateHomeworkDto = z.object({
   instructions: optText(20000).nullable(),
   attachmentType: HomeworkAttachmentTypeEnum.optional(),
   r2ObjectKey: z.string().trim().max(1000).optional().nullable(),
-  url: z.string().trim().max(2000).optional().nullable(),
+  url: safeHttpUrl.optional().nullable(),
   fileSizeBytes: z.number().int().nonnegative().optional().nullable(),
   mimeType: z.string().trim().max(200).optional().nullable(),
   maxScore: z.number().int().min(1).max(1000).optional(),
@@ -292,7 +297,7 @@ export const SubmitHomeworkDto = z.object({
   content: optText(50000).nullable(),
   attachmentType: HomeworkAttachmentTypeEnum.optional().default('NONE'),
   r2ObjectKey: z.string().trim().max(1000).optional().nullable(),
-  url: z.string().trim().max(2000).optional().nullable(),
+  url: safeHttpUrl.optional().nullable(),
   fileSizeBytes: z.number().int().nonnegative().optional().nullable(),
   mimeType: z.string().trim().max(200).optional().nullable(),
 });

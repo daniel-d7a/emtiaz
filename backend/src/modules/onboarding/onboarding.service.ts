@@ -367,19 +367,20 @@ export class OnboardingService implements OnApplicationBootstrap {
     dto: { currentPassword: string; newPassword: string },
     headers: Headers,
   ) {
-    await auth.api.changePassword({
+    const res = await auth.api.changePassword({
       body: {
         currentPassword: dto.currentPassword,
         newPassword: dto.newPassword,
-        revokeOtherSessions: false,
+        revokeOtherSessions: true,
       },
       headers,
+      returnHeaders: true,
     });
     await db
       .update(users)
       .set({ mustChangePassword: false })
       .where(eq(users.id, userId));
-    return { ok: true };
+    return { ok: true, headers: res.headers };
   }
 
   async listCategories() {

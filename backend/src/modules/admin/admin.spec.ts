@@ -1154,7 +1154,18 @@ describe('Phase 5: admin endpoints', () => {
       expect(autoResetRes.body.success).toBe(true);
       expect(autoResetRes.body.userId).toBe(world.s1.id);
       expect(autoResetRes.body.userName).toBe(STUDENT1.name);
-      expect(autoResetRes.body.temporaryPassword).toMatch(/^Emtiaz#[a-zA-Z0-9]{4}$/);
+      expect(autoResetRes.body.temporaryPassword).toMatch(/^Emtiaz#[a-zA-Z0-9!@#$%&*]{10}$/);
+
+      // Verify active sessions for student1 are revoked post admin reset
+      const { rows: sessionRows } = await testPool.query(
+        `SELECT id FROM session WHERE user_id = $1`,
+        [world.s1.id],
+      );
+      expect(sessionRows.length).toBe(0);
+
+      // Old session is now rejected
+      const oldSessionRes = await studentSession.get('/api/me');
+      expect(oldSessionRes.status).toBe(403);
 
       // Verify mustChangePassword is true in DB
       const { rows } = await testPool.query(
@@ -1173,6 +1184,32 @@ describe('Phase 5: admin endpoints', () => {
       // Verify the student can log in with the new auto-generated password
       const loginAuto = await login(server, STUDENT1.email, autoResetRes.body.temporaryPassword);
       expect(loginAuto.status).toBe(200);
+
+      // Gateway enforcement: while mustChangePassword is true, protected endpoints are blocked
+      const blockedRes = await loginAuto.session.get('/api/student/home');
+      expect(blockedRes.status).toBe(403);
+      expect(blockedRes.body.message).toBe('Password change required');
+
+      const blockedPatch = await loginAuto.session.patch('/api/me').send({ name: 'Hacked' });
+      expect(blockedPatch.status).toBe(403);
+      expect(blockedPatch.body.message).toBe('Password change required');
+
+      // But GET /api/me is allowed
+      const meRes = await loginAuto.session.get('/api/me');
+      expect(meRes.status).toBe(200);
+
+      // Student changes password via POST /api/me/change-password
+      const changeRes = await loginAuto.session
+        .post('/api/me/change-password')
+        .send({
+          currentPassword: autoResetRes.body.temporaryPassword,
+          newPassword: 'BrandNewSecretPass#2026',
+        });
+      expect(changeRes.status).toBe(201);
+
+      // After changing password, protected routes are now allowed
+      const unblockedRes = await loginAuto.session.get('/api/student/home');
+      expect(unblockedRes.status).toBe(200);
 
       // 4. Reset with custom password (min 8 chars)
       const customPassword = 'CustomSecretPass#2026';

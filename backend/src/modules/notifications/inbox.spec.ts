@@ -42,6 +42,9 @@ describe('in-app notification inbox', () => {
       }),
     );
 
+    const negativeLimit = await student.get('/api/notifications?limit=-1');
+    expect(negativeLimit.status).toBe(200);
+
     expect((await student.get('/api/notifications/unread-count')).body.unread).toBe(2);
     expect((await student.post(`/api/notifications/${rows[0].id}/read`)).status).toBe(201);
     expect((await student.get('/api/notifications/unread-count')).body.unread).toBe(1);

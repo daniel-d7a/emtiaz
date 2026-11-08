@@ -41,6 +41,18 @@ function viewerSource(attachment: LessonAttachment, src: string) {
   return { uri: src };
 }
 
+const openSafeUrl = (url?: string | null) => {
+  if (!url) return;
+  const lower = url.trim().toLowerCase();
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    Alert.alert('تعذر فتح الرابط', 'الرابط غير صالح');
+    return;
+  }
+  Linking.openURL(url).catch((e) =>
+    Alert.alert('تعذر فتح الرابط', e instanceof Error ? e.message : String(e)),
+  );
+};
+
 function AttachmentRow({ attachment, onOpen }: { attachment: LessonAttachment; onOpen: (a: LessonAttachment, src: string) => void }) {
   const [error, setError] = useState<Error | null>(null);
   const image = useQuery({
@@ -253,11 +265,7 @@ function LessonHomeworkItem({
           <Btn
             label={hw.attachmentType === 'LINK' ? '🔗 فتح الرابط المرجعي' : '📄 فتح الملف المرفق'}
             variant="ghost"
-            onPress={() =>
-              Linking.openURL(hw.url!).catch((e) =>
-                Alert.alert('تعذر فتح الرابط', e instanceof Error ? e.message : String(e)),
-              )
-            }
+            onPress={() => openSafeUrl(hw.url)}
           />
         </View>
       )}
@@ -312,11 +320,7 @@ function LessonHomeworkItem({
               <Btn
                 label="🔗 فتح الرابط المسلّم"
                 variant="ghost"
-                onPress={() =>
-                  Linking.openURL(sub.url!).catch((e) =>
-                    Alert.alert('تعذر فتح الرابط', e instanceof Error ? e.message : String(e)),
-                  )
-                }
+                onPress={() => openSafeUrl(sub.url)}
               />
             </View>
           ) : null}

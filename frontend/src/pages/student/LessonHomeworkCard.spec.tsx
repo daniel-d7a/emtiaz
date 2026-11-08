@@ -390,5 +390,53 @@ describe('Student Lesson Homework Card', () => {
       // Form should be locked / hidden (no submit button)
       expect(screen.queryByTestId('submit-homework-button')).toBeNull();
     });
+
+    it('does not render executable links for unsafe javascript URLs in teacher homework and student submission', () => {
+      const mockHw: StudentHomeworkDto = {
+        id: 'hw-unsafe',
+        groupId: 'g-1',
+        lessonId: 'l-1',
+        title: 'Unsafe Test',
+        instructions: 'Test unsafe links',
+        maxScore: 10,
+        attachmentType: 'LINK',
+        r2ObjectKey: null,
+        url: 'javascript:alert("hw")',
+        fileSizeBytes: null,
+        mimeType: null,
+        dueDate: null,
+        displayOrder: 0,
+        createdAt: new Date().toISOString(),
+        submission: {
+          id: 'sub-unsafe',
+          homeworkId: 'hw-unsafe',
+          groupId: 'g-1',
+          studentId: 'student-1',
+          content: 'Submission text',
+          attachmentType: 'LINK',
+          r2ObjectKey: null,
+          url: 'javascript:alert("sub")',
+          fileSizeBytes: null,
+          mimeType: null,
+          status: 'SUBMITTED',
+          score: null,
+          teacherFeedback: null,
+          gradedAt: null,
+          isLate: false,
+          revisionCount: 0,
+          submittedAt: new Date().toISOString(),
+        },
+      };
+
+      renderWithProviders(<HomeworkItemCard hw={mockHw} groupId="g-1" lessonId="l-1" />);
+
+      // Ensure no <a> has href="javascript:..."
+      const links = screen.queryAllByRole('link');
+      for (const link of links) {
+        expect(link.getAttribute('href')).not.toMatch(/^javascript:/i);
+      }
+      expect(screen.getByText('javascript:alert("hw")')).toBeTruthy();
+      expect(screen.getByText('javascript:alert("sub")')).toBeTruthy();
+    });
   });
 });

@@ -13,4 +13,10 @@ describe('toCsv', () => {
       "'=1+1,'+96890000000,'-2,'@cmd",
     );
   });
+
+  it('neutralises formulas with leading whitespace and pipe commands', () => {
+    expect(toCsv([['   =SUM(A1)', '  -1+2', '|cmd']])).toBe(
+      "'   =SUM(A1),'  -1+2,'|cmd",
+    );
+  });
 });

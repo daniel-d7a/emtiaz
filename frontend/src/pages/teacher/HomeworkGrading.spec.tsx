@@ -277,5 +277,25 @@ describe('Teacher Homework UI & Grading', () => {
 
       expect(onSuccess).toHaveBeenCalled();
     });
+
+    it('does not render executable link for unsafe javascript URLs', () => {
+      renderWithProviders(
+        <GradingDrawerModal
+          groupId="group-1"
+          homeworkId="hw-1"
+          maxScore={10}
+          studentName="Fatima Al-Hinai"
+          submission={{
+            ...studentSubmission,
+            url: 'javascript:alert(1)',
+          }}
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByRole('link', { name: /فتح الرابط الخارجي|Open external link/i })).toBeNull();
+      expect(screen.getByText('javascript:alert(1)')).toBeTruthy();
+    });
   });
 });

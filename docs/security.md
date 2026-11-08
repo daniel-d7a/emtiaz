@@ -78,6 +78,8 @@ or parent ownership rights.
 | Link/unlink a child by student monitoring code or QR | no | no | no | yes |
 | Download lesson attachment | yes | owner | enrolled + unlocked | no |
 | Upload/manage attachments | no | owner | no | no |
+| Download/view homework file | yes | owner | enrolled + unlocked + visible | linked child enrolled + unlocked + visible |
+| Download/view homework submission file | yes | owner | submitting student | linked to submitting student |
 | Upload own avatar | yes | yes | yes | yes |
 | Upload own banner | no | yes | no | no |
 | Read own inbox / mark read | yes | yes | yes | yes |
@@ -170,6 +172,16 @@ name into the taxonomy; editing or deleting taxonomy entries stays admin-only.
   endpoints, which repeat the teacher ownership and student enrollment/unlock
   checks. The file endpoint 302s to a short-lived signed URL so inline previews
   do not expose bucket keys.
+- Homework files (`/api/storage/homework/:id/file`) require course ownership
+  (teacher), enrollment in an active group with the lesson unlocked and homework
+  not hidden (student), or an active child link to an eligible enrolled student
+  (parent); admins have full read access. Homework objects must stay under
+  `courses/<courseId>/lessons/<lessonId>/` or `courses/<courseId>/`.
+- Homework submission files (`/api/storage/homework-submissions/:id/file`)
+  are restricted to the submitting student, the course teacher, or a parent
+  linked to the submitting student (and admins). Submission objects must stay
+  under `submissions/<homeworkId>/`. Deletion on update/delete is strictly
+  constrained to these respective key prefixes.
 
 ## Exports
 

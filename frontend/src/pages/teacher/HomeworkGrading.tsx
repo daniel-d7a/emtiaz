@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { teacherApi } from '../../lib/api';
-import { submissionFileUrl } from '../../lib/attachment';
+import { isSafeHttpUrl, submissionFileUrl } from '../../lib/attachment';
 import { formatDateTime, useLang } from '../../lib/i18n';
 import { Badge, Button, Card, Dialog, ErrorBox, Input, Loading } from '../../components/ui';
 import type {
@@ -466,15 +466,22 @@ export function GradingDrawerModal({
 
           {submission.url && (
             <div className="mt-1">
-              <a
-                href={submission.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light/20 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary-light/40"
-              >
-                <Link2 size={16} />
-                <span>{t('openStudentLink')}</span>
-              </a>
+              {isSafeHttpUrl(submission.url) ? (
+                <a
+                  href={submission.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light/20 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary-light/40"
+                >
+                  <Link2 size={16} />
+                  <span>{t('openStudentLink')}</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-soft">
+                  <Link2 size={16} />
+                  <span className="truncate font-mono text-xs">{submission.url}</span>
+                </span>
+              )}
             </div>
           )}
 
