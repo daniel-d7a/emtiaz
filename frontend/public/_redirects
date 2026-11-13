@@ -1,0 +1,4 @@
+/assets/*  /assets/:splat  200
+/landing   /landing/       308
+/landing/* /landing/:splat 200
+/*         /404.html       200

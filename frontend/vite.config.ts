@@ -50,8 +50,10 @@ function landingPlugin(): Plugin {
       }
       const distIndex = resolve(__dirname, "dist/index.html");
       const dist200 = resolve(__dirname, "dist/200.html");
+      const dist404 = resolve(__dirname, "dist/404.html");
       if (existsSync(distIndex)) {
         cpSync(distIndex, dist200);
+        cpSync(distIndex, dist404);
       }
     },
   };
