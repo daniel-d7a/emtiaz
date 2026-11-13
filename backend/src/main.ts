@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger, requestId } from './lib/logger';
 import { LoginLockout, RedisLoginLockout, loginLockoutMiddleware } from './auth/login-lockout';
+import { authAuditMiddleware } from './auth/auth-audit';
 import { Redis } from 'ioredis';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -41,6 +42,7 @@ export async function createApp(): Promise<INestApplication> {
     : undefined;
   redis?.on('error', (err) => logger.warn({ err }, 'login lockout Redis error'));
   const lockout = redis ? new RedisLoginLockout(redis) : new LoginLockout();
+  app.use('/api/auth', authAuditMiddleware());
   app.use('/api/auth', loginLockoutMiddleware(lockout));
   app.use('/api/auth', toNodeHandler(auth.handler));
   if (docsEnabled) {

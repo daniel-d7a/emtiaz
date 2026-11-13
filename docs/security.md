@@ -33,6 +33,12 @@ the checklist to keep in mind when adding endpoints or screens.
   students and linked parents, and reject student writes (`submitQuiz`,
   `markComplete`, `unmarkComplete`) as well as new enrollments (`joinGroupByCode`,
   `bulkAddStudents`, `moveStudent`, `adminEnroll`) until reactivated.
+- Every sign-in, failed sign-in, registration, failed registration, sign-out,
+  and rejected sign-out is written to the admin audit log (`auth.login`,
+  `auth.login_failed`, `auth.register`, `auth.register_failed`, `auth.logout`,
+  `auth.logout_failed`) with actor, IP, user agent, and HTTP status. Attempts
+  whose identifier matches no user are not audited because an audit row
+  requires an actor.
 - Sign-in lockout: after `LOGIN_LOCKOUT_MAX` failures (default 5) for the same
   email or phone number within `LOGIN_LOCKOUT_WINDOW_MS` (default 15 min), sign-in
   returns `429` with `Retry-After` for `LOGIN_LOCKOUT_MS` (default 15 min). A
@@ -51,11 +57,11 @@ the checklist to keep in mind when adding endpoints or screens.
 Every user row has a role, but ownership checks are still required — a role
 alone never grants access to another user's course, group, or child.
 
-An `ADMIN` also needs the route's admin permission. `admin_roles` stores a
+An `ADMIN` authenticates via the dedicated administrator portal (`/admin/login`), and also needs the route's admin permission. `admin_roles` stores a
 permission list and `user.admin_role_id` links an admin to one; the global
 `AdminPermissionGuard` checks `@RequirePermission(...)`. An admin with no
 assigned role keeps full access. Assigning a role never grants teacher, student,
-or parent ownership rights.
+or parent ownership rights. Anonymous attempts to access `/admin/*` route guards redirect to `/admin/login`.
 
 ## Authorization matrix
 

@@ -16,7 +16,7 @@ import {
   users,
 } from '../../db/schema';
 import { StudentService } from '../student/student.service';
-import type { ParentChildHomeworkDto } from '../../../../shared/api';
+import type { ParentChildHomeworkDto } from '../../../shared/api';
 
 @Injectable()
 export class ParentService {

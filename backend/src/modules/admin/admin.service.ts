@@ -44,8 +44,8 @@ import {
   teacherSubscriptions,
   users,
 } from '../../db/schema';
-import type { ResetUserPasswordResultDto } from '../../../../shared/api';
-import { type AuditCategory, getActionsForCategory } from '../../../../shared/audit-events';
+import type { ResetUserPasswordResultDto } from '../../../shared/api';
+import { type AuditCategory, getActionsForCategory } from '../../../shared/audit-events';
 import type { AdminPermission } from '../../lib/admin-permissions';
 import {
   serializeAdminAuditEntry,

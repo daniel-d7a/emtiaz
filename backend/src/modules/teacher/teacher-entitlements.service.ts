@@ -26,7 +26,7 @@ import type {
   TeacherEntitlementsResponse,
   TeacherEntitlementStatus,
   TeacherUpgradeOption,
-} from '../../../../shared/api';
+} from '../../../shared/api';
 
 @Injectable()
 export class TeacherEntitlementsService {

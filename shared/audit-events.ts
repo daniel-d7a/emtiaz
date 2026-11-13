@@ -224,6 +224,48 @@ export const AUDIT_EVENTS: Record<string, AuditEventDefinition> = {
   },
 
   // Users & Auth
+  'auth.login': {
+    action: 'auth.login',
+    category: 'USERS_AUTH',
+    nameAr: 'تسجيل دخول',
+    nameEn: 'Sign In',
+    targetType: 'user',
+  },
+  'auth.login_failed': {
+    action: 'auth.login_failed',
+    category: 'USERS_AUTH',
+    nameAr: 'محاولة تسجيل دخول فاشلة',
+    nameEn: 'Failed Sign In',
+    targetType: 'user',
+  },
+  'auth.register': {
+    action: 'auth.register',
+    category: 'USERS_AUTH',
+    nameAr: 'تسجيل حساب جديد',
+    nameEn: 'Register',
+    targetType: 'user',
+  },
+  'auth.register_failed': {
+    action: 'auth.register_failed',
+    category: 'USERS_AUTH',
+    nameAr: 'محاولة تسجيل حساب فاشلة',
+    nameEn: 'Failed Registration',
+    targetType: 'user',
+  },
+  'auth.logout': {
+    action: 'auth.logout',
+    category: 'USERS_AUTH',
+    nameAr: 'تسجيل خروج',
+    nameEn: 'Sign Out',
+    targetType: 'user',
+  },
+  'auth.logout_failed': {
+    action: 'auth.logout_failed',
+    category: 'USERS_AUTH',
+    nameAr: 'محاولة تسجيل خروج فاشلة',
+    nameEn: 'Failed Sign Out',
+    targetType: 'user',
+  },
   'user.password.reset': {
     action: 'user.password.reset',
     category: 'USERS_AUTH',

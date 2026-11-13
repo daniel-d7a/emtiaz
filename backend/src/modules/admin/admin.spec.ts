@@ -298,6 +298,12 @@ describe('Phase 5: admin endpoints', () => {
     expect(
       usersAuthRes.body.every((r: any) =>
         [
+          'auth.login',
+          'auth.login_failed',
+          'auth.register',
+          'auth.register_failed',
+          'auth.logout',
+          'auth.logout_failed',
           'user.password.reset',
           'user.status',
           'user.delete',
