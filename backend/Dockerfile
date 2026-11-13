@@ -20,4 +20,6 @@ RUN npm ci --legacy-peer-deps --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY backend/drizzle ./drizzle
 EXPOSE 3000
-CMD ["sh", "-c", "test -f dist/src/main.js && n=src || n=; node dist/${n:+src/}run-migrate.js && node dist/${n:+src/}db/seed.js; node dist/${n:+src/}main.js"]
+# Run migrations on startup; seed is commented out for production (run manually when needed):
+# && node dist/${n:+src/}db/seed.js
+CMD ["sh", "-c", "test -f dist/src/main.js && n=src || n=; node dist/${n:+src/}run-migrate.js && node dist/${n:+src/}main.js"]
