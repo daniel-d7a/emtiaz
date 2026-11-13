@@ -48,6 +48,11 @@ function landingPlugin(): Plugin {
       if (existsSync(landingDir)) {
         cpSync(landingDir, outDir, { recursive: true });
       }
+      const distIndex = resolve(__dirname, "dist/index.html");
+      const dist200 = resolve(__dirname, "dist/200.html");
+      if (existsSync(distIndex)) {
+        cpSync(distIndex, dist200);
+      }
     },
   };
 }
