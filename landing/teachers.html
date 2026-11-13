@@ -369,7 +369,7 @@
           <div class="plan reveal">
             ${badge}
             <h3>${name}</h3>
-            <p style="font-size:13px; color:var(--ink-soft); margin:6px 0 0;">${desc}</p>
+            <p style="font-size:21.5px; color:var(--ink-soft); margin:10px 0 0;">${desc}</p>
             <div class="price">${priceNum} <span>${priceUnit}</span></div>
             <ul>${items.map((it) => `<li>${it}</li>`).join('')}</ul>
             ${ctaButton}
@@ -404,8 +404,8 @@
             <div class="icon" style="margin-bottom:0;">${icons[f.icon]}</div>
             <span class="pill">${pick(dict.badge_soon)}</span>
           </div>
-          <h3 style="font-size:17px; margin-bottom:8px;">${pick(f.h)}</h3>
-          <p style="font-size:14px; color:var(--ink-soft); line-height:1.6;">${pick(f.p)}</p>
+          <h3 style="font-size:22px; margin-bottom:10px;">${pick(f.h)}</h3>
+          <p style="font-size:18px; color:var(--ink-soft); line-height:1.6;">${pick(f.p)}</p>
         </div>`).join('');
 
       renderPlans();
