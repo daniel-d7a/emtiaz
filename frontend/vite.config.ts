@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize, relative, resolve } from "path";
 import { defineConfig, type Plugin } from "vite";
 
@@ -19,12 +19,11 @@ const LANDING_TYPES: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-// Production serves ../landing from Caddy; in dev the SPA fallback would
-// swallow /landing/ and bounce through the router forever.
+// In dev the SPA fallback would swallow /landing/ and bounce through the router;
+// in build we bundle ../landing into dist/landing for production static hosts (Cloudflare Pages, Caddy).
 function landingPlugin(): Plugin {
   return {
     name: "emtiaz-landing",
-    apply: "serve",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] ?? "";
@@ -43,6 +42,12 @@ function landingPlugin(): Plugin {
         res.setHeader("Content-Type", LANDING_TYPES[extname(file).toLowerCase()] ?? "application/octet-stream");
         res.end(readFileSync(file));
       });
+    },
+    closeBundle() {
+      const outDir = resolve(__dirname, "dist/landing");
+      if (existsSync(landingDir)) {
+        cpSync(landingDir, outDir, { recursive: true });
+      }
     },
   };
 }
