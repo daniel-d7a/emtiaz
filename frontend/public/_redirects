@@ -1,1 +1,31 @@
-/landing /landing/ 308
+/landing       /landing/       308
+/landing/*     /landing/:splat 200
+/assets/*      /assets/:splat  200
+
+# Application SPA routes
+/admin         /index.html     200
+/admin/*       /index.html     200
+/change-password         /index.html     200
+/change-password/*       /index.html     200
+/courses       /index.html     200
+/courses/*     /index.html     200
+/join          /index.html     200
+/join/*        /index.html     200
+/login         /index.html     200
+/login/*       /index.html     200
+/parent        /index.html     200
+/parent/*      /index.html     200
+/privacy       /index.html     200
+/privacy/*     /index.html     200
+/profile       /index.html     200
+/profile/*     /index.html     200
+/register      /index.html     200
+/register/*    /index.html     200
+/student       /index.html     200
+/student/*     /index.html     200
+/t             /index.html     200
+/t/*           /index.html     200
+/teacher       /index.html     200
+/teacher/*     /index.html     200
+/terms         /index.html     200
+/terms/*       /index.html     200
