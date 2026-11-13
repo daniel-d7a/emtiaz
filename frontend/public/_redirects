@@ -1,3 +1,0 @@
-/landing /landing/ 308
-/landing/* /landing/:splat 200
-/* /index.html 200
