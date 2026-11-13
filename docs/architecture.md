@@ -185,8 +185,7 @@ the bucket and sets browser CORS for the configured frontend origins.
 
 ## Landing
 
-`landing/index.html` is the general bilingual marketing page; `landing/teachers.html`
-targets teachers. Both share `styles.css` and an inline `data-t` translation
+`landing/index.html` is the primary teacher-focused bilingual marketing page (also mirrored at `landing/teachers.html`). Both share `styles.css` and an inline `data-t` translation
 dictionary, so there is no build step. Caddy resolves extensionless page URLs.
 Per-teacher pages are not static: `/t/<slug>` is a web route backed by
 `GET /api/public/teachers/<slug>`, and published slugs are listed in

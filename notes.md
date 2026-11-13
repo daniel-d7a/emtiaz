@@ -11,20 +11,30 @@ Add new work as a ticket under the matching `.scratch/<feature>/issues/`
 directory. Record a structural decision as an ADR. Do not keep a parallel
 checklist here.
 
-- convert paths to absolute imports using the @ or ~ as root
+### Production Readiness & Infrastructure
+
+- buy a domain & configure SSL/DNS
+- transactional gateway (WhatsApp Business API / SMS gateway for Oman & Egypt, and email provider)
+  - attendance absent alerts
+  - homework / quiz deadlines
+  - admin password delivery
+- automated database backups (`pg_dump` encrypted & pushed to Cloudflare R2 bucket)
+- production error tracking & observability (Sentry / APM)
+- global NestJS `PostgresExceptionFilter` (map `22P02` invalid UUID to 400 Bad Request, `23505` to 409 Conflict)
+
+### Developer Experience
+
+- convert paths to absolute imports using `@/` as root (`tsconfig.json`, `vite.config.ts`)
 - check monorepo config if needed
+- contract parity check (ensure `shared/api.ts`, `frontend/src/lib/api.ts`, and `mobile/src/api.ts` stay aligned)
 
-- buy a domain
-- connect an email provider
+### Future Product & Engagement Ideas
 
-### just some ideas that shouldn't be implemented now
-
+- WhatsApp automated weekly digest for parents (attendance, homework completion, quiz grades)
 - think about AI features that could be added
-  - if teachers can upload the whole course curriculum to the platform some way or another, then we can use AI to generate quizes, questions, extra materials
-  - have a chat bot to answer questions about the platform for all kinds of users
-  - have the same AI guide users in answering questions without giving them answers
-
-- add whatsapp reminders
-- add recorded courses
-- add online recorded courses
-- add custom single teacher sub platforms with custom designs
+  - if teachers can upload the whole course curriculum to the platform, use AI to generate quizzes, questions, and extra materials
+  - chatbot to answer questions about the platform for all kinds of users
+  - AI tutor to guide students in answering homework/quiz questions without giving direct answers
+- mobile offline caching (TanStack Query persistence with SQLite / MMKV for curriculum and instructions)
+- recorded courses and online video library
+- custom single-teacher sub-platforms with custom themes/domains
