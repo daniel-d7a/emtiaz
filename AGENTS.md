@@ -24,6 +24,7 @@ cd mobile && npm run dev:tunnel                # Expo Go + compose tunnel
 - **Arabic is the source.** Both languages in `frontend/src/lib/i18n.tsx`; RTL is the default layout, not a text swap.
 - **Docs travel with the change.** Access change → `docs/security.md`; module or relationship → `docs/architecture.md`; structural decision → ADR in `docs/adr/`.
 - **Pre-launch means no legacy.** Remove unused columns and dead code; reseed instead of backfilling.
+- **SPA Routing on Cloudflare Pages.** Handled automatically by the Vite build plugin in `frontend/vite.config.ts`, which scans `frontend/src` for route definitions on every build and outputs non-looping `_redirects` rules for Cloudflare Pages. Never use a root catch-all `/* /index.html 200` or `/* /404.html 200` as Cloudflare Pages treats those as infinite redirect loops.
 
 ## Agent skills
 
