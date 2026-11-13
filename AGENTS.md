@@ -24,7 +24,7 @@ cd mobile && npm run dev:tunnel                # Expo Go + compose tunnel
 - **Arabic is the source.** Both languages in `frontend/src/lib/i18n.tsx`; RTL is the default layout, not a text swap.
 - **Docs travel with the change.** Access change → `docs/security.md`; module or relationship → `docs/architecture.md`; structural decision → ADR in `docs/adr/`.
 - **Pre-launch means no legacy.** Remove unused columns and dead code; reseed instead of backfilling.
-- **SPA Routing on Cloudflare Pages.** Handled by the catch-all Pages Function in `functions/[[path]].ts` and route-prefix rewrites in `frontend/public/_redirects`. Any missing route falls back to `/index.html` with a 200 OK for TanStack Router. Avoid global catch-all `/* /index.html 200` in `_redirects` which Cloudflare flags as a potential loop; use explicit route prefixes instead.
+- **SPA Routing on Cloudflare Workers Static Assets.** The frontend is deployed as a Cloudflare Worker with Static Assets (`emtiaz`), NOT legacy Cloudflare Pages. SPA fallback is configured via `"not_found_handling": "single-page-application"` in `wrangler.jsonc` (and `frontend/wrangler.jsonc`). Never put `200` rewrite rules to `/index.html` in `frontend/public/_redirects` (triggers Cloudflare error `100324`), and never add `_worker.js` or `functions/` as those are Pages-only features.
 
 ## Agent skills
 
