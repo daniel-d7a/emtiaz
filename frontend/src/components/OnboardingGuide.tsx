@@ -150,11 +150,13 @@ export function OnboardingGuide({ role, completedSteps = [] }: OnboardingGuidePr
           ];
 
   const doneCount = checklistItems.filter((item) => item.done).length;
+  const allDone = doneCount === checklistItems.length;
   const currentTourStep = tourSteps[stepIndex] ?? tourSteps[0];
   const isLastStep = stepIndex >= tourSteps.length - 1;
 
   return (
     <>
+      {!allDone && (
       <Card className="mb-6 border-primary/20 bg-primary/5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -221,6 +223,7 @@ export function OnboardingGuide({ role, completedSteps = [] }: OnboardingGuidePr
           </ol>
         )}
       </Card>
+      )}
 
       {tourOpen && (
         <Dialog

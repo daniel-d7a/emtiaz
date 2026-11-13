@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, QrCode } from 'lucide-react';
+import { Copy, QrCode, Sparkles } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
 import { api, teacherApi, type SessionUser } from '../lib/api';
 import { formatDateTime, localizeName, useLang } from '../lib/i18n';
 import { Badge, Button, Card, ErrorBox, IconButton, InfoHint, Input, Loading, Page, Progress, Select } from '../components/ui';
 import { ThemeHero, ThemeSurface } from '../components/TeacherTheme';
+import { TeacherPlansModal } from '../components/TeacherPlansModal';
 import { normalizeTheme } from '../lib/theme';
 import { deleteUploadedObject, uploadFile } from '../lib/upload';
 import type { CategoryItem, Country, CourseType, GradeItem, MeResponse, TeacherTheme } from '../../../shared/api';
@@ -547,6 +548,7 @@ function TeacherEntitlementsCard({
   const qc = useQueryClient();
   const [promoInput, setPromoInput] = useState('');
   const [copied, setCopied] = useState(false);
+  const [plansModalOpen, setPlansModalOpen] = useState(false);
   const { data: entitlements, isLoading } = useQuery({
     queryKey: ['teacher-entitlements'],
     queryFn: () => teacherApi.getEntitlements(),
@@ -662,16 +664,13 @@ function TeacherEntitlementsCard({
               : t('noExpiration')}
           </p>
         </div>
-        {whatsappUrl && (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-dark"
-          >
-            {t('upgradeViaWhatsapp')}
-          </a>
-        )}
+        <Button
+          onClick={() => setPlansModalOpen(true)}
+          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-dark"
+        >
+          <Sparkles size={16} />
+          <span>{t('upgradeOrViewPlans')}</span>
+        </Button>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -901,19 +900,27 @@ function TeacherEntitlementsCard({
         ) : (
           <div className="rounded-xl border border-dashed border-line bg-background p-4 text-center">
             <p className="text-xs text-ink-soft mb-3">{t('referralUpgradePrompt')}</p>
-            {whatsappUrl && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:bg-primary-dark"
-              >
-                {t('upgradeViaWhatsapp')}
-              </a>
-            )}
+            <Button
+              onClick={() => setPlansModalOpen(true)}
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-primary px-4 text-xs font-bold text-white transition hover:bg-primary-dark"
+            >
+              <Sparkles size={14} />
+              <span>{t('upgradeOrViewPlans')}</span>
+            </Button>
           </div>
         )}
       </div>
+
+      <TeacherPlansModal
+        open={plansModalOpen}
+        onOpenChange={setPlansModalOpen}
+        user={user}
+        activePlan={activePlan}
+        currency={currency}
+        supportWhatsapp={supportWhatsapp}
+        upgradeOptions={entitlements.upgradeOptions}
+        customPlanPrompt={entitlements.customPlanPrompt}
+      />
     </Card>
   );
 }

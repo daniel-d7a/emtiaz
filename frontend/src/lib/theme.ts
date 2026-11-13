@@ -11,9 +11,10 @@ export const defaultTheme: TeacherTheme = {
 };
 
 const fonts = {
-  cairo: '"Cairo", "Readex Pro", sans-serif',
-  readex: '"Readex Pro", "Cairo", sans-serif',
-  tajawal: '"Tajawal", "Cairo", sans-serif',
+  cairo: '"Parastoo", "Cairo", "Readex Pro", sans-serif',
+  parastoo: '"Parastoo", "Cairo", "Readex Pro", sans-serif',
+  readex: '"Parastoo", "Readex Pro", sans-serif',
+  tajawal: '"Parastoo", "Tajawal", sans-serif',
   'dm-sans': '"DM Sans", sans-serif',
   inter: '"Inter", "DM Sans", sans-serif',
 } as const;

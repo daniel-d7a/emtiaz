@@ -59,7 +59,11 @@ export function getActionBadgeStyle(action: string): string {
   ) {
     return 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30';
   }
-  if (action.endsWith('.delete') || action.endsWith('.remove')) {
+  if (
+    action.endsWith('.delete') ||
+    action.endsWith('.remove') ||
+    action.endsWith('_failed')
+  ) {
     return 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30';
   }
   if (

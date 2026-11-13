@@ -11,13 +11,14 @@ import {
   EyeOff,
   FileText,
   Link2,
+  PenLine,
   RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { teacherApi } from '../../lib/api';
 import { isSafeHttpUrl, submissionFileUrl } from '../../lib/attachment';
 import { formatDateTime, useLang } from '../../lib/i18n';
-import { Badge, Button, Card, Dialog, ErrorBox, Input, Loading } from '../../components/ui';
+import { Badge, Button, Card, Dialog, ErrorBox, IconButton, Input, Loading } from '../../components/ui';
 import type {
   HomeworkDto,
   HomeworkRosterSummaryDto,
@@ -299,13 +300,12 @@ export function HomeworkSubmissionsDialog({
                           </td>
                           <td className="px-3 py-2.5 text-end">
                             {sub ? (
-                              <Button
-                                variant="ghost"
-                                className="!min-h-8 !px-2.5 text-xs"
+                              <IconButton
+                                label={t('gradeAndReview')}
                                 onClick={() => setGradingTarget(item)}
                               >
-                                {t('gradeAndReview')}
-                              </Button>
+                                <PenLine size={16} />
+                              </IconButton>
                             ) : (
                               <span className="text-xs text-ink-soft">—</span>
                             )}

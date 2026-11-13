@@ -156,9 +156,9 @@ A warm, trust-building palette: cool teal for guidance, terracotta for warmth, s
 
 ## Typography
 
-**Display Font:** Cairo (with Readex Pro, sans-serif)
-**Body Font:** Cairo (with Readex Pro, sans-serif); English mode uses DM Sans
-**Character:** Cairo's open, humanist Arabic counters keep long lesson text readable on a phone; DM Sans is its quiet Latin counterpart. The pairing is warm and legible, never editorial or decorative.
+**Display Font:** Parastoo (with Readex Pro, Cairo, sans-serif)
+**Body Font:** Parastoo (with Readex Pro, Cairo, sans-serif); English mode uses DM Sans
+**Character:** Parastoo's refined Persian/Arabic curves and legible proportions keep lesson text clear and inviting on desktop and phone; DM Sans is its quiet Latin counterpart. The pairing is warm and legible, never editorial or decorative.
 
 ### Hierarchy
 - **Display** (700, `clamp(32px, 4.6vw, 54px)`, 1.25): landing hero headlines only.

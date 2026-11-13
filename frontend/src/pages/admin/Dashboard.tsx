@@ -39,7 +39,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <Page title={t('overview')}>
+    <Page title={t('overview')} wide>
       {overview.error ? <ErrorBox error={overview.error} /> : overview.data ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard icon={GraduationCap} label={t('teachers')} value={overview.data.totalTeachers} />

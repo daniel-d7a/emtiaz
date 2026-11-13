@@ -19,6 +19,7 @@ import { teacherNewGroupRoute } from './pages/teacher/NewGroup';
 import { teacherCurriculumRoute } from './pages/teacher/Curriculum';
 import { teacherGroupRoute } from './pages/teacher/Group';
 import { teacherUpgradeGateRoute } from './pages/teacher/UpgradeGate';
+import { adminLoginRoute } from './pages/admin/AdminLogin';
 import { adminDashboardRoute } from './pages/admin/Dashboard';
 import { adminTeachersRoute } from './pages/admin/Teachers';
 import { adminStudentsRoute } from './pages/admin/Students';
@@ -63,6 +64,7 @@ const routeTree = rootRoute.addChildren([
   teacherCurriculumRoute,
   teacherGroupRoute,
   teacherUpgradeGateRoute,
+  adminLoginRoute,
   adminDashboardRoute,
   adminTeachersRoute,
   adminStudentsRoute,

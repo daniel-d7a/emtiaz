@@ -4,13 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
+import { Ban, CheckCircle2, KeyRound, Pencil, Plus, RotateCcw, Trash2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
-  Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
+  ActionMenu, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, IconButton, Input, Loading, Page, Select,
 } from '../../components/ui';
 import { ResetPasswordModal, type ResetTargetUser } from '../../components/ResetPasswordModal';
 import { rootRoute } from '../../routes/__root';
@@ -169,12 +169,15 @@ export default function AdminParents() {
         }
         filters={
           <>
-            <button
-              onClick={() => setShowDeleted((v) => !v)}
-              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-            >
+            <label className="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold text-ink-soft">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="size-4 accent-primary"
+              />
               {t('showDeleted')}
-            </button>
+            </label>
             {hasFilters && (
               <button type="button" onClick={clearFilters} className="text-start text-sm font-semibold text-primary underline">
                 {t('clearFilters')}
@@ -217,56 +220,52 @@ export default function AdminParents() {
                         {parent.children.map((child) => child.name).join(' · ') || '—'}
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            onClick={() => setProfileId(parent.id)}
-                            className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                            title={t('profile')}
-                          >
-                            <UserRound className="inline" size={12} /> {t('profile')}
-                          </button>
-                          {parent.deletedAt ? canManageUsers && (
-                            <button
-                              onClick={() => restoreUser.mutate(parent.id)}
-                              className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
-                            >
-                              {t('restore')}
-                            </button>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <IconButton label={t('profile')} onClick={() => setProfileId(parent.id)}>
+                            <UserRound size={16} />
+                          </IconButton>
+                          {parent.deletedAt ? (
+                            canManageUsers && (
+                              <IconButton
+                                label={t('restore')}
+                                onClick={() => restoreUser.mutate(parent.id)}
+                              >
+                                <RotateCcw size={16} />
+                              </IconButton>
+                            )
                           ) : (
                             <>
-                              <button
-                                onClick={() => setEditing(parent)}
-                                className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                                title={t('edit')}
-                              >
-                                <Pencil className="inline" size={12} /> {t('edit')}
-                              </button>
+                              <IconButton label={t('edit')} onClick={() => setEditing(parent)}>
+                                <Pencil size={16} />
+                              </IconButton>
                               {canManageUsers && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => setResetPasswordTarget({ id: parent.id, name: parent.name, phoneNumber: parent.phoneNumber })}
-                                    className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
-                                    title={t('resetPassword')}
-                                  >
-                                    <KeyRound className="inline me-1" size={12} />
-                                    {t('resetPassword')}
-                                  </button>
-                                  <button
-                                    onClick={() => setStatus.mutate({ id: parent.id, isActive: !parent.isActive })}
-                                    className={`rounded-full px-3 py-1 text-xs font-bold ${parent.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                                  >
-                                    {parent.isActive ? t('suspend') : t('activate')}
-                                  </button>
-                                  <button
-                                    aria-label={`${t('delete')} ${parent.name}`}
-                                    onClick={() => setDeleteTarget(parent)}
-                                    className="text-ink-soft hover:text-danger"
-                                    title={t('delete')}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
+                                <ActionMenu
+                                  label={t('moreActions')}
+                                  items={[
+                                    {
+                                      label: t('resetPassword'),
+                                      icon: <KeyRound size={16} />,
+                                      onClick: () =>
+                                        setResetPasswordTarget({
+                                          id: parent.id,
+                                          name: parent.name,
+                                          phoneNumber: parent.phoneNumber,
+                                        }),
+                                    },
+                                    {
+                                      label: parent.isActive ? t('suspend') : t('activate'),
+                                      icon: parent.isActive ? <Ban size={16} /> : <CheckCircle2 size={16} />,
+                                      onClick: () =>
+                                        setStatus.mutate({ id: parent.id, isActive: !parent.isActive }),
+                                    },
+                                    {
+                                      label: `${t('delete')} ${parent.name}`,
+                                      icon: <Trash2 size={16} />,
+                                      danger: true,
+                                      onClick: () => setDeleteTarget(parent),
+                                    },
+                                  ]}
+                                />
                               )}
                             </>
                           )}

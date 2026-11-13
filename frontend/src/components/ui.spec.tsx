@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Button, ConfirmDialog, ErrorBox, InfoHint, Input, Progress, Select } from './ui';
+import { ActionMenu, Button, ConfirmDialog, ErrorBox, InfoHint, Input, Progress, Select } from './ui';
 import { OnboardingGuide } from './OnboardingGuide';
 import { LanguageProvider } from '../lib/i18n';
 
@@ -64,7 +64,54 @@ describe('UI primitives', () => {
   });
 });
 
+describe('ActionMenu', () => {
+  it('returns null if items array is empty', () => {
+    const { container } = render(<ActionMenu label="More" items={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('opens on click, renders items, and triggers action on click', () => {
+    const handleAction = vi.fn();
+    render(
+      <ActionMenu
+        label="More actions"
+        items={[
+          { label: 'Reset password', onClick: handleAction },
+          { label: 'Delete', danger: true, onClick: vi.fn() },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByRole('menu')).toBeNull();
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    fireEvent.click(trigger);
+
+    expect(screen.getByRole('menu')).toBeTruthy();
+    const item = screen.getByRole('menuitem', { name: 'Reset password' });
+    fireEvent.click(item);
+
+    expect(handleAction).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('closes on Escape key press', () => {
+    render(
+      <ActionMenu
+        label="More actions"
+        items={[{ label: 'Edit', onClick: vi.fn() }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('menu')).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+});
+
 describe('ConfirmDialog', () => {
+
   it('runs the confirmed action', () => {
     HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
       this.open = true;
@@ -181,9 +228,10 @@ describe('OnboardingGuide', () => {
       expect(screen.getByText('مرحباً بك في منصة امتياز')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'التالي' }));
-    fireEvent.click(screen.getByRole('button', { name: 'التالي' }));
-    fireEvent.click(screen.getByRole('button', { name: 'حسناً' }));
+    const nextBtn = await screen.findByRole('button', { name: 'التالي' });
+    fireEvent.click(nextBtn);
+    fireEvent.click(await screen.findByRole('button', { name: 'التالي' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'حسناً' }));
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(
@@ -195,6 +243,34 @@ describe('OnboardingGuide', () => {
       );
     });
 
+    fetchSpy.mockRestore();
+  });
+
+  it('hides the checklist once every step is complete', async () => {
+    localStorage.clear();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/api/me')) {
+        return new Response(
+          JSON.stringify({
+            user: { id: 'student-1', name: 'Maha', role: 'STUDENT', onboardingCompletedAt: '2026-01-01' },
+            onboardingCompletedAt: '2026-01-01',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response('{}', { status: 200 });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <LanguageProvider>
+        <QueryClientProvider client={qc}>
+          <OnboardingGuide role="STUDENT" completedSteps={[true, true, true]} />
+        </QueryClientProvider>
+      </LanguageProvider>,
+    );
+
+    expect(screen.queryByText('كيف أبدأ؟')).toBeNull();
     fetchSpy.mockRestore();
   });
 });

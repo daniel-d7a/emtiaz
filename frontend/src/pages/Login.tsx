@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearch, createRoute } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { GraduationCap, HeartHandshake, MessageCircle, Users } from 'lucide-react';
+import { GraduationCap, HeartHandshake, MessageCircle, Shield, Users } from 'lucide-react';
 import { authApi, publicApi } from '../lib/api';
 import { sessionQuery } from '../lib/session';
 import { useLang } from '../lib/i18n';
@@ -194,8 +194,15 @@ export default function Login() {
           </Link>
         </div>
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex flex-col items-center gap-2">
           <ReportProblemButton context={`login-${activeRole}`} />
+          <Link
+            to="/admin/login"
+            className="inline-flex items-center gap-1 text-xs text-ink-soft transition hover:text-primary"
+          >
+            <Shield size={12} />
+            <span>{t('adminLogin')}</span>
+          </Link>
         </div>
       </Card>
 

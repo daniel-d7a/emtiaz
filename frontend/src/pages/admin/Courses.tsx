@@ -4,13 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
-  Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
+  Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, IconButton, Input, Loading, Page, Select,
 } from '../../components/ui';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
@@ -165,12 +165,15 @@ export default function AdminCourses() {
         }
         filters={
           <>
-            <button
-              onClick={() => setShowDeleted((v) => !v)}
-              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-            >
+            <label className="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold text-ink-soft">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="size-4 accent-primary"
+              />
               {t('showDeleted')}
-            </button>
+            </label>
             <Select label={t('specialization')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">{t('allSpecializations')}</option>
               {categories.data?.map((category) => (
@@ -240,31 +243,26 @@ export default function AdminCourses() {
                       </td>
                       <td className="px-3 py-2 tabular-nums">{course.groups.length}</td>
                       <td className="px-3 py-2">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1">
                           {course.deletedAt ? (
-                            <button
+                            <IconButton
+                              label={t('restore')}
                               onClick={() => restoreCourse.mutate(course.id)}
-                              className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
                             >
-                              {t('restore')}
-                            </button>
+                              <RotateCcw size={16} />
+                            </IconButton>
                           ) : (
                             <>
-                              <button
-                                onClick={() => setEditing(course)}
-                                className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                                title={t('edit')}
-                              >
-                                <Pencil className="inline" size={12} /> {t('edit')}
-                              </button>
-                              <button
-                                aria-label={`${t('delete')} ${course.title}`}
+                              <IconButton label={t('edit')} onClick={() => setEditing(course)}>
+                                <Pencil size={16} />
+                              </IconButton>
+                              <IconButton
+                                label={`${t('delete')} ${course.title}`}
                                 onClick={() => setDeleteTarget(course)}
-                                className="text-ink-soft hover:text-danger"
-                                title={t('delete')}
+                                tone="danger"
                               >
-                                <Trash2 size={14} />
-                              </button>
+                                <Trash2 size={16} />
+                              </IconButton>
                             </>
                           )}
                         </div>

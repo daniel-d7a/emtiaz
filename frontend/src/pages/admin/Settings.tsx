@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { createRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi, api, type AdminPromoCode, type Plan } from '../../lib/api';
 import { formatDateTime, localizeName, useLang, type Key } from '../../lib/i18n';
-import { Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, Input, Loading, Page, Select } from '../../components/ui';
+import { Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, IconButton, Input, Loading, Page, Select } from '../../components/ui';
 import { rootRoute } from '../../routes/__root';
 import { requireRole, sessionQuery, useAdminPermissions } from '../../lib/session';
 import type { AdminPermission, AdminRole, AdminUser, Country } from '../../../../shared/api';
@@ -75,7 +75,7 @@ export default function AdminSettings() {
   });
 
   return (
-    <Page title={t('settings')}>
+    <Page title={t('settings')} wide>
       <div className="mb-4 flex flex-wrap gap-2">
         {tabs.map((item) => (
           <button
@@ -876,9 +876,9 @@ function PlansAndBillingTab({ settings }: { settings: NotificationSettings }) {
                       </Badge>
                     </td>
                     <td className="p-3 text-end">
-                      <Button variant="ghost" onClick={() => setEditingPlan(p)}>
-                        <Pencil size={14} /> {t('edit')}
-                      </Button>
+                      <IconButton label={t('edit')} onClick={() => setEditingPlan(p)}>
+                        <Pencil size={16} />
+                      </IconButton>
                     </td>
                   </tr>
                 ))}
@@ -1386,8 +1386,8 @@ function PromoCodesTab() {
                       </Badge>
                     </td>
                     <td className="p-3 text-end">
-                      <Button
-                        variant={pc.isActive ? 'ghost' : 'secondary'}
+                      <IconButton
+                        label={pc.isActive ? t('suspend') : t('activate')}
                         onClick={() =>
                           toggleMutation.mutate({
                             id: pc.id,
@@ -1396,8 +1396,8 @@ function PromoCodesTab() {
                         }
                         disabled={toggleMutation.isPending}
                       >
-                        {pc.isActive ? t('suspend') : t('activate')}
-                      </Button>
+                        {pc.isActive ? <Ban size={16} /> : <CheckCircle2 size={16} />}
+                      </IconButton>
                     </td>
                   </tr>
                 ))}

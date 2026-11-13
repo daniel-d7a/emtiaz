@@ -1,6 +1,6 @@
 import { Link, createRoute, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Copy, Plus } from 'lucide-react';
+import { ArrowLeft, Copy, ExternalLink, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateTime, formatDays, useLang } from '../../lib/i18n';
 import { Badge, Button, Card, EmptyState, ErrorBox, IconButton, InfoHint, Loading, Page, Progress } from '../../components/ui';
@@ -81,8 +81,14 @@ export default function TeacherCourseGroups() {
                     </td>
                     <td className="border-b border-line px-3 py-3">
                       <div className="flex items-center gap-1">
-                        <Link to="/teacher/groups/$groupId" params={{ groupId: group.id }} className="rounded-lg px-2 py-1 font-semibold text-primary hover:bg-primary-light">
-                          {t('open')}
+                        <Link
+                          to="/teacher/groups/$groupId"
+                          params={{ groupId: group.id }}
+                          aria-label={t('open')}
+                          title={t('open')}
+                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-soft hover:bg-line/60 hover:text-ink"
+                        >
+                          <ExternalLink size={16} />
                         </Link>
                         <IconButton
                           label={t('copyJoinLink')}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, ListTree, MoreVertical, Pencil, Plus, Users } from 'lucide-react';
+import { BookOpen, Clock, Eye, EyeOff, ListTree, Pencil, Plus, TrendingUp, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { deleteUploadedObject } from '../../lib/upload';
 import { useLang } from '../../lib/i18n';
-import { Badge, Button, Card, Dialog, EmptyState, ErrorBox, InfoHint, Input, Loading, Page, StatCard } from '../../components/ui';
+import { ActionMenu, Badge, Button, Card, Dialog, EmptyState, ErrorBox, InfoHint, Input, Loading, Page, StatCard } from '../../components/ui';
 import type { MeResponse, PresignedUpload, TeacherCourse as Course, TeacherStats } from '../../../../shared/api';
 import { ThemeStrip, ThemeSurface } from '../../components/TeacherTheme';
 import { OnboardingGuide } from '../../components/OnboardingGuide';
@@ -114,67 +114,131 @@ function CourseCard({
   publishing: boolean;
 }) {
   const { t } = useLang();
+  const [editing, setEditing] = useState(false);
   const typeLabel = course.courseType === 'ACADEMIC' ? t('academic') : t('general');
 
   return (
-    <Card className="relative !p-0">
-      <Link
-        to="/teacher/courses/$courseId/groups"
-        params={{ courseId: course.id }}
-        className="block p-5 pe-14"
-      >
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Badge tone={course.courseType === 'ACADEMIC' ? 'primary' : 'secondary'}>{typeLabel}</Badge>
-          <Badge>{course.isPublished ? t('active') : t('suspended')}</Badge>
-        </div>
-        <h3 className="text-lg font-bold">{course.title}</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Badge tone="primary" className="tabular-nums">{course.analytics.groups} {t('groups')}</Badge>
-          <Badge tone="primary" className="tabular-nums">{course.analytics.students} {t('students')}</Badge>
-          <Badge tone="primary" className="tabular-nums">{course.analytics.lessons} {t('lessons')}</Badge>
-          <Badge className="tabular-nums">{t('progress')} {course.analytics.avgProgress}%</Badge>
-        </div>
-        <p className="mt-3 text-sm text-ink-soft">
-          {t('latestLesson')}: {course.latestLesson?.title ?? t('noLatestLesson')}
-        </p>
-      </Link>
-
-      <details className="absolute end-3 top-3 z-10">
-        <summary
-          aria-label={t('actions')}
-          className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl border border-line bg-surface text-ink-soft hover:text-primary [&::-webkit-details-marker]:hidden"
-        >
-          <MoreVertical size={18} />
-        </summary>
-        <div className="absolute end-0 top-full mt-1 w-52 overflow-hidden rounded-xl border border-line bg-surface text-sm">
-          <div className="border-b border-line px-4 py-3">
-            <EditCourse course={course} />
+    <Card className="flex flex-col gap-4 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3.5">
+          {course.imageUrl && (
+            <img
+              src={course.imageUrl}
+              alt=""
+              className="size-16 shrink-0 rounded-xl border border-line object-cover sm:size-20"
+            />
+          )}
+          <div className="min-w-0">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              <Badge tone={course.courseType === 'ACADEMIC' ? 'primary' : 'secondary'}>
+                {typeLabel}
+              </Badge>
+              <Badge tone={course.isPublished ? 'neutral' : 'secondary'}>
+                {course.isPublished ? t('active') : t('suspended')}
+              </Badge>
+            </div>
+            <h3 className="text-lg font-bold text-ink">
+              <Link
+                to="/teacher/courses/$courseId/groups"
+                params={{ courseId: course.id }}
+                className="transition hover:text-primary"
+              >
+                {course.title}
+              </Link>
+            </h3>
+            {course.description && (
+              <p className="mt-1 line-clamp-2 text-xs text-ink-soft">
+                {course.description}
+              </p>
+            )}
           </div>
-          <Link to="/teacher/courses/$courseId/groups" params={{ courseId: course.id }} className="flex min-h-11 items-center gap-2 px-4 font-semibold hover:bg-line/40">
-            <Users size={16} /> {t('groups')}
-          </Link>
-          <Link to="/teacher/courses/$courseId/curriculum" params={{ courseId: course.id }} className="flex min-h-11 items-center gap-2 px-4 font-semibold hover:bg-line/40">
-            <ListTree size={16} /> {t('curriculum')}
-          </Link>
-          <button
-            type="button"
-            onClick={() => publish(course)}
-            disabled={publishing}
-            className="flex min-h-11 w-full items-center gap-2 px-4 text-start font-semibold hover:bg-line/40"
-          >
-            {course.isPublished ? <EyeOff size={16} /> : <Eye size={16} />}
-            {course.isPublished ? t('suspend') : t('activate')}
-          </button>
         </div>
-      </details>
+
+        <ActionMenu
+          label={t('moreActions')}
+          items={[
+            {
+              label: t('edit'),
+              icon: <Pencil size={16} />,
+              onClick: () => setEditing(true),
+            },
+            {
+              label: course.isPublished ? t('suspend') : t('activate'),
+              icon: course.isPublished ? <EyeOff size={16} /> : <Eye size={16} />,
+              onClick: () => publish(course),
+              disabled: publishing,
+            },
+          ]}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line/60 pt-3 text-xs text-ink-soft">
+        <span className="inline-flex items-center gap-1.5">
+          <Users size={14} className="shrink-0 text-primary" />
+          <span className="font-semibold tabular-nums text-ink">{course.analytics.students}</span> {t('students')}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <BookOpen size={14} className="shrink-0 text-primary" />
+          <span className="font-semibold tabular-nums text-ink">{course.analytics.lessons}</span> {t('lessons')}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <TrendingUp size={14} className="shrink-0 text-primary" />
+          <span className="font-semibold tabular-nums text-ink">{course.analytics.avgProgress}%</span> {t('progress')}
+        </span>
+        {course.latestLesson && (
+          <span className="inline-flex items-center gap-1.5 truncate text-ink-soft">
+            <Clock size={14} className="shrink-0" />
+            <span>{t('latestLesson')}:</span>
+            <span className="truncate font-medium text-ink">{course.latestLesson.title}</span>
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <Link
+          to="/teacher/courses/$courseId/groups"
+          params={{ courseId: course.id }}
+          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink transition hover:border-primary/50 hover:bg-surface-subtle"
+        >
+          <Users size={15} className="shrink-0 text-primary" />
+          <span>{t('groups')}</span>
+          <span className="rounded-full bg-primary-light/60 px-2 py-0.5 text-[11px] font-bold tabular-nums text-primary-dark">
+            {course.analytics.groups}
+          </span>
+        </Link>
+
+        <Link
+          to="/teacher/courses/$courseId/curriculum"
+          params={{ courseId: course.id }}
+          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-ink transition hover:border-primary/50 hover:bg-surface-subtle"
+        >
+          <ListTree size={15} className="shrink-0 text-primary" />
+          <span>{t('curriculum')}</span>
+        </Link>
+      </div>
+
+      {editing && (
+        <EditCourseDialog
+          course={course}
+          open={editing}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </Card>
   );
 }
 
-function EditCourse({ course }: { course: Course }) {
+function EditCourseDialog({
+  course,
+  open,
+  onClose,
+}: {
+  course: Course;
+  open: boolean;
+  onClose: () => void;
+}) {
   const { t } = useLang();
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? '');
   const [previewUrl, setPreviewUrl] = useState(course.previewUrl ?? '');
@@ -219,7 +283,7 @@ function EditCourse({ course }: { course: Course }) {
     },
     onSuccess: () => {
       toast.success(t('saved'));
-      setOpen(false);
+      onClose();
       if (imagePreview) URL.revokeObjectURL(imagePreview);
       setImageFile(null);
       setImagePreview(null);
@@ -238,8 +302,8 @@ function EditCourse({ course }: { course: Course }) {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  const close = () => {
-    setOpen(false);
+  const handleClose = () => {
+    onClose();
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
@@ -247,70 +311,65 @@ function EditCourse({ course }: { course: Course }) {
   };
 
   return (
-    <>
-      <button onClick={() => setOpen(true)} className="flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-primary">
-        <Pencil size={14} /> {t('edit')}
-      </button>
-      <Dialog
-        open={open}
-        onOpenChange={(next) => (next ? setOpen(true) : close())}
-        title={t('edit')}
-        footer={
-          <>
-            <Button variant="ghost" onClick={close}>{t('cancel')}</Button>
-            <Button onClick={() => save.mutate(undefined)} disabled={!title.trim() || save.isPending}>
-              {t('save')}
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-3">
-          <Input label={t('courseTitle')} value={title} onChange={(e) => setTitle(e.target.value)} />
-          <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseDescription')}</span>
-            <textarea
-              className="w-full rounded-xl border border-line bg-white px-4 py-3"
-              rows={4}
-              maxLength={2000}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (next ? null : handleClose())}
+      title={t('edit')}
+      footer={
+        <>
+          <Button variant="ghost" onClick={handleClose}>{t('cancel')}</Button>
+          <Button onClick={() => save.mutate(undefined)} disabled={!title.trim() || save.isPending}>
+            {t('save')}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <Input label={t('courseTitle')} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <label className="block">
+          <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseDescription')}</span>
+          <textarea
+            className="w-full rounded-xl border border-line bg-white px-4 py-3"
+            rows={4}
+            maxLength={2000}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+        <Input
+          label={t('previewUrl')}
+          value={previewUrl}
+          onChange={(e) => setPreviewUrl(e.target.value)}
+          placeholder="https://"
+          dir="ltr"
+        />
+        <div>
+          <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseImage')}</span>
+          {(imagePreview || course.imageUrl) && (
+            <img
+              src={imagePreview ?? course.imageUrl!}
+              alt=""
+              className="mb-2 h-32 w-full rounded-xl border border-line object-cover"
+            />
+          )}
+          <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
+            {save.isPending ? '…' : t('uploadFile')}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) pickImage(f);
+              }}
             />
           </label>
-          <Input
-            label={t('previewUrl')}
-            value={previewUrl}
-            onChange={(e) => setPreviewUrl(e.target.value)}
-            placeholder="https://"
-            dir="ltr"
-          />
-          <div>
-            <span className="mb-1 block text-sm font-semibold text-ink-soft">{t('courseImage')}</span>
-            {(imagePreview || course.imageUrl) && (
-              <img
-                src={imagePreview ?? course.imageUrl!}
-                alt=""
-                className="mb-2 h-32 w-full rounded-xl border border-line object-cover"
-              />
-            )}
-            <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
-              {save.isPending ? '…' : t('uploadFile')}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) pickImage(f);
-                }}
-              />
-            </label>
-            <p className="text-xs text-ink-soft">{t('imageHint')}</p>
-            {uploadError && <div className="mt-2"><ErrorBox error={uploadError} /></div>}
-          </div>
-          {save.error && <ErrorBox error={save.error} />}
+          <p className="text-xs text-ink-soft">{t('imageHint')}</p>
+          {uploadError && <div className="mt-2"><ErrorBox error={uploadError} /></div>}
         </div>
-      </Dialog>
-    </>
+        {save.error && <ErrorBox error={save.error} />}
+      </div>
+    </Dialog>
   );
 }
 

@@ -1,9 +1,30 @@
-import { Link, createRoute } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { Link, createRoute, useNavigate } from '@tanstack/react-router';
 import { BookOpen } from 'lucide-react';
 import { useLang } from '../lib/i18n';
+import { useSession } from '../lib/session';
+import { rootRoute } from '../routes/__root';
 
 export default function Home() {
   const { t } = useLang();
+  const navigate = useNavigate();
+  const { data: session, isLoading } = useSession();
+  const user = session?.user;
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (user) {
+      const home = {
+        TEACHER: '/teacher/dashboard',
+        ADMIN: '/admin/dashboard',
+        PARENT: '/parent/children',
+      } as const;
+      void navigate({ to: home[user.role as keyof typeof home] ?? '/student/dashboard' });
+    } else {
+      window.location.replace('/landing/');
+    }
+  }, [user, isLoading, navigate]);
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-4 py-24 text-center">
       <BookOpen className="text-primary" size={48} />
@@ -17,23 +38,11 @@ export default function Home() {
         >
           {t('teacher')} — {t('register')}
         </Link>
-        <Link
-          to="/register/$role"
-          params={{ role: 'student' }}
-          className="rounded-xl bg-secondary px-6 py-3 font-semibold text-white hover:brightness-110"
-        >
-          {t('student')} — {t('register')}
-        </Link>
       </div>
-      <Link to="/courses" className="rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-primary">
-        {t('browseCourses')}
-      </Link>
       <Link to="/login" className="pt-2 text-primary underline">{t('login')}</Link>
     </div>
   );
 }
-
-import { rootRoute } from '../routes/__root';
 
 export const homeRoute = createRoute({
   getParentRoute: () => rootRoute,

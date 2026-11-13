@@ -130,11 +130,13 @@ export function OnboardingGuide({
           ];
 
   const doneCount = checklistItems.filter((item) => item.done).length;
+  const allDone = doneCount === checklistItems.length;
   const currentTourStep = tourSteps[stepIndex] ?? tourSteps[0];
   const isLastStep = stepIndex >= tourSteps.length - 1;
 
   return (
     <>
+      {!allDone && (
       <Card>
         <View style={s.row}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
@@ -197,6 +199,7 @@ export function OnboardingGuide({
           </View>
         )}
       </Card>
+      )}
 
       <Modal
         visible={tourOpen}

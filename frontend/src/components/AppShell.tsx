@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   BookOpen, Globe, GraduationCap, HeartHandshake, Home, LayoutDashboard, LogOut,
   ScrollText, Settings, UserRound, Users,
@@ -142,7 +143,12 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   useEffect(() => setMenuOpen(false), [pathname]);
 
   const logout = async () => {
-    await authApi.logout();
+    try {
+      await authApi.logout();
+    } catch (e) {
+      toast.error((e as Error).message || t('errorOccurred'));
+      return;
+    }
     qc.clear();
     qc.setQueryData(sessionQuery.queryKey, null);
     navigate({ to: '/login' });

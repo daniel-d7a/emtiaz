@@ -5,7 +5,8 @@ import { translate } from './i18n';
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
   mutationCache: new MutationCache({
-    onError: (error) => {
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.options.onError) return;
       const message = error instanceof Error ? error.message : translate('errorOccurred');
       toast.error(message || translate('errorOccurred'));
     },

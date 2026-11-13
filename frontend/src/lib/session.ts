@@ -32,8 +32,10 @@ export async function requireAuth() {
 
 /** Route guard: redirects anonymous (or wrong-role) users to the login page. */
 export async function requireRole(role?: string) {
-  const session = await requireAuth();
-  if (role && session.user.role !== role) throw redirect({ to: '/login' });
+  const session = await queryClient.ensureQueryData(sessionQuery);
+  const fallback = role === 'ADMIN' ? '/admin/login' : '/login';
+  if (!session?.user) throw redirect({ to: fallback });
+  if (role && session.user.role !== role) throw redirect({ to: fallback });
   if (session.user.mustChangePassword) throw redirect({ to: '/change-password' });
   return session;
 }

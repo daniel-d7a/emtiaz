@@ -4,13 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createRoute, Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Pencil, Plus, Trash2, UserRound } from 'lucide-react';
+import { Ban, CheckCircle2, KeyRound, Pencil, Plus, RotateCcw, Trash2, UserRound, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { localizeName, useLang } from '../../lib/i18n';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import {
-  Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Select,
+  ActionMenu, type ActionMenuItem, Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, IconButton, Input, Loading, Page, Select,
 } from '../../components/ui';
 import { ResetPasswordModal, type ResetTargetUser } from '../../components/ResetPasswordModal';
 import type { TaxonomyItem } from '../../../../shared/api';
@@ -83,6 +83,7 @@ export default function AdminStudents() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<StudentRow | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [groupsModalStudent, setGroupsModalStudent] = useState<StudentRow | null>(null);
   const { studentId: linkedStudentId, groupId: linkedGroupId } = adminStudentsRoute.useSearch();
   useEffect(() => {
     if (linkedStudentId) setProfileId(linkedStudentId);
@@ -165,12 +166,15 @@ export default function AdminStudents() {
                 <Link to="/admin/students" search={{}} className="underline">{t('clearFilters')}</Link>
               </p>
             )}
-            <button
-              onClick={() => setShowDeleted((v) => !v)}
-              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-            >
+            <label className="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold text-ink-soft">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="size-4 accent-primary"
+              />
               {t('showDeleted')}
-            </button>
+            </label>
             {hasFilters && (
               <button type="button" onClick={clearFilters} className="text-start text-sm font-semibold text-primary underline">
                 {t('clearFilters')}
@@ -209,60 +213,71 @@ export default function AdminStudents() {
                       </td>
                       <td className="px-3 py-2" dir="ltr">{student.email}</td>
                       <td className="px-3 py-2" dir="ltr">{student.phoneNumber ?? '—'}</td>
-                      <td className="px-3 py-2 text-xs text-ink-soft">
-                        {student.enrollments.map((e) => `${e.courseTitle} · ${e.groupName}`).join(' / ') || '—'}
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => setGroupsModalStudent(student)}
+                          title={
+                            student.enrollments
+                              .map((e) => `${e.courseTitle} · ${e.groupName}`)
+                              .join(' / ') || t('notEnrolledYet')
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-primary/50 hover:bg-surface-subtle"
+                        >
+                          <Users size={14} className="text-primary shrink-0" />
+                          <span className="tabular-nums font-bold">
+                            {student.enrollments.length}
+                          </span>
+                          <span>{t('groups')}</span>
+                        </button>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            onClick={() => setProfileId(student.id)}
-                            className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                            title={t('profile')}
-                          >
-                            <UserRound className="inline" size={12} /> {t('profile')}
-                          </button>
-                          {student.deletedAt ? canManageUsers && (
-                            <button
-                              onClick={() => restoreUser.mutate(student.id)}
-                              className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
-                            >
-                              {t('restore')}
-                            </button>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <IconButton label={t('profile')} onClick={() => setProfileId(student.id)}>
+                            <UserRound size={16} />
+                          </IconButton>
+                          {student.deletedAt ? (
+                            canManageUsers && (
+                              <IconButton
+                                label={t('restore')}
+                                onClick={() => restoreUser.mutate(student.id)}
+                              >
+                                <RotateCcw size={16} />
+                              </IconButton>
+                            )
                           ) : (
                             <>
-                              <button
-                                onClick={() => setEditing(student)}
-                                className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                                title={t('edit')}
-                              >
-                                <Pencil className="inline" size={12} /> {t('edit')}
-                              </button>
+                              <IconButton label={t('edit')} onClick={() => setEditing(student)}>
+                                <Pencil size={16} />
+                              </IconButton>
                               {canManageUsers && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => setResetPasswordTarget({ id: student.id, name: student.name, phoneNumber: student.phoneNumber })}
-                                    className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
-                                    title={t('resetPassword')}
-                                  >
-                                    <KeyRound className="inline me-1" size={12} />
-                                    {t('resetPassword')}
-                                  </button>
-                                  <button
-                                    onClick={() => setStatus.mutate({ id: student.id, isActive: !student.isActive })}
-                                    className={`rounded-full px-3 py-1 text-xs font-bold ${student.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                                  >
-                                    {student.isActive ? t('suspend') : t('activate')}
-                                  </button>
-                                  <button
-                                    aria-label={`${t('delete')} ${student.name}`}
-                                    onClick={() => setDeleteTarget(student)}
-                                    className="text-ink-soft hover:text-danger"
-                                    title={t('delete')}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
+                                <ActionMenu
+                                  label={t('moreActions')}
+                                  items={[
+                                    {
+                                      label: t('resetPassword'),
+                                      icon: <KeyRound size={16} />,
+                                      onClick: () =>
+                                        setResetPasswordTarget({
+                                          id: student.id,
+                                          name: student.name,
+                                          phoneNumber: student.phoneNumber,
+                                        }),
+                                    },
+                                    {
+                                      label: student.isActive ? t('suspend') : t('activate'),
+                                      icon: student.isActive ? <Ban size={16} /> : <CheckCircle2 size={16} />,
+                                      onClick: () =>
+                                        setStatus.mutate({ id: student.id, isActive: !student.isActive }),
+                                    },
+                                    {
+                                      label: `${t('delete')} ${student.name}`,
+                                      icon: <Trash2 size={16} />,
+                                      danger: true,
+                                      onClick: () => setDeleteTarget(student),
+                                    },
+                                  ]}
+                                />
                               )}
                             </>
                           )}
@@ -304,6 +319,18 @@ export default function AdminStudents() {
           onResetPassword={(student) => setResetPasswordTarget(student)}
         />
       )}
+      {groupsModalStudent && (
+        <StudentGroupsDialog
+          key={groupsModalStudent.id}
+          student={groupsModalStudent}
+          onClose={() => setGroupsModalStudent(null)}
+          onOpenProfile={() => {
+            const sid = groupsModalStudent.id;
+            setGroupsModalStudent(null);
+            setProfileId(sid);
+          }}
+        />
+      )}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(next) => !next && setDeleteTarget(null)}
@@ -323,6 +350,116 @@ export default function AdminStudents() {
 
 function today(value: string, lang: 'ar' | 'en') {
   return new Date(value).toLocaleDateString(lang === 'ar' ? 'ar-OM' : 'en-GB');
+}
+
+function StudentGroupsDialog({
+  student,
+  onClose,
+  onOpenProfile,
+}: {
+  student: StudentRow;
+  onClose: () => void;
+  onOpenProfile: () => void;
+}) {
+  const { t, lang } = useLang();
+  const profile = useQuery({
+    queryKey: ['admin-student-profile', student.id],
+    queryFn: () => api<StudentProfile>(`/api/admin/students/${student.id}`),
+  });
+
+  const detailedGroups = profile.data?.groups;
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={`${t('studentGroups')} — ${student.name}`}
+      className="max-w-lg"
+      footer={
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onClose();
+              onOpenProfile();
+            }}
+          >
+            <UserRound size={16} />
+            <span>{t('manageEnrollments')}</span>
+          </Button>
+          <Button variant="secondary" onClick={onClose}>
+            {t('close')}
+          </Button>
+        </div>
+      }
+    >
+      <div className="max-h-[60vh] overflow-y-auto pe-1">
+        <div className="mb-3 rounded-xl border border-line bg-surface-subtle p-3 text-xs text-ink-soft">
+          <p className="font-semibold text-ink">{student.name}</p>
+          <p dir="ltr" className="mt-0.5">
+            {student.email} {student.phoneNumber ? `· ${student.phoneNumber}` : ''}
+          </p>
+        </div>
+
+        {profile.isLoading && !student.enrollments.length ? (
+          <Loading />
+        ) : detailedGroups && detailedGroups.length > 0 ? (
+          <div className="flex flex-col gap-2.5">
+            {detailedGroups.map((g) => (
+              <div
+                key={g.groupId}
+                className="flex flex-col gap-1.5 rounded-xl border border-line bg-surface p-3 transition hover:border-primary/40"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-ink">{g.courseTitle}</p>
+                  <Badge tone="primary">{g.groupName}</Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
+                  {g.teacherName && (
+                    <span>
+                      {t('teacher')}: <span className="font-semibold text-ink">{g.teacherName}</span>
+                    </span>
+                  )}
+                  {g.attendancePercent !== undefined && (
+                    <span>
+                      {t('attendance')}: <strong className="tabular-nums text-ink">{g.attendancePercent}%</strong>
+                    </span>
+                  )}
+                  {g.joinedAt && (
+                    <span>
+                      {t('enrolled')} {today(g.joinedAt, lang)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : student.enrollments.length > 0 ? (
+          <div className="flex flex-col gap-2.5">
+            {student.enrollments.map((e, idx) => (
+              <div
+                key={`${e.courseId}-${e.groupName}-${idx}`}
+                className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface p-3"
+              >
+                <div>
+                  <p className="font-semibold text-ink">{e.courseTitle}</p>
+                  <p className="text-xs text-ink-soft">
+                    {t('group')}: {e.groupName}
+                  </p>
+                </div>
+                <Badge tone="primary">{e.groupName}</Badge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-sm text-ink-soft">
+            <Users size={32} className="mx-auto mb-2 text-ink-soft/40" />
+            <p>{t('notEnrolledYet')}</p>
+          </div>
+        )}
+      </div>
+    </Dialog>
+  );
 }
 
 function CreateStudentDialog({

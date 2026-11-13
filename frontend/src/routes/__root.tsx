@@ -4,7 +4,7 @@ import { SiteBranding } from '../components/SiteBranding';
 import { useLang } from '../lib/i18n';
 import { useSession } from '../lib/session';
 
-const PUBLIC_ROUTE = /^\/($|login|register|join|t|privacy|terms)(\/|$)/;
+const PUBLIC_ROUTE = /^\/($|login|register|join|t|privacy|terms|admin\/login)(\/|$)/;
 
 function RootLayout() {
   const { lang } = useLang();

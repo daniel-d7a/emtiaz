@@ -9,7 +9,7 @@ function Marquee({ text, tone }: { text: string; tone: 'primary' | 'white' }) {
   const { lang } = useLang();
   const wrapRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
-  const [count, setCount] = useState(2);
+  const [metrics, setMetrics] = useState({ wrapWidth: 0, textWidth: 0, count: 2 });
   const textClass = tone === 'white' ? 'text-white' : 'text-primary';
 
   useEffect(() => {
@@ -18,7 +18,8 @@ function Marquee({ text, tone }: { text: string; tone: 'primary' | 'white' }) {
       const textWidth = textRef.current?.getBoundingClientRect().width ?? 0;
       if (!wrapWidth || !textWidth) return;
       const ratio = textWidth / wrapWidth;
-      setCount(ratio >= 0.7 ? 2 : ratio < 0.3 ? 4 : ratio < 0.5 ? 3 : 2);
+      const count = ratio >= 0.7 ? 2 : ratio < 0.3 ? 4 : ratio < 0.5 ? 3 : 2;
+      setMetrics({ wrapWidth, textWidth, count });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -28,8 +29,14 @@ function Marquee({ text, tone }: { text: string; tone: 'primary' | 'white' }) {
     return () => observer.disconnect();
   }, [text, lang]);
 
+  const { wrapWidth, textWidth, count } = metrics;
+  // Span at least 100% of the container width so the entire width is covered,
+  // or more if the count * minimum space needed exceeds wrapWidth.
+  const groupWidth = wrapWidth > 0 ? Math.max(wrapWidth, count * (textWidth + 48)) : 0;
+  const duration = groupWidth > 0 ? Math.max(16, Math.round(groupWidth / 50)) : 20;
+
   return (
-    <div ref={wrapRef} className="relative overflow-hidden">
+    <div ref={wrapRef} className="relative w-full overflow-hidden">
       <span
         ref={textRef}
         aria-hidden
@@ -38,12 +45,39 @@ function Marquee({ text, tone }: { text: string; tone: 'primary' | 'white' }) {
         {text}
       </span>
       <div
-        className={`marquee-track flex w-max whitespace-nowrap px-4 text-sm font-semibold ${textClass}`}
-        style={{ '--marquee-count': count } as CSSProperties}
+        className={`marquee-track flex w-max whitespace-nowrap text-sm font-semibold ${textClass}`}
+        style={{ '--marquee-duration': `${duration}s` } as CSSProperties}
       >
-        {Array.from({ length: count }, (_, index) => (
-          <span key={index} className="pe-8">{text}</span>
-        ))}
+        {/* Group 1: fills the width with equal spacing between count items */}
+        <div
+          className="flex shrink-0 items-center"
+          style={{ width: groupWidth > 0 ? `${groupWidth}px` : '100%' }}
+        >
+          {Array.from({ length: count }, (_, index) => (
+            <div
+              key={index}
+              className="flex flex-1 items-center justify-center px-4"
+            >
+              <span className="whitespace-nowrap">{text}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Group 2: identical clone for seamless infinite loop */}
+        <div
+          className="flex shrink-0 items-center"
+          aria-hidden="true"
+          style={{ width: groupWidth > 0 ? `${groupWidth}px` : '100%' }}
+        >
+          {Array.from({ length: count }, (_, index) => (
+            <div
+              key={index}
+              className="flex flex-1 items-center justify-center px-4"
+            >
+              <span className="whitespace-nowrap">{text}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

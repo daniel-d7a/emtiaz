@@ -8,12 +8,12 @@ import {
   flexRender, getCoreRowModel, getSortedRowModel, useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { ArrowUpDown, CreditCard, KeyRound, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowUpDown, Ban, CheckCircle2, CreditCard, KeyRound, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi, api, type AdminTeacherEntitlementsResponse, type Plan } from '../../lib/api';
 import { formatDateTime, localizeName, useLang } from '../../lib/i18n';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
-import { Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, Input, Loading, Page, Progress, Select, Sheet } from '../../components/ui';
+import { ActionMenu, type ActionMenuItem, Badge, Button, Card, ConfirmDialog, Dialog, ErrorBox, FilterLayout, IconButton, Input, Loading, Page, Progress, Select, Sheet } from '../../components/ui';
 import { ResetPasswordModal, type ResetTargetUser } from '../../components/ResetPasswordModal';
 import type { TaxonomyItem } from '../../../../shared/api';
 import { rootRoute } from '../../routes/__root';
@@ -195,73 +195,67 @@ export default function AdminTeachers() {
       header: t('settings'),
       cell: ({ row }) => {
         const teacher = row.original;
+        if (teacher.deletedAt) {
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              {canManageUsers && (
+                <IconButton
+                  label={t('restore')}
+                  onClick={() => restoreUser.mutate(teacher.id)}
+                >
+                  <RotateCcw size={16} />
+                </IconButton>
+              )}
+            </div>
+          );
+        }
+
+        const menuItems: ActionMenuItem[] = [
+          {
+            label: teacher.isTopTeacher ? t('unmarkTopTeacher') : t('topTeacherToggle'),
+            icon: <Sparkles size={16} className={teacher.isTopTeacher ? 'text-amber-500' : ''} />,
+            onClick: () => toggleTopTeacher.mutate({ id: teacher.id, isTopTeacher: !teacher.isTopTeacher }),
+          },
+          ...(canManageUsers
+            ? [
+                {
+                  label: t('resetPassword'),
+                  icon: <KeyRound size={16} />,
+                  onClick: () =>
+                    setResetPasswordTarget({
+                      id: teacher.id,
+                      name: teacher.name,
+                      phoneNumber: teacher.phoneNumber,
+                    }),
+                },
+                {
+                  label: teacher.isActive ? t('suspend') : t('activate'),
+                  icon: teacher.isActive ? <Ban size={16} /> : <CheckCircle2 size={16} />,
+                  onClick: () =>
+                    setStatus.mutate({ id: teacher.id, isActive: !teacher.isActive }),
+                },
+                {
+                  label: `${t('delete')} ${teacher.name}`,
+                  icon: <Trash2 size={16} />,
+                  danger: true,
+                  onClick: () => setDeleteTarget(teacher),
+                },
+              ]
+            : []),
+        ];
+
         return (
-          <div className="flex flex-wrap items-center gap-2">
-            {teacher.deletedAt ? canManageUsers && (
-              <button
-                onClick={() => restoreUser.mutate(teacher.id)}
-                className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary-dark"
-              >
-                {t('restore')}
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => toggleTopTeacher.mutate({ id: teacher.id, isTopTeacher: !teacher.isTopTeacher })}
-                  className={`rounded-full border px-3 py-1 text-xs font-bold transition inline-flex items-center gap-1 ${
-                    teacher.isTopTeacher
-                      ? 'border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100'
-                      : 'border-line text-ink-soft hover:border-amber-400 hover:text-amber-600'
-                  }`}
-                  title={t('topTeacherToggle')}
-                >
-                  <Sparkles size={12} className={teacher.isTopTeacher ? 'text-amber-500' : 'text-ink-soft'} />
-                  {teacher.isTopTeacher ? t('topTeacher') : t('topTeacherToggle')}
-                </button>
-                <button
-                  onClick={() => setEditing(teacher)}
-                  className="rounded-full border border-line px-3 py-1 text-xs font-bold"
-                  title={t('edit')}
-                >
-                  <Pencil className="inline" size={12} /> {t('edit')}
-                </button>
-                <button
-                  onClick={() => setEntitlementsTeacher(teacher)}
-                  className="rounded-full border border-primary/40 bg-primary-light/40 px-3 py-1 text-xs font-bold text-primary-dark hover:bg-primary-light"
-                  title={t('subscriptionAndEntitlements')}
-                >
-                  <CreditCard className="inline me-1" size={12} /> {t('subscriptionAndEntitlements')}
-                </button>
-                {canManageUsers && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setResetPasswordTarget({ id: teacher.id, name: teacher.name, phoneNumber: teacher.phoneNumber })}
-                      className="rounded-full border border-line px-3 py-1 text-xs font-bold hover:bg-surface-subtle"
-                      title={t('resetPassword')}
-                    >
-                      <KeyRound className="inline me-1" size={12} />
-                      {t('resetPassword')}
-                    </button>
-                    <button
-                      onClick={() => setStatus.mutate({ id: teacher.id, isActive: !teacher.isActive })}
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${teacher.isActive ? 'bg-primary-light text-primary-dark' : 'bg-secondary-light text-secondary'}`}
-                    >
-                      {teacher.isActive ? t('suspend') : t('activate')}
-                    </button>
-                    <button
-                      aria-label={`${t('delete')} ${teacher.name}`}
-                      onClick={() => setDeleteTarget(teacher)}
-                      className="text-ink-soft hover:text-danger"
-                      title={t('delete')}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </>
-                )}
-              </>
-            )}
+          <div className="flex flex-wrap items-center gap-1">
+            <IconButton label={t('edit')} onClick={() => setEditing(teacher)}>
+              <Pencil size={16} />
+            </IconButton>
+            <IconButton
+              label={t('subscriptionAndEntitlements')}
+              onClick={() => setEntitlementsTeacher(teacher)}
+            >
+              <CreditCard size={16} />
+            </IconButton>
+            <ActionMenu label={t('moreActions')} items={menuItems} />
           </div>
         );
       },
@@ -299,12 +293,15 @@ export default function AdminTeachers() {
         }
         filters={
           <>
-            <button
-              onClick={() => setShowDeleted((v) => !v)}
-              className={`min-h-10 w-full rounded-xl px-3 text-sm font-semibold ${showDeleted ? 'bg-primary text-white' : 'border border-line text-ink-soft'}`}
-            >
+            <label className="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold text-ink-soft">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="size-4 accent-primary"
+              />
               {t('showDeleted')}
-            </button>
+            </label>
             <Select label={t('specialization')} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
               <option value="">{t('allSpecializations')}</option>
               {categories.data?.map((category) => (
