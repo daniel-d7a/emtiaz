@@ -10,6 +10,7 @@
     "test:e2e": "jest --runInBand",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:bootstrap": "tsx src/db/bootstrap.ts",
     "db:seed": "tsx src/db/seed.ts",
     "storage:check": "tsx scripts/storage-check.ts",
     "s3:init": "tsx scripts/ensure-bucket.ts",
