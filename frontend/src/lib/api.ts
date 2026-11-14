@@ -174,12 +174,19 @@ export async function api<T = any>(
     credentials: 'include',
   });
   if (res.status === 204) return undefined as T;
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = (data as any)?.message || (data as any)?.error || res.statusText;
+  let parsedJson = true;
+  const data = await res.json().catch(() => {
+    parsedJson = false;
+    return {};
+  });
+  if (!res.ok || !parsedJson) {
+    const message =
+      (data as any)?.message ||
+      (data as any)?.error ||
+      (!parsedJson ? 'API unavailable' : res.statusText);
     const error = new ApiError(
       typeof message === 'string' ? message : JSON.stringify(message),
-      res.status,
+      res.ok ? 502 : res.status,
       data,
     );
     if (res.status === 402 && (data as any)?.error === 'PLAN_LIMIT_REACHED') {
@@ -195,10 +202,10 @@ export const authApi = {
     const session: Session = await fetch(`${BASE}/api/auth/get-session?disableCookieCache=true`, {
       credentials: 'include',
       cache: 'no-store',
-    }).then((r) => (r.ok ? r.json() : null));
-    if (session?.user.role === 'ADMIN') {
+    }).then((r) => (r.ok ? r.json().catch(() => null) : null));
+    if (session?.user?.role === 'ADMIN') {
       const res = await fetch(`${BASE}/api/admin/permissions`, { credentials: 'include', cache: 'no-store' });
-      session.user.permissions = res.ok ? await res.json() : [];
+      session.user.permissions = res.ok ? await res.json().catch(() => []) : [];
     }
     return session;
   },

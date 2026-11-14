@@ -18,7 +18,7 @@ export function useSite() {
 export function SiteBranding() {
   const { data } = useSite();
   useEffect(() => {
-    if (!data) return;
+    if (!data?.branding) return;
     const root = document.documentElement.style;
     const { primaryColor, secondaryColor } = data.branding;
     root.setProperty('--color-primary', primaryColor);
@@ -33,7 +33,7 @@ export function SiteBranding() {
 export function BrandMark({ size = 22 }: { size?: number }) {
   const { t } = useLang();
   const { data } = useSite();
-  const logo = data?.branding.logoUrl;
+  const logo = data?.branding?.logoUrl;
   return logo ? (
     <img src={logo} alt={t('appName')} className="h-7 w-auto object-contain" />
   ) : (
